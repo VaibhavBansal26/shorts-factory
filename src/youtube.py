@@ -46,7 +46,7 @@ def build_metadata(script: dict, cfg: dict) -> dict:
         title = f"{title[:88]} #Shorts"
     desc = (
         f"{script['description']}\n\n"
-        f"Source: {src['title']} — {src['name']}\n{src['url']}\n\n"
+        + (f"Source: {src['title']} — {src['name']}\n{src['url']}\n\n" if src.get("url") else "")
         + (f"Clips/images: {', '.join(script['media_credits'])}\n\n" if script.get("media_credits") else "")
         + f"Voiceover is AI-generated. Opinions are my own.\n\n{' '.join(tags)}"
     )

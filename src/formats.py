@@ -3,6 +3,8 @@ import random
 
 FORMATS = {
     "concept_explainer": {
+        "blurb": 'One idea, three steps, one takeaway.',
+        "theme": "default",
         "moods": ["calm", "any"],
         "label": "CONCEPT",
         "accent": (56, 189, 248),
@@ -15,6 +17,8 @@ FORMATS = {
         ),
     },
     "ask_question": {
+        "blurb": 'A debatable question that farms comments.',
+        "theme": "default",
         "moods": ["chill", "any"],
         "label": "QUESTION",
         "accent": (250, 204, 21),
@@ -26,6 +30,8 @@ FORMATS = {
         ),
     },
     "research_opinion": {
+        "blurb": 'What a paper found, your take, then a question.',
+        "theme": "default",
         "moods": ["calm", "any"],
         "label": "RESEARCH TAKE",
         "accent": (192, 132, 252),
@@ -37,6 +43,8 @@ FORMATS = {
         ),
     },
     "myth_vs_fact": {
+        "blurb": 'Flip a common misconception.',
+        "theme": "default",
         "moods": ["upbeat", "any"],
         "label": "MYTH vs FACT",
         "accent": (244, 114, 182),
@@ -47,6 +55,8 @@ FORMATS = {
         ),
     },
     "analogy": {
+        "blurb": 'Explain it with an everyday analogy.',
+        "theme": "default",
         "moods": ["chill", "any"],
         "label": "EXPLAINED SIMPLY",
         "accent": (52, 211, 153),
@@ -58,6 +68,8 @@ FORMATS = {
         ),
     },
     "interview_question": {
+        "blurb": 'Pose an interview question, then answer it.',
+        "theme": "default",
         "moods": ["tense", "any"],
         "label": "INTERVIEW Q",
         "accent": (251, 146, 60),
@@ -69,6 +81,8 @@ FORMATS = {
         ),
     },
     "hot_take": {
+        "blurb": 'One spicy but defensible opinion.',
+        "theme": "default",
         "moods": ["upbeat", "any"],
         "label": "HOT TAKE",
         "accent": (248, 113, 113),
@@ -80,6 +94,8 @@ FORMATS = {
         ),
     },
     "quick_news": {
+        "blurb": 'What happened and why engineers care.',
+        "theme": "default",
         "moods": ["upbeat", "any"],
         "label": "TECH NEWS",
         "accent": (96, 165, 250),
@@ -90,6 +106,8 @@ FORMATS = {
         ),
     },
     "this_vs_that": {
+        "blurb": 'When to use which.',
+        "theme": "default",
         "moods": ["upbeat", "any"],
         "label": "VERSUS",
         "accent": (45, 212, 191),
@@ -100,6 +118,8 @@ FORMATS = {
         ),
     },
     "meme_explainer": {
+        "blurb": 'Funny meme scenes that still teach the idea.',
+        "theme": "default",
         "label": "MEME",
         "moods": ["funny", "upbeat", "any"],
         "accent": (250, 170, 60),
@@ -112,16 +132,55 @@ FORMATS = {
         ),
     },
     "series_moment": {
+        "blurb": 'A clip from your library as the hook.',
+        "theme": "default",
         "label": "SERIES x TECH",
         "moods": ["funny", "upbeat", "any"],
         "accent": (236, 72, 153),
         "words": (55, 85),
         "guide": (
-            "Use ONE clip from the LIBRARY (a moment from a show/film) as the hook: say what happens in the "
-            "moment ('Remember when...'), connect it to a concept from the source, add one funny line and one real "
-            "takeaway. Use visual.type='library' with a listed library_id only; if no library item fits, use a meme "
-            "instead. Never describe the clip inaccurately; stay with its library description. Keep commentary the star: "
-            "the clip is a short illustration, not the content."
+            "A fan-dub parody of a Korean-drama (or any series) moment the user has put in the LIBRARY. Use only listed "
+            "library ids; if none fits, switch to memes. Make 3-5 `clip_dub` scenes, each with visual {type:'library', "
+            "library_id} (clips are shown muted, max ~8s each), a `voice` (male|female) and ONE short English line "
+            "(max 14 words) dubbed over it, in a dramatic tone, joking about an AI/tech idea from the source (hallucination, "
+            "prompting, tech debt...). Stay consistent with the library description of what the clip shows; never invent "
+            "plot, never imitate or name actors. Final scene: layout 'question', speaker narrator, one real takeaway plus a "
+            "question. The clip is the illustration; the commentary is the content."
+        ),
+    },
+    "sigma_reel": {
+        "blurb": "Deep voice, gold text, phonk bass. Rules of the sigma engineer.",
+        "theme": "sigma",
+        "label": "SIGMA",
+        "moods": ["sigma"],
+        "accent": (234, 179, 8),
+        "words": (45, 80),
+        "guide": (
+            "A 'sigma' motivational-edit parody for engineers: calm, absurdly serious, deep-voice energy. "
+            "Structure: a one-line hook ('Rule 1 of the sigma engineer'), 3-4 numbered rules, each one a real, "
+            "correct technical principle from the source (short, punchy, under 14 words), then a final line that "
+            "asks the viewer which rule they break most. The humour is the over-serious tone; the content must stay "
+            "accurate and useful. Headlines are ALL the rule in 3-6 words. No insults, no real people."
+        ),
+    },
+    "kdrama_parody": {
+        "blurb": "Two Korean-drama characters argue about AI, English-dubbed.",
+        "theme": "drama",
+        "label": "K-DRAMA x AI",
+        "moods": ["sigma", "tense"],
+        "accent": (244, 114, 182),
+        "words": (18, 60),
+        "guide": (
+            "A parody scene in the style of a melodramatic Korean TV series, about an AI/tech concept from the source "
+            "(hallucination, prompting, RAG, tech debt, evals...). Invent TWO original fictional characters in "
+            "`characters` (each: id, name, role, gender male|female, look one of chairman|intern|ai|hero|rival). "
+            "Never use real actors, real show titles or copy real dialogue; parody the TROPES only (cold chairman, "
+            "tearful intern, slap, rain scene, amnesia, love triangle, 'it's not what it looks like'). "
+            "4-5 dialogue scenes (layout 'dialogue'), speakers alternating. The characters are Korean (give them Korean "
+            "names plus `name_ko` in Hangul) and the show is ENGLISH-DUBBED: `narration` is the spoken ENGLISH line "
+            "(max ~14 words, melodramatic delivery, funny); `headline` is a short tag like 'Episode 7: The Hallucination'. "
+            "Do not use `subtitle`. The final scene: speaker 'narrator', layout 'question', English, giving the real "
+            "technical takeaway in one sentence plus a question to the viewer."
         ),
     },
 }

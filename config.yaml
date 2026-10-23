@@ -16,6 +16,9 @@ video:
     - /System/Library/Fonts/Supplemental/Arial Black.ttf
     - /System/Library/Fonts/Supplemental/Arial Bold.ttf
     - /usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf
+  fonts_ko:                      # for Hangul text on screen (episode tags)
+    - /System/Library/Fonts/AppleSDGothicNeo.ttc
+    - /usr/share/fonts/truetype/noto/NotoSansCJK-Bold.ttc
   music_dir: assets/music        # assets/music/<mood>/*.mp3  (moods: calm chill upbeat tense funny any)
   music_volume: 0.14             # music is ducked automatically while the voice speaks
   music:
@@ -26,6 +29,13 @@ voice:
   provider: edge                 # free Microsoft neural voices, no API key
   name: en-US-AndrewMultilingualNeural
   rate: "+6%"
+
+voices:                          # extra voices: sigma narrator + the two K-drama characters
+  sigma:     {name: en-US-GuyNeural,      rate: "-6%", pitch: "-14Hz"}
+  dub_male:  {name: en-US-ChristopherNeural, rate: "-4%", pitch: "-8Hz"}   # English dub (default for K-drama)
+  dub_female: {name: en-US-AriaNeural,       rate: "+2%", pitch: "+2Hz"}
+  ko_male:   {name: ko-KR-InJoonNeural,   rate: "+0%", pitch: "-6Hz"}      # only if a script sets "language": "ko"
+  ko_female: {name: ko-KR-SunHiNeural,    rate: "+4%", pitch: "+0Hz"}
 
 youtube:
   privacy: private               # private | unlisted | public  (start private, review, then switch)
@@ -47,6 +57,8 @@ formats:
   this_vs_that: 1
   meme_explainer: 3
   series_moment: 1   # needs clips in assets/library.yaml; falls back to memes
+  sigma_reel: 2
+  kdrama_parody: 2
 
 selection:
   max_age_days: 14

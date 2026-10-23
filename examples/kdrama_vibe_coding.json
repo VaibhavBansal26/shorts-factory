@@ -1,0 +1,71 @@
+{
+  "format": "kdrama_parody",
+  "title": "K-drama: nobody understands the AI code",
+  "source": {
+    "name": "Original",
+    "title": "AI-generated code and technical debt",
+    "url": ""
+  },
+  "description": "A parody Korean-drama scene (English-dubbed) about shipping AI-written code nobody understands. Fictional characters.",
+  "tags": [
+    "ai",
+    "coding",
+    "parody"
+  ],
+  "characters": [
+    {
+      "id": "seo",
+      "name": "Chairman Seo",
+      "role": "The Chairman",
+      "gender": "male",
+      "look": "chairman",
+      "name_ko": "서 회장"
+    },
+    {
+      "id": "jiwoo",
+      "name": "Intern Jiwoo",
+      "role": "The Intern",
+      "gender": "female",
+      "look": "intern",
+      "name_ko": "지우"
+    }
+  ],
+  "scenes": [
+    {
+      "speaker": "seo",
+      "narration": "Jiwoo, who wrote this code?",
+      "layout": "dialogue",
+      "headline": "Episode 2: The Technical Debt"
+    },
+    {
+      "speaker": "jiwoo",
+      "narration": "The AI wrote all of it, Chairman.",
+      "layout": "dialogue",
+      "headline": "Episode 2: The Technical Debt"
+    },
+    {
+      "speaker": "seo",
+      "narration": "Then who understands it?",
+      "layout": "dialogue",
+      "headline": "Episode 2: The Technical Debt"
+    },
+    {
+      "speaker": "jiwoo",
+      "narration": "...Nobody.",
+      "layout": "dialogue",
+      "headline": "Episode 2: The Technical Debt"
+    },
+    {
+      "speaker": "seo",
+      "narration": "That is called technical debt.",
+      "layout": "dialogue",
+      "headline": "Episode 2: The Technical Debt"
+    },
+    {
+      "speaker": "narrator",
+      "narration": "Use AI to write code, but review it like you wrote it. Would you ship code you can't explain?",
+      "layout": "question",
+      "headline": "Ship code you can't explain?"
+    }
+  ]
+}

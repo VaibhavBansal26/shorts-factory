@@ -49,6 +49,7 @@ def main():
     lb.add_argument("--tags", default="")
     lb.add_argument("--desc", default="")
     lb.add_argument("--credit", default="")
+    lb.add_argument("--series", default="", help="show/film title, shown to Claude and credited")
     rs = sub.add_parser("render")
     rs.add_argument("script", help="script JSON, e.g. examples/meme_titus.json")
     u = sub.add_parser("upload")
@@ -80,7 +81,7 @@ def main():
             media.add_library({
                 "id": a.id or src.stem, "kind": a.kind, "file": str(dest.relative_to(ROOT)),
                 "start": a.start, "duration": a.duration, "tags": [t for t in a.tags.split(",") if t],
-                "description": a.desc, "credit": a.credit})
+                "description": a.desc, "credit": a.credit or a.series, "series": a.series})
             print("added", a.id or src.stem)
         else:
             for i in media.load_library():

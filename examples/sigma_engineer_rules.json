@@ -1,0 +1,41 @@
+{
+  "format": "sigma_reel",
+  "title": "4 rules of the sigma engineer",
+  "source": {
+    "name": "Original",
+    "title": "Engineering fundamentals",
+    "url": ""
+  },
+  "description": "Four engineering principles, delivered with unreasonable seriousness.",
+  "tags": [
+    "engineering",
+    "sigma"
+  ],
+  "scenes": [
+    {
+      "narration": "Rule one. The sigma engineer reads the docs. While they scroll tutorials, he ships.",
+      "layout": "big_text",
+      "headline": "Rule 1: Read the docs"
+    },
+    {
+      "narration": "Rule two. Never optimize what you have not measured. Profile first. Then touch the code.",
+      "layout": "big_text",
+      "headline": "Rule 2: Measure first"
+    },
+    {
+      "narration": "Rule three. No Friday deploys. Weekends are for silence, not rollbacks.",
+      "layout": "big_text",
+      "headline": "Rule 3: No Friday deploys"
+    },
+    {
+      "narration": "Rule four. Write the test before the excuse.",
+      "layout": "big_text",
+      "headline": "Rule 4: Test before excuse"
+    },
+    {
+      "narration": "Which rule do you break the most? Be honest. Comment it.",
+      "layout": "question",
+      "headline": "Which rule do you break?"
+    }
+  ]
+}

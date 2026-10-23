@@ -89,7 +89,10 @@ def list_videos():
             "folder": d.name, "title": s["title"], "format": s["format"],
             "label": formats.FORMATS[s["format"]]["label"], "source": s["source"],
             "has_video": (d / "video.mp4").exists(), "video_id": row[0] if row else None,
-            "scenes": [{"narration": x["narration"], "visual": (x.get("visual") or {}).get("type", "none")}
+            "accent": "#%02x%02x%02x" % formats.FORMATS[s["format"]]["accent"],
+            "description": s.get("description", ""), "characters": s.get("characters", []),
+            "scenes": [{"narration": x["narration"], "subtitle": x.get("subtitle"), "speaker": x.get("speaker"),
+                        "headline": x.get("headline", ""), "visual": (x.get("visual") or {}).get("type", "none")}
                        for x in s["scenes"]],
         })
     return vids
@@ -110,7 +113,9 @@ def status():
     return jsonify(anthropic_key=have_key(), youtube_authorised=yt_ready(),
                    pexels_key=bool(os.getenv("PEXELS_API_KEY")),
                    music_tracks=len(music.tracks(cfg)), library_clips=len(media.load_library()),
-                   formats=[{"id": k, "label": v["label"]} for k, v in formats.FORMATS.items()],
+                   formats=[{"id": k, "label": v["label"], "blurb": v.get("blurb", ""), "theme": v.get("theme", "default"),
+                             "accent": "#%02x%02x%02x" % v["accent"]} for k, v in formats.FORMATS.items()],
+                   logo=cfg["channel"]["logo"], handle=cfg["channel"]["handle"],
                    channel=cfg["channel"]["name"], privacy=cfg["youtube"]["privacy"])
 
 
@@ -124,6 +129,19 @@ def jobs():
     return jsonify(sorted(JOBS.values(), key=lambda j: -j["started"])[:10])
 
 
+_CAND = {"t": 0, "items": []}
+
+
+@app.get("/api/candidates")
+def candidates():
+    if request.args.get("refresh") or time.time() - _CAND["t"] > 600 or not _CAND["items"]:
+        from src import sources
+        _CAND["items"] = sources.ranked(cfg, 20)
+        _CAND["t"] = time.time()
+    return jsonify([{"title": i.title, "source": i.source, "url": i.url, "kind": i.kind,
+                     "age_days": round((time.time() - i.published) / 86400, 1)} for i in _CAND["items"]])
+
+
 @app.post("/api/generate")
 def generate():
     b = request.json
@@ -131,6 +149,13 @@ def generate():
     n = max(1, min(int(b.get("n", 1)), 10))
     fmt = b.get("format") or None
     src = b.get("source") or None
+    if b.get("url"):  # make a short from one specific item in the candidates list
+        item = next((i for i in _CAND["items"] if i.url == b["url"]), None)
+        if not item:
+            return jsonify(error="item expired, refresh the list"), 404
+        f = formats.pick_format(cfg, fmt)
+        return jsonify(job=start_job(f"{f}: {item.title[:50]}",
+                                     lambda: pipeline.make_from_item(cfg, item, f, mock)[0].name))
     jid = start_job(f"Generate {n} ({fmt or 'auto'}{', canned script' if mock else ''})",
                     lambda: pipeline.run(cfg, n, fmt, False, None, mock, src))
     return jsonify(job=jid)
@@ -197,6 +222,45 @@ def music_upload():
     return jsonify(ok=True)
 
 
+@app.get("/music/<mood>/<path:name>")
+def music_file(mood, name):
+    return send_from_directory(Path(music._root(cfg)) / secure_filename(mood), name)
+
+
+@app.post("/api/music/sigma")
+def music_sigma():
+    from src import sigma_bgm
+    return jsonify(job=start_job("Synthesize sigma BGM", lambda: [p.name for p in sigma_bgm.ensure(cfg)]))
+
+
+@app.post("/api/settings")
+def settings():
+    import re
+    b = request.json
+    text = (ROOT / "config.yaml").read_text()
+    for key, val in (("name", b.get("name")), ("handle", b.get("handle"))):
+        if val:
+            val = val.replace('"', "").strip()
+            text = re.sub(rf'^(  {key}: ).*$', lambda m: f'{m.group(1)}"{val}"', text, count=1, flags=re.M)
+    (ROOT / "config.yaml").write_text(text)
+    cfg.update(config.load())
+    return jsonify(ok=True)
+
+
+@app.post("/api/logo")
+def logo():
+    f = request.files["file"]
+    dest = ROOT / cfg["channel"]["logo"]
+    dest.parent.mkdir(parents=True, exist_ok=True)
+    f.save(dest)
+    return jsonify(ok=True)
+
+
+@app.get("/logo.png")
+def logo_file():
+    return send_from_directory(ROOT / Path(cfg["channel"]["logo"]).parent, Path(cfg["channel"]["logo"]).name)
+
+
 @app.get("/api/library")
 def library_list():
     return jsonify(media.load_library())
@@ -213,7 +277,8 @@ def library_upload():
         "id": form.get("id") or dest.stem, "kind": form.get("kind", "clip"), "file": str(dest.relative_to(ROOT)),
         "start": float(form.get("start") or 0), "duration": float(form.get("duration") or 6),
         "tags": [t.strip() for t in form.get("tags", "").split(",") if t.strip()],
-        "description": form.get("description", ""), "credit": form.get("credit", "")})
+        "description": form.get("description", ""), "series": form.get("series", ""),
+        "credit": form.get("credit") or form.get("series", "")})
     return jsonify(ok=True)
 
 

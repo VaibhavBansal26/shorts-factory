@@ -73,7 +73,7 @@ Daily automation (cron, 3 videos at 09:00):
 - **Stock video**: set `PEXELS_API_KEY` in `.env` (free) and Claude can add portrait b-roll to scenes.
 - **Your own clips (series moments, screen recordings)**:
   `python main.py library add clip.mp4 --id my-clip --start 12 --duration 6 --tags scaling --desc "what happens" --credit "Show name"`.
-  `series_moment` uses only clips listed there, as short illustrations (max 8s) under your commentary.
+  `series_moment` is an English fan-dub parody: your clips play muted, full-screen (max 8s each) while two generic English voices dub funny AI/tech lines over them, with a credit shown on screen.
   Rights are your call: unlicensed show/film clips can trigger Content ID claims or strikes even with commentary.
   Prefer clips you own or have licensed, and check results while videos are still private.
 
@@ -91,3 +91,14 @@ auto-deploy on/off) and while `app.py` is running it creates videos at that time
 Auto-deploy needs YouTube authorised first. There is no cron job; if you close the app, schedules pause.
 
 `python main.py render examples/meme_titus.json` renders a hand-written script (three meme examples included).
+
+## Sigma and K-drama formats
+
+- **`sigma_reel`**: deep-voice, gold-on-black "rules of the sigma engineer" edit with punch-in zooms and a synthesized phonk-style BGM
+  (generated once into `assets/music/sigma/`, original audio, no licensing issues).
+- **`kdrama_parody`**: two original Korean-style characters (drawn in code, with Hangul names) argue about an AI concept, English-dubbed
+  in two voices (`voices.dub_male` / `voices.dub_female` in `config.yaml`) with lip-flap avatars. Put your own art in `assets/characters/<id>.png` to replace them.
+- **Real series footage**: no footage ships with this project and nothing downloads it. If you want a specific drama's scene, add the clip
+  yourself (`library add ... --series "Title"`) and use the `series_moment` format. Korean broadcasters and streamers enforce Content ID,
+  so prefer official promo clips or footage you have licensed, keep clips short, and check each video while it's private.
+  The dub voices are generic; don't imitate or name real actors.

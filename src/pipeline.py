@@ -19,7 +19,7 @@ def slug(s: str) -> str:
 def produce(cfg: dict, script: dict):
     """voiceover + visuals + music + render for a finished script dict. Returns (folder, video_path)."""
     lo, hi = cfg["video"]["min_seconds"], cfg["video"]["max_seconds"]
-    folder = ROOT / "output" / f"{date.today()}_{slug(script['source']['title'] or script['title'])}"
+    folder = ROOT / "output" / f"{date.today()}_{slug(script['title'])}"
     folder.mkdir(parents=True, exist_ok=True)
     (folder / "script.json").write_text(json.dumps(script, indent=2))
     print(f"  script: {len(script['scenes'])} scenes, {scriptgen.word_count(script)} words")
@@ -58,6 +58,12 @@ def make_video(cfg: dict, item, fmt: str, mock: bool = False):
     return folder, script, out
 
 
+def make_from_item(cfg: dict, item, fmt: str, mock: bool = False):
+    folder, script, video = make_video(cfg, item, fmt, mock)
+    db.mark_used(db.connect(), item.url, item.title, fmt, str(folder))
+    return folder, script, video
+
+
 def render_script(cfg: dict, script: dict):
     """Render a hand-written/imported script (see examples/)."""
     script.setdefault("tags", [])
@@ -65,7 +71,7 @@ def render_script(cfg: dict, script: dict):
     print(f"\n▶ [{script['format']}] {script['title']}")
     folder, out = produce(cfg, script)
     con = db.connect()
-    db.mark_used(con, script["source"]["url"], script["source"]["title"], script["format"], str(folder))
+    db.mark_used(con, script["source"]["url"] or "local:" + script["title"], script["source"]["title"], script["format"], str(folder))
     return folder, script, out
 
 

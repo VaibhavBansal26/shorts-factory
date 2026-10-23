@@ -19,6 +19,7 @@ product features. If the source is thin, stay general and say less.
 no hashtags in narration. Write numbers and acronyms so a TTS voice reads them right (e.g. "L L M" -> "LLM" is fine, \
 but spell out symbols like "percent").
 - The first sentence must be a hook that stops the scroll within 3 seconds.
+- Optionally tell the viewer the video is a parody/commentary when the format is a parody.
 - Each scene's narration is spoken aloud; `headline` is the short text shown on screen (max 7 words).
 """
 
@@ -29,6 +30,20 @@ TOOL = {
         "type": "object",
         "properties": {
             "title": {"type": "string", "description": "YouTube title, <= 70 chars, no hashtags"},
+            "characters": {
+                "type": "array",
+                "maxItems": 2,
+                "description": "Only for kdrama_parody: the two original fictional characters",
+                "items": {
+                    "type": "object",
+                    "properties": {
+                        "id": {"type": "string"}, "name": {"type": "string"}, "name_ko": {"type": "string"}, "role": {"type": "string"},
+                        "gender": {"type": "string", "enum": ["male", "female"]},
+                        "look": {"type": "string", "enum": ["chairman", "intern", "ai", "hero", "rival"]},
+                    },
+                    "required": ["id", "name", "gender", "look"],
+                },
+            },
             "scenes": {
                 "type": "array",
                 "minItems": 4,
@@ -39,9 +54,12 @@ TOOL = {
                         "narration": {"type": "string", "description": "Exactly what the voice says"},
                         "layout": {
                             "type": "string",
-                            "enum": ["big_text", "bullets", "stat", "question", "quote"],
+                            "enum": ["big_text", "bullets", "stat", "question", "quote", "dialogue", "clip_dub"],
                         },
                         "headline": {"type": "string", "description": "On-screen text, <= 7 words"},
+                        "voice": {"type": "string", "enum": ["male", "female"],
+                                  "description": "clip_dub only: which generic English dub voice speaks the line"},
+                        "speaker": {"type": "string", "description": "kdrama only: a character id or 'narrator'"},
                         "bullets": {
                             "type": "array",
                             "items": {"type": "string"},
@@ -114,6 +132,14 @@ def generate(cfg: dict, item: Item, fmt: str, article_text: str) -> dict:
 
 def mock(item: Item, fmt: str) -> dict:
     """Offline stand-in so the render/TTS/upload path can be tested without an API key."""
+    import json
+    import random
+
+    from .config import ROOT
+    pool = [json.loads(p.read_text()) for p in sorted((ROOT / "examples").glob("*.json"))]
+    pool = [s for s in pool if s.get("format") == fmt]
+    if pool:  # hand-written example of the same format, so the look/voices are right
+        return _finish(random.choice(pool), item, fmt, keep_source=True)
     short = item.title[:60]
     scenes = [
         {"narration": f"Here's something engineers keep getting wrong about {short}.",
@@ -137,8 +163,9 @@ def mock(item: Item, fmt: str) -> dict:
         item, fmt)
 
 
-def _finish(script: dict, item: Item, fmt: str) -> dict:
+def _finish(script: dict, item: Item, fmt: str, keep_source: bool = False) -> dict:
     script["format"] = fmt
-    script["source"] = {"name": item.source, "title": item.title, "url": item.url}
+    if not keep_source:
+        script["source"] = {"name": item.source, "title": item.title, "url": item.url}
     script["title"] = re.sub(r"\s+", " ", script["title"]).strip()[:90]
     return script

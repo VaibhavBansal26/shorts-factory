@@ -1,0 +1,71 @@
+{
+  "format": "kdrama_parody",
+  "title": "K-drama but the AI hallucinates",
+  "source": {
+    "name": "Original",
+    "title": "LLM hallucination and grounding",
+    "url": ""
+  },
+  "description": "A parody Korean-drama scene (English-dubbed) about AI hallucinations. Fictional characters, parody of TV tropes only.",
+  "tags": [
+    "ai",
+    "hallucination",
+    "parody"
+  ],
+  "characters": [
+    {
+      "id": "seo",
+      "name": "Chairman Seo",
+      "role": "The Chairman",
+      "gender": "male",
+      "look": "chairman",
+      "name_ko": "서 회장"
+    },
+    {
+      "id": "airi",
+      "name": "AIRI",
+      "role": "AI Assistant",
+      "gender": "female",
+      "look": "ai",
+      "name_ko": "에이리"
+    }
+  ],
+  "scenes": [
+    {
+      "speaker": "seo",
+      "narration": "Airi, I asked how many people live in Seoul.",
+      "layout": "dialogue",
+      "headline": "Episode 1: The Hallucination"
+    },
+    {
+      "speaker": "airi",
+      "narration": "Chairman, I am certain. Seventy million.",
+      "layout": "dialogue",
+      "headline": "Episode 1: The Hallucination"
+    },
+    {
+      "speaker": "seo",
+      "narration": "That is a hallucination! How could you do this to me?!",
+      "layout": "dialogue",
+      "headline": "Episode 1: The Hallucination"
+    },
+    {
+      "speaker": "airi",
+      "narration": "No... my training data told me so.",
+      "layout": "dialogue",
+      "headline": "Episode 1: The Hallucination"
+    },
+    {
+      "speaker": "seo",
+      "narration": "Bring a source. Love is faith, but answers need evidence.",
+      "layout": "dialogue",
+      "headline": "Episode 1: The Hallucination"
+    },
+    {
+      "speaker": "narrator",
+      "narration": "Takeaway: ask your AI for sources, and check them. Do you verify AI answers?",
+      "layout": "question",
+      "headline": "Do you verify AI answers?"
+    }
+  ]
+}

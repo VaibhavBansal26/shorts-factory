@@ -16,10 +16,10 @@ def _probe(path: Path) -> float:
     return float(out.strip())
 
 
-async def _synth(text: str, voice: str, rate: str, tries: int = 4):
+async def _synth(text: str, voice: str, rate: str, pitch: str = "+0Hz", tries: int = 4):
     for attempt in range(tries):
         try:
-            audio, words = await _synth_once(text, voice, rate)
+            audio, words = await _synth_once(text, voice, rate, pitch)
             if audio:
                 return audio, words
         except edge_tts.exceptions.NoAudioReceived:
@@ -28,8 +28,8 @@ async def _synth(text: str, voice: str, rate: str, tries: int = 4):
     raise RuntimeError(f"TTS failed after {tries} attempts: {text[:50]!r}")
 
 
-async def _synth_once(text: str, voice: str, rate: str):
-    com = edge_tts.Communicate(text, voice, rate=rate, boundary="WordBoundary")
+async def _synth_once(text: str, voice: str, rate: str, pitch: str = "+0Hz"):
+    com = edge_tts.Communicate(text, voice, rate=rate, pitch=pitch, boundary="WordBoundary")
     audio, words = bytearray(), []
     async for ch in com.stream():
         if ch["type"] == "audio":
@@ -37,6 +37,25 @@ async def _synth_once(text: str, voice: str, rate: str):
         elif ch["type"] == "WordBoundary":
             words.append((ch["text"], ch["offset"] / 1e7, ch["duration"] / 1e7))
     return bytes(audio), words
+
+
+def voice_for(script: dict, cfg: dict, scene: dict, rate_override: str | None):
+    """Pick (voice, rate, pitch) for a scene: character voices for dialogue, sigma voice for sigma reels."""
+    base = cfg["voice"]
+    spec = {"name": base["name"], "rate": base.get("rate", "+0%"), "pitch": "+0Hz"}
+    speaker = scene.get("speaker")
+    chars = {c["id"]: c for c in script.get("characters", [])}
+    if speaker in chars:
+        prefix = "ko" if script.get("language") == "ko" else "dub"
+        key = f"{prefix}_{'female' if chars[speaker].get('gender') == 'female' else 'male'}"
+        spec.update(cfg["voices"][key])
+    elif scene.get("voice") in ("male", "female"):  # clip_dub scenes: a generic dub voice, no real actor
+        spec.update(cfg["voices"][f"dub_{scene['voice']}"])
+    elif script.get("format") == "sigma_reel":
+        spec.update(cfg["voices"]["sigma"])
+    if rate_override:
+        spec["rate"] = rate_override
+    return spec["name"], spec["rate"], spec.get("pitch", "+0Hz")
 
 
 def _even_words(text: str, dur: float):
@@ -47,12 +66,11 @@ def _even_words(text: str, dur: float):
 
 def synthesize(script: dict, cfg: dict, workdir: Path, rate: str | None = None) -> dict:
     """Writes voice.wav and returns {'audio': Path, 'scenes': [{start,end,words:[(w,t0,t1)]}], 'total': s}."""
-    v = cfg["voice"]
-    rate = rate or v.get("rate", "+0%")
     wavs, scenes, cursor = [], [], 0.0
     for i, sc in enumerate(script["scenes"]):
         mp3, wav = workdir / f"scene{i}.mp3", workdir / f"scene{i}.wav"
-        audio, words = asyncio.run(_synth(sc["narration"], v["name"], rate))
+        name, srate, pitch = voice_for(script, cfg, sc, rate)
+        audio, words = asyncio.run(_synth(sc["narration"], name, srate, pitch))
         if not audio:
             raise RuntimeError(f"TTS returned no audio for scene {i}")
         mp3.write_bytes(audio)

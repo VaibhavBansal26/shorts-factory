@@ -141,6 +141,16 @@ def collect(cfg: dict) -> list[Item]:
     return out
 
 
+def ranked(cfg: dict, n: int = 20) -> list[Item]:
+    """Top-scoring unused items, no random sampling (for the UI's 'fresh from your sources' list)."""
+    sel = cfg["selection"]
+    con = db.connect()
+    items = [i for i in collect(cfg) if not db.is_used(con, i.url)]
+    for i in items:
+        i.score = _score(i, sel)
+    return sorted((i for i in items if i.score > 0), key=lambda i: -i.score)[:n]
+
+
 def pick(cfg: dict, n: int = 1, source_filter: str | None = None) -> list[Item]:
     sel = cfg["selection"]
     con = db.connect()

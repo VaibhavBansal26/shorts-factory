@@ -1,0 +1,47 @@
+{
+  "format": "sigma_reel",
+  "title": "The sigma prompt engineer",
+  "source": {
+    "name": "Original",
+    "title": "Prompting fundamentals",
+    "url": ""
+  },
+  "description": "Four prompting principles for people who are tired of vague answers.",
+  "tags": [
+    "prompting",
+    "llm",
+    "sigma"
+  ],
+  "scenes": [
+    {
+      "narration": "The model is not dumb. Your prompt is vague.",
+      "layout": "big_text",
+      "headline": "Your prompt is vague"
+    },
+    {
+      "narration": "Rule one. Give it context. Who it is, what the task is, and who the audience is.",
+      "layout": "big_text",
+      "headline": "Rule 1: Context"
+    },
+    {
+      "narration": "Rule two. Show it two good examples. Models copy patterns, not intentions.",
+      "layout": "big_text",
+      "headline": "Rule 2: Examples"
+    },
+    {
+      "narration": "Rule three. Demand sources. An answer without evidence is just confidence.",
+      "layout": "big_text",
+      "headline": "Rule 3: Demand sources"
+    },
+    {
+      "narration": "Rule four. Test the prompt on ten inputs, not one lucky demo.",
+      "layout": "big_text",
+      "headline": "Rule 4: Test on ten inputs"
+    },
+    {
+      "narration": "Do you test your prompts, or just trust the vibe?",
+      "layout": "question",
+      "headline": "Test it or trust the vibe?"
+    }
+  ]
+}

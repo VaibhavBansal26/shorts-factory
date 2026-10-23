@@ -5,187 +5,416 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Shorts Factory</title>
 <style>
-:root{--bg:#0b0f1a;--panel:#131a2b;--line:#222c45;--text:#e8edf7;--mute:#8a97b4;--accent:#38bdf8;--ok:#34d399;--bad:#f87171;--warn:#fbbf24}
+:root{
+  --bg:#080b14;--bg2:#0c1120;--panel:#10172a;--panel2:#151e35;--line:#1f2a47;--line2:#2a3860;
+  --text:#eef2fb;--mute:#8c99b8;--dim:#5d6a89;--accent:#38bdf8;--ok:#34d399;--bad:#f87171;--warn:#fbbf24;
+  --r:14px;--shadow:0 10px 30px rgba(0,0,0,.35);
+}
 *{box-sizing:border-box}
-body{margin:0;background:var(--bg);color:var(--text);font:15px/1.45 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
-header{display:flex;align-items:center;gap:16px;padding:16px 24px;border-bottom:1px solid var(--line);flex-wrap:wrap}
-header h1{font-size:18px;margin:0}
-.pills{display:flex;gap:8px;flex-wrap:wrap;margin-left:auto}
-.pill{font-size:12px;padding:4px 10px;border-radius:99px;border:1px solid var(--line);color:var(--mute)}
-.pill.ok{color:var(--ok);border-color:#1f5a47}.pill.no{color:var(--warn);border-color:#5a4a1f}
-nav{display:flex;gap:4px;padding:0 24px;border-bottom:1px solid var(--line)}
-nav button{background:none;border:0;color:var(--mute);padding:12px 14px;cursor:pointer;font:inherit;border-bottom:2px solid transparent}
-nav button.on{color:var(--text);border-color:var(--accent)}
-main{padding:24px;max-width:1100px;margin:0 auto}
-section{display:none}section.on{display:block}
-.card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:16px;margin-bottom:16px}
-label{display:block;font-size:12px;color:var(--mute);margin:10px 0 4px}
-input,select,textarea{width:100%;background:#0d1322;color:var(--text);border:1px solid var(--line);border-radius:8px;padding:8px 10px;font:inherit}
-textarea{min-height:120px;font-family:ui-monospace,Menlo,monospace;font-size:12px}
-.row{display:flex;gap:12px;flex-wrap:wrap}.row>*{flex:1;min-width:140px}
-button.primary{background:var(--accent);color:#04121d;border:0;border-radius:8px;padding:9px 16px;font-weight:600;cursor:pointer}
-button.ghost{background:none;color:var(--text);border:1px solid var(--line);border-radius:8px;padding:7px 12px;cursor:pointer}
-button.danger{color:var(--bad)}
-button:disabled{opacity:.5;cursor:default}
-.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:16px}
-.vid video{width:100%;border-radius:10px;background:#000;aspect-ratio:9/16;max-height:440px}
-.vid h3{font-size:14px;margin:10px 0 4px}
-.tag{display:inline-block;font-size:11px;padding:2px 8px;border-radius:99px;background:#1c2742;color:var(--accent);margin-right:6px}
-.mute{color:var(--mute);font-size:12px}
-pre{background:#0d1322;border:1px solid var(--line);border-radius:8px;padding:10px;max-height:220px;overflow:auto;font-size:12px;white-space:pre-wrap}
-.job{display:flex;justify-content:space-between;gap:10px;padding:6px 0;border-bottom:1px solid var(--line);font-size:13px}
-.st-done{color:var(--ok)}.st-failed{color:var(--bad)}.st-running{color:var(--warn)}
-table{width:100%;border-collapse:collapse;font-size:13px}td,th{padding:6px 8px;border-bottom:1px solid var(--line);text-align:left}
-.days label{display:inline-flex;gap:4px;align-items:center;margin-right:10px;color:var(--text);font-size:13px}.days input{width:auto}
+html,body{height:100%}
+body{margin:0;background:radial-gradient(1200px 600px at 80% -10%,#14204a55,transparent),var(--bg);color:var(--text);
+  font:14px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Inter,sans-serif;display:flex}
+button,input,select,textarea{font:inherit;color:inherit}
+a{color:var(--accent);text-decoration:none}
+
+/* ---------- sidebar ---------- */
+aside{width:236px;flex:none;border-right:1px solid var(--line);background:var(--bg2);display:flex;flex-direction:column;padding:18px 14px;position:sticky;top:0;height:100vh}
+.brand{display:flex;align-items:center;gap:10px;padding:4px 8px 18px}
+.brand .mark{width:34px;height:34px;border-radius:10px;background:linear-gradient(135deg,#38bdf8,#a78bfa 60%,#f472b6);display:grid;place-items:center;font-weight:800;color:#08101c}
+.brand b{font-size:15px;letter-spacing:.2px}.brand small{display:block;color:var(--dim);font-size:11px;margin-top:-2px}
+nav{display:flex;flex-direction:column;gap:2px}
+nav button{display:flex;align-items:center;gap:11px;background:none;border:0;color:var(--mute);padding:10px 12px;border-radius:10px;cursor:pointer;text-align:left}
+nav button svg{width:18px;height:18px;flex:none}
+nav button:hover{background:#ffffff08;color:var(--text)}
+nav button.on{background:linear-gradient(90deg,#38bdf81f,#38bdf808);color:var(--text);box-shadow:inset 2px 0 0 var(--accent)}
+nav .count{margin-left:auto;font-size:11px;background:var(--panel2);border-radius:99px;padding:1px 8px;color:var(--mute)}
+.side-foot{margin-top:auto;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px}
+.side-foot .bar{height:6px;background:var(--line);border-radius:9px;overflow:hidden;margin:8px 0}
+.side-foot .bar i{display:block;height:100%;background:linear-gradient(90deg,#38bdf8,#34d399);border-radius:9px}
+.side-foot small{color:var(--mute)}
+
+/* ---------- main ---------- */
+main{flex:1;min-width:0;padding:26px 34px 80px;max-width:1280px}
+.page{display:none}.page.on{display:block;animation:fade .25s ease}
+@keyframes fade{from{opacity:0;transform:translateY(6px)}to{opacity:1}}
+h1{font-size:26px;margin:0 0 4px;letter-spacing:-.3px}
+.sub{color:var(--mute);margin:0 0 22px}
+h2{font-size:15px;margin:0 0 12px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:18px}
+.row{display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end}
+.grow{flex:1;min-width:160px}
+label.l{display:block;font-size:12px;color:var(--mute);margin:0 0 5px}
+input,select,textarea{width:100%;background:var(--bg2);border:1px solid var(--line2);border-radius:10px;padding:9px 11px;outline:none}
+input:focus,select:focus,textarea:focus{border-color:var(--accent);box-shadow:0 0 0 3px #38bdf822}
+textarea{min-height:130px;font-family:ui-monospace,Menlo,monospace;font-size:12px}
+.btn{border:0;border-radius:10px;padding:9px 16px;font-weight:600;cursor:pointer;background:var(--panel2);border:1px solid var(--line2)}
+.btn:hover{border-color:var(--accent)}
+.btn.p{background:linear-gradient(135deg,#38bdf8,#6366f1);border:0;color:#04101e}
+.btn.p:hover{filter:brightness(1.08)}
+.btn.d{color:var(--bad)}
+.btn.sm{padding:6px 11px;font-size:12px}
+.btn:disabled{opacity:.45;cursor:default}
+.chip{display:inline-flex;align-items:center;gap:6px;font-size:11px;padding:3px 10px;border-radius:99px;background:var(--panel2);border:1px solid var(--line2);color:var(--mute)}
+.chip.ok{color:var(--ok);border-color:#1c5b48}.chip.warn{color:var(--warn);border-color:#5c4a17}
+.dot{width:7px;height:7px;border-radius:50%;background:currentColor}
+
+/* ---------- format gallery ---------- */
+.fgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px}
+.fcard{position:relative;text-align:left;background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:14px;cursor:pointer;overflow:hidden;transition:.15s}
+.fcard::before{content:"";position:absolute;inset:0 0 auto 0;height:3px;background:var(--c)}
+.fcard::after{content:"";position:absolute;right:-30px;top:-30px;width:110px;height:110px;border-radius:50%;background:var(--c);opacity:.10;filter:blur(8px)}
+.fcard:hover{transform:translateY(-2px);border-color:var(--line2)}
+.fcard.sel{border-color:var(--c);box-shadow:0 0 0 1px var(--c),0 8px 24px color-mix(in srgb,var(--c) 25%,transparent)}
+.fcard b{display:block;font-size:13px;color:var(--c);letter-spacing:.6px;margin-bottom:5px}
+.fcard span{font-size:12.5px;color:var(--mute);display:block;min-height:36px}
+.fcard .tags{margin-top:10px;display:flex;gap:6px}
+.new{white-space:nowrap;flex:none;font-size:10px;background:var(--c);color:#06101c;padding:1px 7px;border-radius:99px;font-weight:700}
+.actionbar{position:sticky;bottom:14px;margin-top:16px;display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap;background:#0d1426ee;backdrop-filter:blur(10px);border:1px solid var(--line2);border-radius:16px;padding:14px;box-shadow:var(--shadow)}
+.stepper{display:flex;align-items:center;border:1px solid var(--line2);border-radius:10px;overflow:hidden;background:var(--bg2)}
+.stepper button{width:34px;height:36px;border:0;background:none;cursor:pointer;font-size:16px}
+.stepper input{width:42px;text-align:center;border:0;border-radius:0;background:none;padding:0}
+.two{display:grid;grid-template-columns:minmax(0,1.25fr) minmax(0,1fr);gap:18px;margin-top:20px}
+@media(max-width:1000px){.two{grid-template-columns:1fr}aside{display:none}main{padding:18px}}
+.cand{display:flex;gap:10px;align-items:center;padding:10px 0;border-bottom:1px solid var(--line)}
+.cand:last-child{border:0}
+.cand .t{flex:1;min-width:0}.cand .t b{display:block;font-weight:600;font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.cand .t small{color:var(--dim)}
+
+/* ---------- library ---------- */
+.filters{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px}
+.filters button{background:var(--panel);border:1px solid var(--line);color:var(--mute);border-radius:99px;padding:5px 13px;cursor:pointer;font-size:12.5px}
+.filters button.on{color:var(--text);border-color:var(--accent);background:#38bdf814}
+.vgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:18px}
+.vcard{background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:10px;transition:.15s}
+.vcard:hover{border-color:var(--line2);transform:translateY(-2px)}
+.phone{position:relative;border-radius:14px;overflow:hidden;background:#000;aspect-ratio:9/16;cursor:pointer}
+.phone video{width:100%;height:100%;object-fit:cover;display:block}
+.phone .badge{position:absolute;left:8px;top:8px;font-size:10.5px;font-weight:700;padding:3px 9px;border-radius:99px;color:#06101c;background:var(--c)}
+.phone .play{position:absolute;inset:0;display:grid;place-items:center;background:linear-gradient(transparent 60%,#000a);opacity:0;transition:.15s}
+.phone:hover .play{opacity:1}
+.phone .play i{width:46px;height:46px;border-radius:50%;background:#fff;display:grid;place-items:center}
+.vcard h3{font-size:13px;margin:10px 4px 4px;line-height:1.3;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.vmeta{display:flex;justify-content:space-between;align-items:center;margin:0 4px 8px;color:var(--dim);font-size:11.5px}
+.vact{display:flex;gap:8px;padding:0 4px 4px}.vact .btn{flex:1;padding:7px}
+.empty{border:1px dashed var(--line2);border-radius:var(--r);padding:50px;text-align:center;color:var(--mute)}
+
+/* ---------- modal ---------- */
+.modal{position:fixed;inset:0;background:#02050dcc;backdrop-filter:blur(6px);display:none;place-items:center;z-index:50;padding:24px}
+.modal.on{display:grid}
+.mbox{display:grid;grid-template-columns:320px 1fr;gap:22px;background:var(--panel);border:1px solid var(--line2);border-radius:20px;padding:20px;max-width:900px;width:100%;max-height:92vh;overflow:auto;box-shadow:var(--shadow)}
+.mbox video{width:100%;border-radius:14px;background:#000;aspect-ratio:9/16}
+@media(max-width:760px){.mbox{grid-template-columns:1fr}}
+.scene{display:flex;gap:10px;padding:8px 0;border-bottom:1px solid var(--line);font-size:12.5px}
+.scene:last-child{border:0}.scene i{font-style:normal;color:var(--dim);width:18px}
+.scene em{font-style:normal;color:var(--mute);display:block}
+.seg{display:inline-flex;border:1px solid var(--line2);border-radius:10px;overflow:hidden}
+.seg button{background:var(--bg2);border:0;padding:7px 12px;cursor:pointer;color:var(--mute)}
+.seg button.on{background:var(--accent);color:#04101e;font-weight:600}
+
+/* ---------- assets ---------- */
+.drop{border:1.5px dashed var(--line2);border-radius:14px;padding:22px;text-align:center;color:var(--mute);cursor:pointer;transition:.15s}
+.drop.over,.drop:hover{border-color:var(--accent);background:#38bdf80d;color:var(--text)}
+.tracks{display:grid;gap:8px;margin-top:14px}
+.track{display:flex;align-items:center;gap:12px;background:var(--bg2);border:1px solid var(--line);border-radius:12px;padding:8px 12px}
+.track audio{height:32px;flex:1;min-width:0}.track b{font-size:12.5px;width:170px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mood{font-size:10.5px;text-transform:uppercase;letter-spacing:.6px;padding:2px 8px;border-radius:99px;background:#fbbf2418;color:var(--warn)}
+table{width:100%;border-collapse:collapse}td,th{padding:9px 8px;border-bottom:1px solid var(--line);text-align:left;font-size:13px}th{color:var(--dim);font-weight:500;font-size:12px}
+
+/* ---------- setup ---------- */
+.steps{display:grid;gap:12px}
+.step{display:flex;gap:14px;background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:16px}
+.step .n{width:30px;height:30px;border-radius:50%;display:grid;place-items:center;flex:none;background:var(--panel2);border:1px solid var(--line2);font-weight:700;color:var(--mute)}
+.step.done .n{background:#34d39922;border-color:#1c5b48;color:var(--ok)}
+.step h3{margin:0 0 4px;font-size:14px}.step p{margin:0 0 8px;color:var(--mute)}
+code{background:var(--bg2);border:1px solid var(--line);border-radius:6px;padding:1px 6px;font-size:12px}
+pre{background:var(--bg2);border:1px solid var(--line);border-radius:10px;padding:10px;margin:8px 0 0;overflow:auto;font-size:12px;white-space:pre-wrap}
+
+/* ---------- jobs dock + toasts ---------- */
+#dock{position:fixed;right:18px;bottom:18px;width:360px;z-index:40;display:flex;flex-direction:column;gap:8px}
+.job{background:var(--panel2);border:1px solid var(--line2);border-radius:14px;padding:11px 13px;box-shadow:var(--shadow)}
+.job .h{display:flex;justify-content:space-between;gap:8px;font-size:12.5px;cursor:pointer}
+.job .h b{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.job .prog{height:3px;background:var(--line);border-radius:3px;margin-top:8px;overflow:hidden}
+.job .prog i{display:block;height:100%;width:40%;background:var(--accent);animation:slide 1.2s infinite ease-in-out}
+.job.done .prog i,.job.failed .prog i{animation:none;width:100%;background:var(--ok)}.job.failed .prog i{background:var(--bad)}
+@keyframes slide{0%{margin-left:-40%}100%{margin-left:100%}}
+.job pre{max-height:150px;margin-top:8px;font-size:11px}
+.toast{position:fixed;left:50%;top:20px;transform:translateX(-50%);background:var(--panel2);border:1px solid var(--line2);padding:10px 16px;border-radius:12px;z-index:90;box-shadow:var(--shadow)}
+.toast.bad{border-color:var(--bad)}
 </style>
 </head>
 <body>
-<header>
-  <h1>Shorts Factory</h1><span class="mute" id="channel"></span>
-  <div class="pills" id="pills"></div>
-</header>
-<nav id="tabs"></nav>
+<aside>
+  <div class="brand"><div class="mark">SF</div><div><b>Shorts Factory</b><small id="chan">—</small></div></div>
+  <nav id="nav"></nav>
+  <div class="side-foot"><small>Setup</small><div class="bar"><i id="setupBar" style="width:0"></i></div><small id="setupTxt"></small></div>
+</aside>
+
 <main>
-<section id="create" class="on">
-  <div class="card">
-    <h3 style="margin-top:0">Generate from live sources</h3>
-    <div class="row">
-      <div><label>Format</label><select id="fmt"></select></div>
-      <div><label>How many</label><input id="n" type="number" min="1" max="10" value="1"></div>
-      <div><label>Only from source (optional)</label><input id="src" placeholder="e.g. netflix, arxiv, towards"></div>
+<!-- ================= STUDIO ================= -->
+<section class="page on" id="p-studio">
+  <h1>Studio</h1>
+  <p class="sub">Pick a format, choose how many, and generate. Nothing is published until you deploy from the Library.</p>
+  <div class="fgrid" id="fgrid"></div>
+  <div class="actionbar">
+    <div><label class="l">Selected format</label><div id="selName" style="font-weight:700;min-width:130px;padding:8px 0">Auto mix</div></div>
+    <div><label class="l">How many</label><div class="stepper"><button id="dec">−</button><input id="n" type="number" min="1" max="10" value="1"><button id="inc">+</button></div></div>
+    <div class="grow"><label class="l">Only from source (optional)</label><input id="src" placeholder="netflix, arxiv, towards…"></div>
+    <button class="btn p" id="go">Generate</button>
+  </div>
+  <div class="two">
+    <div class="card">
+      <div class="row" style="justify-content:space-between;align-items:center;margin-bottom:6px"><h2 style="margin:0">Fresh from your sources</h2><button class="btn sm" id="refresh">Refresh</button></div>
+      <div id="cands" class="sub" style="margin:0">Loading the latest articles and papers…</div>
     </div>
-    <label class="mute" id="mockNote"></label>
-    <p><button class="primary" id="go">Generate</button> <span class="mute">Videos are saved, not published. Deploy from the Videos tab.</span></p>
-  </div>
-  <div class="card">
-    <h3 style="margin-top:0">Render a script you wrote</h3>
-    <p class="mute">Paste a script JSON (see <code>examples/</code>). Good for hand-tuned memes.</p>
-    <textarea id="scriptjson" placeholder='{"format":"meme_explainer","title":"...","source":{...},"scenes":[...]}'></textarea>
-    <p><button class="ghost" id="renderBtn">Render script</button></p>
-  </div>
-  <div class="card"><h3 style="margin-top:0">Jobs</h3><div id="jobs" class="mute">No jobs yet.</div><pre id="joblog" hidden></pre></div>
-</section>
-
-<section id="videos"><div class="grid" id="vgrid"></div></section>
-
-<section id="assets">
-  <div class="card">
-    <h3 style="margin-top:0">Background music</h3>
-    <form id="musicForm" class="row">
-      <div><label>Audio file</label><input type="file" name="file" accept="audio/*" required></div>
-      <div><label>Mood</label><select name="mood"><option>any</option><option>calm</option><option>chill</option><option>upbeat</option><option>tense</option><option>funny</option></select></div>
-      <div style="align-self:end;flex:0"><button class="primary">Upload</button></div>
-    </form>
-    <table id="musicTable"></table>
-    <p class="mute">Each format prefers certain moods; music ducks under the voice. Only upload music you have the licence for.</p>
-  </div>
-  <div class="card">
-    <h3 style="margin-top:0">Clip / image library (series moments, screen recordings)</h3>
-    <form id="libForm">
-      <div class="row">
-        <div><label>File</label><input type="file" name="file" accept="video/*,image/*" required></div>
-        <div><label>ID</label><input name="id" placeholder="my-clip"></div>
-        <div><label>Kind</label><select name="kind"><option>clip</option><option>image</option></select></div>
-      </div>
-      <div class="row">
-        <div><label>Start (s)</label><input name="start" type="number" step="0.1" value="0"></div>
-        <div><label>Duration (s, max 8)</label><input name="duration" type="number" step="0.1" value="6"></div>
-        <div><label>Tags</label><input name="tags" placeholder="startup, scaling"></div>
-      </div>
-      <label>What happens in it (Claude uses this to pick it)</label><input name="description">
-      <label>Credit (shown in the video description)</label><input name="credit" placeholder="Show name (Network)">
-      <p><button class="primary">Add to library</button></p>
-    </form>
-    <table id="libTable"></table>
-    <p class="mute">You are responsible for having the rights to anything you upload. Unlicensed clips can get Content ID claims.</p>
+    <div class="card">
+      <h2>Render your own script</h2>
+      <p class="sub" style="margin-bottom:10px">Paste a script JSON (see <code>examples/</code>) for hand-tuned memes, sigma rules or K-drama scenes.</p>
+      <textarea id="scriptjson" placeholder='{"format":"kdrama_parody","title":"…","source":{…},"characters":[…],"scenes":[…]}'></textarea>
+      <p style="margin:10px 0 0"><button class="btn" id="renderBtn">Render script</button></p>
+    </div>
   </div>
 </section>
 
-<section id="schedules">
-  <div class="card">
-    <h3 style="margin-top:0">Create a schedule</h3>
-    <p class="mute">Off by default. A schedule runs only while this app is running, and creates (and optionally deploys) videos at its time.</p>
-    <div class="row">
-      <div><label>Name</label><input id="sName" value="Daily shorts"></div>
-      <div><label>Time</label><input id="sTime" type="time" value="09:00"></div>
-      <div><label>Videos per run</label><input id="sCount" type="number" min="1" max="10" value="3"></div>
+<!-- ================= LIBRARY ================= -->
+<section class="page" id="p-library">
+  <h1>Library</h1>
+  <p class="sub">Preview what was made. Deploy sends it to YouTube; nothing goes out automatically.</p>
+  <div class="filters" id="filters"></div>
+  <div class="vgrid" id="vgrid"></div>
+</section>
+
+<!-- ================= ASSETS ================= -->
+<section class="page" id="p-assets">
+  <h1>Music &amp; clips</h1>
+  <p class="sub">Background music is ducked under the voice. Sigma and K-drama formats use the sigma mood.</p>
+  <div class="two" style="margin-top:0">
+    <div class="card">
+      <div class="row" style="justify-content:space-between;align-items:center"><h2 style="margin:0">Background music</h2><button class="btn sm" id="genSigma">Synthesize sigma BGM</button></div>
+      <p class="sub" style="margin:6px 0 12px;font-size:12.5px">Sigma tracks are original, synthesized here (dark phonk-style). Upload real tracks only if you hold the rights.</p>
+      <label class="l">Mood for the next upload</label>
+      <select id="mood" style="margin-bottom:10px"><option>sigma</option><option>any</option><option>calm</option><option>chill</option><option>upbeat</option><option>tense</option><option>funny</option></select>
+      <div class="drop" id="dropMusic">Drop an audio file here, or click to choose<input type="file" id="fileMusic" accept="audio/*" hidden></div>
+      <div class="tracks" id="tracks"></div>
     </div>
-    <label>Days</label>
-    <div class="days" id="sDays"></div>
-    <label>Formats (none = all, weighted)</label>
-    <div class="days" id="sFormats"></div>
-    <div class="row">
-      <div><label><input id="sDeploy" type="checkbox" style="width:auto"> Auto-deploy to YouTube after creating</label></div>
-      <div><label>Privacy when deploying</label><select id="sPrivacy"><option>private</option><option>unlisted</option><option>public</option></select></div>
+    <div class="card">
+      <h2>Clip &amp; image library</h2>
+      <p class="sub" style="margin:0 0 12px;font-size:12.5px">Series moments, screen recordings, reaction images. Claude only uses what you list, and credits it in the description.</p>
+      <form id="libForm">
+        <div class="drop" id="dropLib" style="margin-bottom:12px">Drop a clip/image here, or click<input type="file" id="fileLib" name="file" accept="video/*,image/*" hidden></div>
+        <label class="l">Series / film title</label><input name="series" placeholder="e.g. the show this moment is from" style="margin-bottom:10px">
+        <div class="row"><div class="grow"><label class="l">ID</label><input name="id" placeholder="my-clip"></div>
+          <div class="grow"><label class="l">Start (s)</label><input name="start" type="number" step="0.1" value="0"></div>
+          <div class="grow"><label class="l">Length (s, max 8)</label><input name="duration" type="number" step="0.1" value="6"></div></div>
+        <label class="l" style="margin-top:10px">What happens in it</label><input name="description" placeholder="Founders panic as servers crash">
+        <div class="row" style="margin-top:10px"><div class="grow"><label class="l">Tags</label><input name="tags" placeholder="startup, scaling"></div>
+          <div class="grow"><label class="l">Credit</label><input name="credit" placeholder="Show name (Network)"></div></div>
+        <p style="margin:12px 0 0"><button class="btn p">Add to library</button> <span class="sub" id="libFile" style="margin:0 0 0 8px"></span></p>
+      </form>
+      <table id="libTable" style="margin-top:14px"></table>
+      <p class="sub" style="font-size:12px;margin:10px 0 0">You are responsible for the rights to anything you add. Unlicensed show clips can trigger Content ID claims.</p>
     </div>
-    <p><button class="primary" id="sCreate">Create schedule</button></p>
   </div>
-  <div class="card"><h3 style="margin-top:0">Active schedules</h3><table id="sTable"></table></div>
+</section>
+
+<!-- ================= SCHEDULES ================= -->
+<section class="page" id="p-schedules">
+  <h1>Schedules</h1>
+  <p class="sub">Off by default. A schedule creates (and optionally deploys) videos at its time, while this app is running.</p>
+  <div class="two" style="margin-top:0">
+    <div class="card">
+      <h2>New schedule</h2>
+      <div class="row"><div class="grow"><label class="l">Name</label><input id="sName" value="Daily shorts"></div>
+        <div style="width:120px"><label class="l">Time</label><input id="sTime" type="time" value="09:00"></div>
+        <div style="width:90px"><label class="l">Videos</label><input id="sCount" type="number" min="1" max="10" value="3"></div></div>
+      <label class="l" style="margin-top:12px">Days</label><div class="filters" id="sDays" style="margin:0"></div>
+      <label class="l" style="margin-top:12px">Formats <span style="color:var(--dim)">(none selected = weighted mix)</span></label><div class="filters" id="sFormats" style="margin:0"></div>
+      <div class="row" style="margin-top:12px"><div class="grow"><label class="l">Deploy</label>
+        <div class="seg" id="sDeploy"><button class="on" data-v="0">Manual (create only)</button><button data-v="1">Auto-deploy</button></div></div>
+        <div style="width:150px"><label class="l">Privacy</label><select id="sPrivacy"><option>private</option><option>unlisted</option><option>public</option></select></div></div>
+      <p style="margin:14px 0 0"><button class="btn p" id="sCreate">Create schedule</button></p>
+    </div>
+    <div class="card"><h2>Active schedules</h2><table id="sTable"></table></div>
+  </div>
+</section>
+
+<!-- ================= SETUP ================= -->
+<section class="page" id="p-setup">
+  <h1>Setup</h1>
+  <p class="sub">Everything needed to go from preview to a real channel.</p>
+  <div class="steps" id="steps"></div>
 </section>
 </main>
 
+<div id="dock"></div>
+<div class="modal" id="modal"><div class="mbox" id="mbox"></div></div>
+
 <script>
-const $=s=>document.querySelector(s), api=(p,o)=>fetch(p,o).then(async r=>{const j=await r.json().catch(()=>({}));if(!r.ok)throw new Error(j.error||r.statusText);return j});
+const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
+const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const api=(p,o)=>fetch(p,o).then(async r=>{const j=await r.json().catch(()=>({}));if(!r.ok)throw new Error(j.error||r.statusText);return j});
 const post=(p,b)=>api(p,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(b)});
-const TABS=[['create','Create'],['videos','Videos'],['assets','Music & clips'],['schedules','Schedules']];
-const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
-let status={};
-$('#tabs').innerHTML=TABS.map(([id,l])=>`<button data-t="${id}">${l}</button>`).join('');
-function tab(id){document.querySelectorAll('section').forEach(s=>s.classList.toggle('on',s.id===id));document.querySelectorAll('nav button').forEach(b=>b.classList.toggle('on',b.dataset.t===id));if(id==='videos')loadVideos();if(id==='assets')loadAssets();if(id==='schedules')loadSchedules();location.hash=id}
-document.querySelectorAll('nav button').forEach(b=>b.onclick=()=>tab(b.dataset.t));
+function toast(m,bad){const t=document.createElement('div');t.className='toast'+(bad?' bad':'');t.textContent=m;document.body.append(t);setTimeout(()=>t.remove(),3200)}
+const ICON={
+ studio:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3l2.2 5.3L20 9l-4.4 3.8L17 19l-5-3-5 3 1.4-6.2L4 9l5.8-.7z"/></svg>',
+ library:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="4" width="18" height="16" rx="3"/><path d="M10 9l5 3-5 3z"/></svg>',
+ assets:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M9 18V6l10-2v12"/><circle cx="7" cy="18" r="2.5"/><circle cx="17" cy="16" r="2.5"/></svg>',
+ schedules:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>',
+ setup:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M5 12l4 4 10-10"/></svg>'};
+const PAGES=[['studio','Studio'],['library','Library'],['assets','Music & clips'],['schedules','Schedules'],['setup','Setup']];
+let S={},VIDS=[],fmtSel='',filter='all',openJob=null;
 
+/* ---------- nav ---------- */
+$('#nav').innerHTML=PAGES.map(([id,l])=>`<button data-p="${id}">${ICON[id]}<span>${l}</span>${id==='library'?'<span class="count" id="vcount">0</span>':''}</button>`).join('');
+function go(id){$$('.page').forEach(p=>p.classList.toggle('on',p.id==='p-'+id));$$('#nav button').forEach(b=>b.classList.toggle('on',b.dataset.p===id));location.hash=id;
+  ({library:loadVideos,assets:loadAssets,schedules:loadSchedules,setup:renderSetup,studio:loadCands})[id]?.()}
+$('#nav').onclick=e=>{const b=e.target.closest('button');if(b)go(b.dataset.p)};
+
+/* ---------- status ---------- */
 async function loadStatus(){
-  status=await api('/api/status');
-  $('#channel').textContent=status.channel;
-  const p=(ok,t,n)=>`<span class="pill ${ok?'ok':'no'}">${ok?'✓':'•'} ${ok?t:n}</span>`;
-  $('#pills').innerHTML=p(status.anthropic_key,'Claude key set','Claude key missing (canned scripts)')+p(status.youtube_authorised,'YouTube connected','YouTube not connected')+p(status.music_tracks>0,status.music_tracks+' music tracks','no music')+p(status.pexels_key,'Stock video on','stock video off');
-  $('#fmt').innerHTML='<option value="">Auto (weighted mix)</option>'+status.formats.map(f=>`<option value="${f.id}">${esc(f.label)} · ${f.id}</option>`).join('');
-  $('#mockNote').textContent=status.anthropic_key?'':'No ANTHROPIC_API_KEY found: a canned script is used so you can preview the look, voice and memes. Add the key to .env for real Claude-written scripts.';
-  $('#sFormats').innerHTML=status.formats.map(f=>`<label><input type="checkbox" value="${f.id}"> ${esc(f.label)}</label>`).join('');
+  S=await api('/api/status');
+  $('#chan').textContent=S.channel;
+  renderFormats();
+  const checks=[S.anthropic_key,S.youtube_authorised,S.music_tracks>0,S.channel!=='YOUR CHANNEL NAME'];
+  const done=checks.filter(Boolean).length;
+  $('#setupBar').style.width=done/checks.length*100+'%';
+  $('#setupTxt').textContent=`${done} of ${checks.length} ready`;
 }
-$('#sDays').innerHTML=['Mon','Tue','Wed','Thu','Fri','Sat','Sun'].map((d,i)=>`<label><input type="checkbox" value="${i}" checked> ${d}</label>`).join('');
+function renderFormats(){
+  const NEW=['sigma_reel','kdrama_parody','meme_explainer'];
+  $('#fgrid').innerHTML=`<button class="fcard ${fmtSel===''?'sel':''}" data-f="" style="--c:#a78bfa"><b>AUTO MIX</b><span>Weighted mix of every format, picked per video.</span><div class="tags"><span class="chip">recommended</span></div></button>`+
+   S.formats.map(f=>`<button class="fcard ${fmtSel===f.id?'sel':''}" data-f="${f.id}" style="--c:${f.accent}"><b>${esc(f.label)}</b><span>${esc(f.blurb)}</span><div class="tags">${NEW.includes(f.id)?'<span class="new">NEW</span>':''}${f.theme!=='default'?`<span class="chip">${f.theme==='sigma'?'deep voice + phonk':'2 voices + subtitles'}</span>`:''}</div></button>`).join('');
+  const f=S.formats.find(x=>x.id===fmtSel);$('#selName').textContent=f?f.label:'Auto mix';
+}
+$('#fgrid').onclick=e=>{const c=e.target.closest('.fcard');if(c){fmtSel=c.dataset.f;renderFormats()}};
+$('#dec').onclick=()=>{$('#n').value=Math.max(1,+$('#n').value-1)};$('#inc').onclick=()=>{$('#n').value=Math.min(10,+$('#n').value+1)};
 
-$('#go').onclick=async()=>{try{await post('/api/generate',{format:$('#fmt').value,n:+$('#n').value,source:$('#src').value});pollJobs()}catch(e){alert(e.message)}};
-$('#renderBtn').onclick=async()=>{try{await post('/api/render-script',JSON.parse($('#scriptjson').value));pollJobs()}catch(e){alert(e.message)}};
-let sel=null;
+/* ---------- studio actions ---------- */
+$('#go').onclick=async()=>{try{await post('/api/generate',{format:fmtSel,n:+$('#n').value,source:$('#src').value});toast('Generating…');pollJobs()}catch(e){toast(e.message,1)}};
+$('#renderBtn').onclick=async()=>{try{await post('/api/render-script',JSON.parse($('#scriptjson').value));toast('Rendering script…');pollJobs()}catch(e){toast(e.message,1)}};
+async function loadCands(refresh){
+  $('#cands').textContent='Loading the latest articles and papers…';
+  try{const c=await api('/api/candidates'+(refresh?'?refresh=1':''));
+    $('#cands').outerHTML=`<div id="cands" style="margin:0">${c.map(i=>`<div class="cand"><div class="t"><b title="${esc(i.title)}">${esc(i.title)}</b><small>${esc(i.source)} · ${i.age_days}d ago</small></div><button class="btn sm" data-url="${esc(i.url)}">Make</button></div>`).join('')||'Nothing new right now.'}</div>`}
+  catch(e){$('#cands').textContent=e.message}
+}
+$('#refresh').onclick=()=>loadCands(true);
+document.addEventListener('click',async e=>{const b=e.target.closest('[data-url]');if(!b)return;
+  try{await post('/api/generate',{url:b.dataset.url,format:fmtSel});toast('Making it…');pollJobs()}catch(x){toast(x.message,1)}});
+
+/* ---------- jobs dock ---------- */
 async function pollJobs(){
-  const jobs=await api('/api/jobs');
-  $('#jobs').innerHTML=jobs.length?jobs.map(j=>`<div class="job" style="cursor:pointer" onclick="sel='${j.id}';pollJobs()"><span>${esc(j.title)}</span><span class="st-${j.status}">${j.status}</span></div>`).join(''):'No jobs yet.';
-  const j=jobs.find(x=>x.id===sel)||jobs[0];
-  if(j){$('#joblog').hidden=false;$('#joblog').textContent=j.log||'…';$('#joblog').scrollTop=1e9}
-  if(jobs.some(x=>x.status==='running'||x.status==='queued')){setTimeout(pollJobs,1500)}else if(jobs.length){loadVideos()}
+  const jobs=(await api('/api/jobs')).slice(0,4);
+  $('#dock').innerHTML=jobs.map(j=>`<div class="job ${j.status}" data-j="${j.id}"><div class="h"><b>${esc(j.title)}</b><span style="color:var(--${j.status==='done'?'ok':j.status==='failed'?'bad':'warn'})">${j.status}</span></div><div class="prog"><i></i></div>${openJob===j.id?`<pre>${esc(j.log||'…')}</pre>`:''}</div>`).join('');
+  const active=jobs.some(j=>j.status==='running'||j.status==='queued');
+  if(active)setTimeout(pollJobs,1500);else if(jobs.length){loadVideos();loadStatus()}
+  const pre=$('#dock pre');if(pre)pre.scrollTop=1e9;
 }
+$('#dock').onclick=e=>{const j=e.target.closest('.job');if(j){openJob=openJob===j.dataset.j?null:j.dataset.j;pollJobs()}};
+
+/* ---------- library ---------- */
 async function loadVideos(){
-  const v=await api('/api/videos');
-  $('#vgrid').innerHTML=v.length?v.map(x=>`<div class="card vid">
-    ${x.has_video?`<video controls preload="metadata" src="/output/${x.folder}/video.mp4"></video>`:'<div class="mute">no video</div>'}
-    <h3>${esc(x.title)}</h3>
-    <div><span class="tag">${esc(x.label)}</span><span class="tag">${x.scenes.filter(s=>s.visual!=='none').length} visual(s)</span></div>
-    <div class="mute" style="margin:6px 0">${esc(x.source.name)}</div>
-    <div class="row" style="align-items:center">
-      ${x.video_id?`<a class="mute" target="_blank" href="https://youtube.com/shorts/${x.video_id}">On YouTube ↗</a>`:
-      `<select id="pv-${x.folder}" style="flex:1"><option>private</option><option>unlisted</option><option>public</option></select>
-       <button class="primary" style="flex:1" onclick="deploy('${x.folder}')">Deploy</button>`}
-      <button class="ghost danger" style="flex:0" onclick="del('${x.folder}')">✕</button>
-    </div></div>`).join(''):'<div class="mute">No videos yet. Generate one from the Create tab.</div>';
+  VIDS=await api('/api/videos');$('#vcount').textContent=VIDS.length;
+  const fm=[...new Map(VIDS.map(v=>[v.format,v.label])).entries()];
+  $('#filters').innerHTML=`<button data-f="all" class="${filter==='all'?'on':''}">All · ${VIDS.length}</button>`+fm.map(([id,l])=>`<button data-f="${id}" class="${filter===id?'on':''}">${esc(l)}</button>`).join('');
+  const list=VIDS.filter(v=>filter==='all'||v.format===filter);
+  $('#vgrid').innerHTML=list.length?list.map(v=>`<div class="vcard" style="--c:${v.accent}">
+    <div class="phone" data-open="${v.folder}"><video muted loop playsinline preload="metadata" src="/output/${v.folder}/video.mp4#t=0.8"></video><span class="badge">${esc(v.label)}</span><div class="play"><i><svg width="18" height="18" viewBox="0 0 24 24"><path d="M8 5v14l11-7z" fill="#08101c"/></svg></i></div></div>
+    <h3>${esc(v.title)}</h3>
+    <div class="vmeta"><span>${v.scenes.length} scenes</span>${v.video_id?'<span class="chip ok"><i class="dot"></i>Live</span>':'<span class="chip">Draft</span>'}</div>
+    <div class="vact"><button class="btn sm" data-open="${v.folder}">Details</button>${v.video_id?`<a class="btn sm" style="text-align:center" target="_blank" href="https://youtube.com/shorts/${v.video_id}">YouTube ↗</a>`:`<button class="btn sm p" data-open="${v.folder}">Deploy</button>`}</div></div>`).join(''):
+    '<div class="empty" style="grid-column:1/-1">Nothing here yet. Head to the Studio and generate your first short.</div>';
 }
-async function deploy(f){if(!confirm('Upload this video to YouTube as '+$('#pv-'+f).value+'?'))return;try{await post('/api/publish',{folder:f,privacy:$('#pv-'+f).value});tab('create');pollJobs()}catch(e){alert(e.message)}}
-async function del(f){if(confirm('Delete this video folder?')){await api('/api/videos/'+f,{method:'DELETE'});loadVideos()}}
+$('#filters').onclick=e=>{const b=e.target.closest('button');if(b){filter=b.dataset.f;loadVideos()}};
+$('#vgrid').addEventListener('mouseover',e=>{const p=e.target.closest('.phone');if(p)p.querySelector('video').play().catch(()=>{})});
+$('#vgrid').addEventListener('mouseout',e=>{const p=e.target.closest('.phone');if(p){const v=p.querySelector('video');v.pause();v.currentTime=.8}});
+$('#vgrid').addEventListener('click',e=>{const o=e.target.closest('[data-open]');if(o)openModal(o.dataset.open)});
 
+let priv='private';
+function openModal(folder){
+  const v=VIDS.find(x=>x.folder===folder);priv=S.privacy||'private';
+  const ICO={meme:'🖼',library:'🎞',stock:'📹',none:''};
+  $('#mbox').innerHTML=`<div><video controls autoplay src="/output/${v.folder}/video.mp4"></video></div>
+   <div style="min-width:0"><div class="row" style="justify-content:space-between;align-items:center"><span class="chip" style="color:${v.accent}">${esc(v.label)}</span><button class="btn sm" id="mx">Close</button></div>
+   <h1 style="font-size:20px;margin:10px 0 4px">${esc(v.title)}</h1>
+   <p class="sub" style="margin-bottom:12px">${esc(v.source.name)}${v.source.url?` · <a target="_blank" href="${esc(v.source.url)}">source ↗</a>`:''}</p>
+   ${v.characters.length?`<p style="margin:0 0 10px">${v.characters.map(c=>`<span class="chip" style="margin-right:6px">${esc(c.name)} · ${c.gender==='female'?'female':'male'} KO voice</span>`).join('')}</p>`:''}
+   <div style="max-height:250px;overflow:auto;margin-bottom:14px">${v.scenes.map((s,i)=>`<div class="scene"><i>${i+1}</i><div>${esc(s.subtitle||s.narration)}${s.subtitle?`<em>${esc(s.narration)}</em>`:''}${s.visual!=='none'?`<em>${ICO[s.visual]} ${s.visual} visual</em>`:''}</div></div>`).join('')}</div>
+   ${v.video_id?`<a class="btn p" target="_blank" href="https://youtube.com/shorts/${v.video_id}">Open on YouTube ↗</a>`:`
+   <label class="l">Deploy to YouTube as</label>
+   <div class="row"><div class="seg" id="pseg">${['private','unlisted','public'].map(p=>`<button data-v="${p}" class="${p===priv?'on':''}">${p}</button>`).join('')}</div>
+   <button class="btn p" id="deploy">Deploy</button><button class="btn d" id="del">Delete</button></div>
+   ${S.youtube_authorised?'':'<p class="sub" style="margin:10px 0 0;font-size:12px;color:var(--warn)">YouTube isn’t connected yet. See Setup.</p>'}`}</div>`;
+  $('#modal').classList.add('on');
+  $('#mx').onclick=closeModal;
+  $('#pseg')?.addEventListener('click',e=>{const b=e.target.closest('button');if(b){priv=b.dataset.v;$$('#pseg button').forEach(x=>x.classList.toggle('on',x===b))}});
+  $('#deploy')?.addEventListener('click',async()=>{if(!confirm(`Upload to YouTube as ${priv}?`))return;try{await post('/api/publish',{folder,privacy:priv});closeModal();toast('Uploading…');pollJobs()}catch(e){toast(e.message,1)}});
+  $('#del')?.addEventListener('click',async()=>{if(confirm('Delete this video?')){await api('/api/videos/'+folder,{method:'DELETE'});closeModal();loadVideos()}});
+}
+function closeModal(){$('#modal').classList.remove('on');$('#mbox').innerHTML=''}
+$('#modal').onclick=e=>{if(e.target.id==='modal')closeModal()};
+document.addEventListener('keydown',e=>{if(e.key==='Escape')closeModal()});
+
+/* ---------- assets ---------- */
+function dropzone(zone,input,onfile){
+  zone.onclick=()=>input.click();
+  zone.ondragover=e=>{e.preventDefault();zone.classList.add('over')};zone.ondragleave=()=>zone.classList.remove('over');
+  zone.ondrop=e=>{e.preventDefault();zone.classList.remove('over');if(e.dataTransfer.files[0])onfile(e.dataTransfer.files[0])};
+  input.onchange=()=>input.files[0]&&onfile(input.files[0]);
+}
+let libFile=null;
+dropzone($('#dropMusic'),$('#fileMusic'),async f=>{const fd=new FormData();fd.append('file',f);fd.append('mood',$('#mood').value);
+  try{await api('/api/music',{method:'POST',body:fd});toast('Track added');loadAssets();loadStatus()}catch(e){toast(e.message,1)}});
+dropzone($('#dropLib'),$('#fileLib'),f=>{libFile=f;$('#libFile').textContent=f.name;if(!$('#libForm [name=id]').value)$('#libForm [name=id]').value=f.name.replace(/\.[^.]+$/,'')});
+$('#libForm').onsubmit=async e=>{e.preventDefault();if(!libFile)return toast('Choose a file first',1);const fd=new FormData(e.target);fd.set('file',libFile);
+  fd.set('kind',libFile.type.startsWith('image')?'image':'clip');
+  try{await api('/api/library',{method:'POST',body:fd});toast('Added to library');libFile=null;$('#libFile').textContent='';e.target.reset();loadAssets()}catch(x){toast(x.message,1)}};
+$('#genSigma').onclick=async()=>{await post('/api/music/sigma',{});toast('Synthesizing…');pollJobs()};
 async function loadAssets(){
-  const m=await api('/api/music');$('#musicTable').innerHTML='<tr><th>Mood</th><th>Track</th></tr>'+(m.map(t=>`<tr><td>${t.mood}</td><td>${esc(t.name)}</td></tr>`).join('')||'<tr><td colspan=2 class="mute">None yet</td></tr>');
-  const l=await api('/api/library');$('#libTable').innerHTML='<tr><th>ID</th><th>Kind</th><th>Description</th></tr>'+(l.map(t=>`<tr><td>${esc(t.id)}</td><td>${t.kind}</td><td>${esc(t.description||'')}</td></tr>`).join('')||'<tr><td colspan=3 class="mute">None yet</td></tr>');
+  const m=await api('/api/music');
+  $('#tracks').innerHTML=m.map(t=>`<div class="track"><span class="mood">${esc(t.mood)}</span><b title="${esc(t.name)}">${esc(t.name)}</b>${t.mood==='any'?'':`<audio controls preload="none" src="/music/${t.mood}/${encodeURIComponent(t.name)}"></audio>`}</div>`).join('')||'<div class="sub" style="margin:0">No tracks yet.</div>';
+  const l=await api('/api/library');
+  $('#libTable').innerHTML=l.length?'<tr><th>ID</th><th>Kind</th><th>Description</th></tr>'+l.map(t=>`<tr><td>${esc(t.id)}</td><td>${t.kind}</td><td>${esc(t.description||'')}</td></tr>`).join(''):'';
 }
-for(const [f,u] of [['#musicForm','/api/music'],['#libForm','/api/library']]){$(f).onsubmit=async e=>{e.preventDefault();try{await api(u,{method:'POST',body:new FormData(e.target)});e.target.reset();loadAssets();loadStatus()}catch(x){alert(x.message)}}}
 
-async function loadSchedules(){
-  const s=await api('/api/schedules');const D=['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
-  $('#sTable').innerHTML='<tr><th>Name</th><th>When</th><th>Count</th><th>Deploy</th><th></th></tr>'+(s.map(x=>`<tr><td>${esc(x.name)} ${x.enabled?'':'<span class="mute">(paused)</span>'}</td><td>${x.time} · ${x.days.length===7?'daily':x.days.map(d=>D[d]).join(' ')}</td><td>${x.count}</td><td>${x.auto_deploy?'auto → '+x.privacy:'manual'}</td><td><button class="ghost" onclick="tog('${x.id}')">${x.enabled?'Pause':'Resume'}</button> <button class="ghost danger" onclick="rm('${x.id}')">Delete</button></td></tr>`).join('')||'<tr><td colspan=5 class="mute">No schedules. Nothing runs automatically.</td></tr>');
+/* ---------- schedules ---------- */
+const DN=['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];let sDays=new Set([0,1,2,3,4,5,6]),sFm=new Set(),sAuto=0;
+function renderSchedForm(){
+  $('#sDays').innerHTML=DN.map((d,i)=>`<button data-d="${i}" class="${sDays.has(i)?'on':''}">${d}</button>`).join('');
+  $('#sFormats').innerHTML=S.formats.map(f=>`<button data-f="${f.id}" class="${sFm.has(f.id)?'on':''}">${esc(f.label)}</button>`).join('');
 }
-$('#sCreate').onclick=async()=>{try{await post('/api/schedules',{name:$('#sName').value,time:$('#sTime').value,count:+$('#sCount').value,days:[...document.querySelectorAll('#sDays input:checked')].map(i=>+i.value),formats:[...document.querySelectorAll('#sFormats input:checked')].map(i=>i.value),auto_deploy:$('#sDeploy').checked,privacy:$('#sPrivacy').value});loadSchedules()}catch(e){alert(e.message)}};
-async function tog(id){await post('/api/schedules/'+id+'/toggle',{});loadSchedules()}
-async function rm(id){await api('/api/schedules/'+id,{method:'DELETE'});loadSchedules()}
-loadStatus().then(()=>{tab(location.hash.slice(1)||'create');pollJobs()});
+$('#sDays').onclick=e=>{const b=e.target.closest('button');if(b){const i=+b.dataset.d;sDays.has(i)?sDays.delete(i):sDays.add(i);renderSchedForm()}};
+$('#sFormats').onclick=e=>{const b=e.target.closest('button');if(b){const i=b.dataset.f;sFm.has(i)?sFm.delete(i):sFm.add(i);renderSchedForm()}};
+$('#sDeploy').onclick=e=>{const b=e.target.closest('button');if(b){sAuto=+b.dataset.v;$$('#sDeploy button').forEach(x=>x.classList.toggle('on',x===b))}};
+$('#sCreate').onclick=async()=>{try{await post('/api/schedules',{name:$('#sName').value,time:$('#sTime').value,count:+$('#sCount').value,days:[...sDays],formats:[...sFm],auto_deploy:!!sAuto,privacy:$('#sPrivacy').value});toast('Schedule created');loadSchedules()}catch(e){toast(e.message,1)}};
+async function loadSchedules(){
+  renderSchedForm();const s=await api('/api/schedules');
+  $('#sTable').innerHTML=s.length?'<tr><th>Name</th><th>When</th><th></th></tr>'+s.map(x=>`<tr><td><b>${esc(x.name)}</b><br><span class="sub" style="margin:0;font-size:12px">${x.count} videos · ${x.auto_deploy?'auto → '+x.privacy:'manual deploy'}${x.enabled?'':' · paused'}</span></td><td>${x.time}<br><span class="sub" style="margin:0;font-size:12px">${x.days.length===7?'daily':x.days.map(d=>DN[d]).join(' ')}</span></td><td style="text-align:right"><button class="btn sm" data-tog="${x.id}">${x.enabled?'Pause':'Resume'}</button> <button class="btn sm d" data-rm="${x.id}">✕</button></td></tr>`).join(''):'<tr><td class="sub" style="border:0">No schedules, so nothing runs automatically.</td></tr>';
+}
+$('#sTable').onclick=async e=>{const t=e.target.closest('[data-tog]'),r=e.target.closest('[data-rm]');
+  if(t){await post('/api/schedules/'+t.dataset.tog+'/toggle',{});loadSchedules()}if(r){await api('/api/schedules/'+r.dataset.rm,{method:'DELETE'});loadSchedules()}};
+
+/* ---------- setup ---------- */
+function renderSetup(){
+  const st=(ok,n,t,body)=>`<div class="step ${ok?'done':''}"><div class="n">${ok?'✓':n}</div><div style="flex:1;min-width:0"><h3>${t} ${ok?'<span class="chip ok">ready</span>':''}</h3>${body}</div></div>`;
+  $('#steps').innerHTML=
+   st(S.channel!=='YOUR CHANNEL NAME',1,'Channel identity',`<p>Shown beside your logo on every video.</p>
+     <div class="row"><div class="grow"><label class="l">Channel name</label><input id="cName" value="${esc(S.channel)}"></div><div class="grow"><label class="l">Handle</label><input id="cHandle" value="${esc(S.handle)}"></div>
+     <div><button class="btn p" id="saveCh">Save</button></div></div>`)+
+   st(false,2,'Your logo',`<p>Square PNG with a transparent background works best.</p><div class="row" style="align-items:center"><img src="/logo.png?${Date.now()}" width="56" height="56" style="border-radius:12px;background:#fff1"><div class="drop grow" id="dropLogo" style="padding:14px">Drop a PNG to replace it<input type="file" id="fileLogo" accept="image/*" hidden></div></div>`)+
+   st(S.anthropic_key,3,'Claude API key',`<p>Claude writes the scripts. Without it, the Studio uses hand-written example scripts of the same format so you can still preview everything.</p><pre>echo 'ANTHROPIC_API_KEY=sk-ant-…' &gt; .env</pre>`)+
+   st(S.youtube_authorised,4,'Connect YouTube',`<p>You sign in on Google’s own page; this app never sees your password.</p><pre>1. console.cloud.google.com → new project → enable “YouTube Data API v3”
+2. OAuth consent screen (External) → add yourself as a test user
+3. Credentials → OAuth client ID → “Desktop app” → download JSON
+4. Save it as client_secret.json next to config.yaml
+5. python main.py auth</pre>`)+
+   st(S.music_tracks>0,5,'Background music',`<p>${S.music_tracks} track(s). The sigma BGM is generated automatically on first use.</p><button class="btn" onclick="go('assets')">Manage music</button>`)+
+   st(S.pexels_key,6,'Stock video (optional)',`<p>Free Pexels key lets scenes use portrait b-roll.</p><pre>echo 'PEXELS_API_KEY=…' &gt;&gt; .env</pre>`);
+  $('#saveCh').onclick=async()=>{await post('/api/settings',{name:$('#cName').value,handle:$('#cHandle').value});toast('Saved');loadStatus().then(renderSetup)};
+  dropzone($('#dropLogo'),$('#fileLogo'),async f=>{const fd=new FormData();fd.append('file',f);await api('/api/logo',{method:'POST',body:fd});toast('Logo updated');renderSetup()});
+}
+
+loadStatus().then(()=>{go(location.hash.slice(1)||'studio');pollJobs();loadVideos()});
 </script>
 </body>
 </html>

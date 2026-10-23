@@ -43,10 +43,14 @@ def pick(cfg, fmt: str) -> Path | None:
         p = resolve(cfg, m["fixed"])
         if p.exists():
             return p
+    wanted = set(FORMATS[fmt].get("moods", []))
     lib = tracks(cfg)
+    if "sigma" in wanted and not any(mood == "sigma" for mood, _ in lib):
+        from . import sigma_bgm
+        sigma_bgm.ensure(cfg)  # original synthesized tracks, generated once
+        lib = tracks(cfg)
     if not lib:
         return None
-    wanted = set(FORMATS[fmt].get("moods", []))
     matches = [p for mood, p in lib if mood in wanted] or [p for mood, p in lib if mood == "any"] \
         or [p for _, p in lib]
     return random.choice(matches)

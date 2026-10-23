@@ -138,7 +138,7 @@ def menu() -> str:
     if lib:
         lines.append("LIBRARY (use library_id; the user's own clips/images):")
         for i in lib:
-            lines.append(f"- {i['id']} [{i.get('kind', 'clip')}] {i.get('description', '')} "
+            lines.append(f"- {i['id']} [{i.get('kind', 'clip')}] {('from ' + i['series'] + ': ') if i.get('series') else ''}{i.get('description', '')} "
                          f"(tags: {', '.join(i.get('tags', []))})")
     memes = meme_templates()
     if memes:
@@ -149,10 +149,11 @@ def menu() -> str:
     return "\n".join(lines)
 
 
-def _extract_frames(src: Path, start: float, dur: float, fps: int, out_dir: Path) -> list[Path]:
+def _extract_frames(src: Path, start: float, dur: float, fps: int, out_dir: Path,
+                    w: int = BOX_W, h: int = BOX_H) -> list[Path]:
     out_dir.mkdir(parents=True, exist_ok=True)
-    vf = (f"fps={fps},scale={BOX_W}:{BOX_H}:force_original_aspect_ratio=increase,"
-          f"crop={BOX_W}:{BOX_H}")
+    vf = (f"fps={fps},scale={w}:{h}:force_original_aspect_ratio=increase,"
+          f"crop={w}:{h}")
     subprocess.run(["ffmpeg", "-y", "-loglevel", "error", "-ss", str(start), "-t", f"{dur:.2f}", "-i", str(src),
                     "-an", "-vf", vf, "-q:v", "4", str(out_dir / "%04d.jpg")], check=True)
     return sorted(out_dir.glob("*.jpg"))
@@ -188,8 +189,10 @@ def prepare(cfg: dict, script: dict, timeline: dict, workdir: Path) -> dict[int,
                 f = resolve(cfg, e["file"])
                 if e.get("kind", "clip") == "clip":
                     d = min(dur, e.get("duration", MAX_CLIP_SECONDS))
-                    out[idx] = {"kind": "video", "frames": _extract_frames(
-                        f, e.get("start", 0), d, fps, workdir / f"clip{idx}"), "credit": e.get("credit")}
+                    full = sc.get("layout") == "clip_dub" or bool(v.get("fullscreen"))
+                    size = (cfg["video"]["width"], cfg["video"]["height"]) if full else (BOX_W, BOX_H)
+                    out[idx] = {"kind": "video", "full": full, "credit": e.get("credit"),
+                                "frames": _extract_frames(f, e.get("start", 0), d, fps, workdir / f"clip{idx}", *size)}
                 else:
                     out[idx] = {"kind": "image", "path": f, "credit": e.get("credit")}
             elif kind == "stock":

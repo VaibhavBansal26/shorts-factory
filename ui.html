@@ -85,15 +85,6 @@ textarea{min-height:130px;font-family:ui-monospace,Menlo,monospace;font-size:12p
 .cand .t{flex:1;min-width:0}.cand .t b{display:block;font-weight:600;font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .cand .t small{color:var(--dim)}
 
-/* ---------- remix ---------- */
-let rxFile=null,rxVoices='two';
-async function loadRemix(){const m=await api('/api/music');$('#rxMusic').innerHTML='<option value="auto">Auto (matches the mood)</option><option value="none">No music</option>'+m.map(t=>`<option value="${esc(t.name)}">${esc(t.mood)} · ${esc(t.name)}</option>`).join('')}
-dropzone($('#dropRemix'),$('#fileRemix'),f=>{rxFile=f;$('#dropRemix').textContent=f.name;const v=$('#remixPreview');v.src=URL.createObjectURL(f);v.style.display='block'});
-$('#rxVoices').onclick=e=>{const b=e.target.closest('button');if(b){rxVoices=b.dataset.v;$$('#rxVoices button').forEach(x=>x.classList.toggle('on',x===b))}};
-$('#rxGo').onclick=async()=>{if(!rxFile)return toast('Choose a clip first',1);
-  const fd=new FormData();fd.append('file',rxFile);fd.append('hint',$('#rxHint').value);fd.append('topic',$('#rxTopic').value);fd.append('voices',rxVoices);fd.append('memes',$('#rxMemes').value);fd.append('music',$('#rxMusic').value);fd.append('rights',$('#rxRights').checked);
-  try{await api('/api/remix',{method:'POST',body:fd});toast('Creating remix…');pollJobs()}catch(e){toast(e.message,1)}};
-
 /* ---------- library ---------- */
 .filters{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px}
 .filters button{background:var(--panel);border:1px solid var(--line);color:var(--mute);border-radius:99px;padding:5px 13px;cursor:pointer;font-size:12.5px}
@@ -356,6 +347,15 @@ async function pollJobs(){
   const pre=$('#dock pre');if(pre)pre.scrollTop=1e9;
 }
 $('#dock').onclick=e=>{const j=e.target.closest('.job');if(j){openJob=openJob===j.dataset.j?null:j.dataset.j;pollJobs()}};
+
+/* ---------- remix ---------- */
+let rxFile=null,rxVoices='two';
+async function loadRemix(){const m=await api('/api/music');$('#rxMusic').innerHTML='<option value="auto">Auto (matches the mood)</option><option value="none">No music</option>'+m.map(t=>`<option value="${esc(t.name)}">${esc(t.mood)} · ${esc(t.name)}</option>`).join('')}
+dropzone($('#dropRemix'),$('#fileRemix'),f=>{rxFile=f;$('#dropRemix').textContent=f.name;const v=$('#remixPreview');v.src=URL.createObjectURL(f);v.style.display='block'});
+$('#rxVoices').onclick=e=>{const b=e.target.closest('button');if(b){rxVoices=b.dataset.v;$$('#rxVoices button').forEach(x=>x.classList.toggle('on',x===b))}};
+$('#rxGo').onclick=async()=>{if(!rxFile)return toast('Choose a clip first',1);
+  const fd=new FormData();fd.append('file',rxFile);fd.append('hint',$('#rxHint').value);fd.append('topic',$('#rxTopic').value);fd.append('voices',rxVoices);fd.append('memes',$('#rxMemes').value);fd.append('music',$('#rxMusic').value);fd.append('rights',$('#rxRights').checked);
+  try{await api('/api/remix',{method:'POST',body:fd});toast('Creating remix…');pollJobs()}catch(e){toast(e.message,1)}};
 
 /* ---------- library ---------- */
 async function loadVideos(){

@@ -1,0 +1,72 @@
+channel:
+  name: "YOUR CHANNEL NAME"      # shown next to the logo in every video
+  handle: "@yourhandle"
+  logo: assets/logo.png          # replace with your own PNG (transparent background works best)
+
+llm:
+  model: claude-sonnet-5-5       # scripts are written by Claude; needs ANTHROPIC_API_KEY in .env
+
+video:
+  width: 1080
+  height: 1920
+  fps: 30
+  min_seconds: 15
+  max_seconds: 45
+  fonts:                         # first one that exists wins
+    - /System/Library/Fonts/Supplemental/Arial Black.ttf
+    - /System/Library/Fonts/Supplemental/Arial Bold.ttf
+    - /usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf
+  music_dir: assets/music        # assets/music/<mood>/*.mp3  (moods: calm chill upbeat tense funny any)
+  music_volume: 0.14             # music is ducked automatically while the voice speaks
+  music:
+    mode: auto                   # auto = pick by format mood | off
+    fixed: null                  # e.g. assets/music/upbeat/my_track.mp3 to always use one track
+
+voice:
+  provider: edge                 # free Microsoft neural voices, no API key
+  name: en-US-AndrewMultilingualNeural
+  rate: "+6%"
+
+youtube:
+  privacy: private               # private | unlisted | public  (start private, review, then switch)
+  category_id: "28"              # Science & Technology
+  made_for_kids: false
+  contains_synthetic_media: false  # set true if you want YouTube's "altered or synthetic" label
+  default_hashtags: ["#Shorts", "#AI", "#SoftwareEngineering", "#Tech"]
+
+# how many to make per `run`, and which formats (weight = relative chance)
+formats:
+  concept_explainer: 3
+  ask_question: 2
+  research_opinion: 3
+  myth_vs_fact: 2
+  analogy: 2
+  interview_question: 2
+  hot_take: 1
+  quick_news: 2
+  this_vs_that: 1
+  meme_explainer: 3
+  series_moment: 1   # needs clips in assets/library.yaml; falls back to memes
+
+selection:
+  max_age_days: 14
+  candidates_per_run: 30
+  keywords: [llm, agent, rag, transformer, inference, gpu, kubernetes, distributed, microservice,
+             architecture, scaling, latency, observability, reinforcement, diffusion, embedding,
+             vector, fine-tuning, quantization, benchmark, reasoning, multimodal, mlops, platform,
+             database, streaming, security, compiler, rust, python, open source, evaluation]
+  exclude: [webinar, sponsored, hiring, job opening, press release]
+
+sources:
+  - {name: "Towards Data Science", kind: blog, weight: 1.0, url: "https://towardsdatascience.com/feed"}
+  - {name: "Medium · AI",           kind: blog, weight: 0.8, url: "https://medium.com/feed/tag/artificial-intelligence"}
+  - {name: "Medium · Software Eng", kind: blog, weight: 0.8, url: "https://medium.com/feed/tag/software-engineering"}
+  - {name: "Medium · LLM",          kind: blog, weight: 0.8, url: "https://medium.com/feed/tag/llm"}
+  - {name: "Netflix TechBlog",      kind: blog, weight: 1.4, url: "https://netflixtechblog.com/feed"}
+  - {name: "Amazon Science",        kind: blog, weight: 1.3, url: "https://www.amazon.science/index.rss"}
+  - {name: "AWS Machine Learning",  kind: blog, weight: 1.1, url: "https://aws.amazon.com/blogs/machine-learning/feed/"}
+  - {name: "Microsoft Research",    kind: blog, weight: 1.3, url: "https://www.microsoft.com/en-us/research/feed/"}
+  - {name: "Microsoft Dev Blogs",   kind: blog, weight: 1.0, url: "https://devblogs.microsoft.com/engineering-at-microsoft/feed/"}
+  - {name: "Google Research",       kind: blog, weight: 1.2, url: "https://research.google/blog/rss/"}
+  - {name: "arXiv cs.AI/LG/SE",     kind: paper, weight: 1.2,
+     url: "https://export.arxiv.org/api/query?search_query=cat:cs.AI+OR+cat:cs.LG+OR+cat:cs.SE&sortBy=submittedDate&sortOrder=descending&max_results=40"}

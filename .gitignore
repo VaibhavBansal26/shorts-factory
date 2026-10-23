@@ -1,0 +1,10 @@
+.venv/
+.env
+client_secret.json
+token.json
+data/
+output/
+__pycache__/
+assets/cache/
+assets/library.yaml
+assets/clips/

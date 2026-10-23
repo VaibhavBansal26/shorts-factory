@@ -1,6 +1,7 @@
 channel:
   name: "VB AI Engineer"      # shown next to the logo in every video
   handle: "@VaibhavBansalCode"
+  about: "VB: AI engineer explaining AI and software engineering in under 45 seconds. Practical, honest, a bit funny."
   logo: assets/logo.png          # replace with your own PNG (transparent background works best)
 
 llm:

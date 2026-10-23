@@ -89,7 +89,7 @@ def list_videos():
             "folder": d.name, "title": s["title"], "format": s["format"],
             "label": formats.FORMATS[s["format"]]["label"], "source": s["source"],
             "has_video": (d / "video.mp4").exists(), "video_id": vid_id,
-            "accent": "#%02x%02x%02x" % formats.FORMATS[s["format"]]["accent"],
+            "accent": "#%02x%02x%02x" % formats.FORMATS[s["format"]]["accent"], "seo": s.get("seo"),
             "description": s.get("description", ""), "characters": s.get("characters", []),
             "scenes": [{"narration": x["narration"], "subtitle": x.get("subtitle"), "speaker": x.get("speaker"),
                         "headline": x.get("headline", ""), "visual": (x.get("visual") or {}).get("type", "none")}
@@ -215,10 +215,40 @@ def render_script():
     return jsonify(job=start_job(f"Render '{script['title']}'", lambda: pipeline.render_script(cfg, script)[0].name))
 
 
+@app.post("/api/seo")
+def seo_write():
+    from src import seo
+    if not have_key():
+        return jsonify(error="Add your Claude API key in Setup first"), 400
+    folder = OUT / secure_filename(request.json["folder"])
+    sj = folder / "script.json"
+    script = json.loads(sj.read_text())
+    try:
+        result = seo.ensure(cfg, script, force=True)
+    except Exception as e:
+        return jsonify(error=str(e)), 500
+    if not result:
+        return jsonify(error="Could not write metadata, try again"), 500
+    sj.write_text(json.dumps(script, indent=2))
+    return jsonify(result)
+
+
 @app.post("/api/publish")
 def publish():
     b = request.json
     folder = OUT / secure_filename(b["folder"])
+    meta = b.get("meta")
+    if meta:  # the owner's edits in the Deploy window win over the generated text
+        from src import seo as _seo
+        sj = folder / "script.json"
+        script = json.loads(sj.read_text())
+        old = script.get("seo", {})
+        script["seo"] = {"title": meta.get("title") or old.get("title", script["title"]),
+                         "description": meta.get("description", old.get("description", "")),
+                         "hashtags": _seo.clean_hashtags((meta.get("hashtags") or "").replace(",", " ").split())
+                         or old.get("hashtags", []),
+                         "tags": old.get("tags", [])}
+        sj.write_text(json.dumps(script, indent=2))
     if not (folder / "video.mp4").exists():
         return jsonify(error="no video"), 404
     if not yt_ready():

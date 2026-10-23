@@ -4,7 +4,7 @@ import re
 import time
 from datetime import date
 
-from . import db, media, music, scriptgen, sources, tts
+from . import db, media, music, scriptgen, seo, sources, tts
 from .config import ROOT
 from .formats import pick_format
 from .render import Renderer
@@ -39,6 +39,9 @@ def produce(cfg: dict, script: dict):
     if scene_media:
         print(f"  visuals: {len(scene_media)} scene(s) with media")
         script["media_credits"] = media.credits(scene_media)
+        (folder / "script.json").write_text(json.dumps(script, indent=2))
+    if seo.ensure(cfg, script):
+        print(f"  seo: {script['seo']['title']}")
         (folder / "script.json").write_text(json.dumps(script, indent=2))
     track = music.pick(cfg, script["format"], script.get("music"))
     print(f"  music: {track.name if track else 'none'}")

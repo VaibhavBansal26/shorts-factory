@@ -39,22 +39,33 @@ def authorize():
 
 def build_metadata(script: dict, cfg: dict) -> dict:
     yt = cfg["youtube"]
-    src = script["source"]
-    tags = yt["default_hashtags"]
-    title = script["title"]
-    if "#Shorts" not in title:
-        title = f"{title[:88]} #Shorts"
-    desc = (
-        f"{script['description']}\n\n"
-        + (f"Source: {src['title']} — {src['name']}\n{src['url']}\n\n" if src.get("url") else "")
-        + (f"Clips/images: {', '.join(script['media_credits'])}\n\n" if script.get("media_credits") else "")
-        + f"Voiceover is AI-generated. Opinions are my own.\n\n{' '.join(tags)}"
-    )
+    src = script.get("source", {})
+    seo = script.get("seo") or {}
+    title = (seo.get("title") or script["title"]).strip()
+    hashtags = list(seo.get("hashtags") or [])
+    hashtags = (hashtags + [t for t in yt["default_hashtags"] if t.lower() not in (h.lower() for h in hashtags)]
+                if not hashtags else hashtags)
+    if "#shorts" not in (h.lower() for h in hashtags):
+        hashtags.append("#Shorts")
+    body = (seo.get("description") or script.get("description", "")).strip()
+    parts = [body]
+    if src.get("url"):
+        parts.append(f"Source: {src['title']} — {src['name']}\n{src['url']}")
+    if script.get("media_credits"):
+        parts.append(f"Clips/images: {', '.join(script['media_credits'])}")
+    parts.append("Voiceover is AI-generated. Opinions are my own.")
+    parts.append(" ".join(hashtags[:6]))
+    tags = [t.lstrip("#") for t in hashtags] + [t for t in seo.get("tags", [])] + script.get("tags", [])
+    seen, uniq = set(), []
+    for t in tags:
+        if t.lower() not in seen:
+            seen.add(t.lower())
+            uniq.append(t)
     return {
         "snippet": {
             "title": title[:100],
-            "description": desc[:4900],
-            "tags": [t.lstrip("#") for t in tags] + script.get("tags", []),
+            "description": "\n\n".join(p for p in parts if p)[:4900],
+            "tags": uniq[:30],
             "categoryId": yt["category_id"],
         },
         "status": {
@@ -66,6 +77,8 @@ def build_metadata(script: dict, cfg: dict) -> dict:
 
 
 def upload(video: Path, script: dict, cfg: dict, privacy: str | None = None) -> str:
+    from . import seo
+    seo.ensure(cfg, script)  # videos made before this feature get their metadata written now
     body = build_metadata(script, cfg)
     if privacy:
         body["status"]["privacyStatus"] = privacy

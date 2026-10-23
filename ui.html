@@ -469,6 +469,11 @@ function openModal(folder){
    ${v.characters.length?`<p style="margin:0 0 10px">${v.characters.map(c=>`<span class="chip" style="margin-right:6px">${esc(c.name)} · ${c.gender==='female'?'female':'male'} voice</span>`).join('')}</p>`:''}
    <div style="max-height:240px;overflow:auto;margin-bottom:14px">${v.scenes.map((s,i)=>`<div class="scene"><i>${i+1}</i><div>${esc(s.subtitle||s.narration)}${s.visual!=='none'?`<em>${ICO[s.visual]||''} ${s.visual} visual</em>`:''}</div></div>`).join('')}</div>
    ${v.video_id?`<a class="btn p" target="_blank" href="https://youtube.com/shorts/${v.video_id}">Open on YouTube ↗</a>`:`
+   <div class="row" style="justify-content:space-between;align-items:center;margin-bottom:6px"><h2>Title, description &amp; hashtags</h2><button class="btn sm" id="seoWrite">✨ Write with AI</button></div>
+   <label class="l">Title <span id="tcount" style="color:var(--dim)"></span></label><input id="seoTitle" maxlength="100" value="${esc((v.seo&&v.seo.title)||v.title)}">
+   <label class="l" style="margin-top:8px">Description</label><textarea id="seoDesc" style="min-height:120px;font-family:inherit;font-size:13px" placeholder="Press “Write with AI” and I’ll write it in your voice, tuned for search.">${esc((v.seo&&v.seo.description)||'')}</textarea>
+   <label class="l" style="margin-top:8px">Hashtags</label><input id="seoTags" value="${esc(((v.seo&&v.seo.hashtags)||[]).join(' '))}" placeholder="#AIEngineering #LLM #RAG">
+   <p class="sub" style="font-size:11.5px;margin:6px 0 12px">The source link, the “AI-generated voice” note and #Shorts are added automatically. If left empty, I write these for you on Deploy.</p>
    <label class="l">Deploy to YouTube as</label>
    <div class="row"><div class="seg" id="pseg">${['private','unlisted','public'].map(p=>`<button data-v="${p}" class="${p===priv?'on':''}">${p}</button>`).join('')}</div>
    <button class="btn p" id="deploy">Deploy</button><button class="btn d" id="del">Delete</button></div>
@@ -476,9 +481,13 @@ function openModal(folder){
   $('#modal').classList.add('on');
   $('#player').addEventListener('error',()=>{$('#playerMsg').textContent='This player could not stream the file here. Use Open in player or Download.'});
   $('#mx').onclick=closeModal;
+  const tc=()=>{const t=$('#seoTitle');if(t)$('#tcount').textContent=`(${t.value.length}/70 ideal)`};tc();$('#seoTitle')?.addEventListener('input',tc);
+  $('#seoWrite')?.addEventListener('click',async()=>{const b=$('#seoWrite');b.disabled=true;b.textContent='Writing…';
+    try{const m=await post('/api/seo',{folder});$('#seoTitle').value=m.title;$('#seoDesc').value=m.description;$('#seoTags').value=m.hashtags.join(' ');v.seo=m;tc();toast('Written in your voice')}catch(e){toast(e.message,1)}
+    b.disabled=false;b.textContent='✨ Write with AI'});
   $('#openPlayer')?.addEventListener('click',()=>post('/api/open',{folder}));$('#reveal')?.addEventListener('click',()=>post('/api/open',{folder,reveal:true}));
   $('#pseg')?.addEventListener('click',e=>{const b=e.target.closest('button');if(b){priv=b.dataset.v;$$('#pseg button').forEach(x=>x.classList.toggle('on',x===b))}});
-  $('#deploy')?.addEventListener('click',async()=>{if(!await askConfirm(`Upload to YouTube as ${priv}?`))return;try{await post('/api/publish',{folder,privacy:priv});closeModal();toast('Uploading…');pollJobs()}catch(e){toast(e.message,1)}});
+  $('#deploy')?.addEventListener('click',async()=>{if(!await askConfirm(`Upload to YouTube as ${priv}?`))return;try{await post('/api/publish',{folder,privacy:priv,meta:{title:$('#seoTitle').value,description:$('#seoDesc').value,hashtags:$('#seoTags').value}});closeModal();toast('Uploading…');pollJobs()}catch(e){toast(e.message,1)}});
   $('#del')?.addEventListener('click',async()=>{if(await askConfirm('Delete this video?')){await api('/api/videos/'+folder,{method:'DELETE'});closeModal();loadVideos()}});
 }
 function closeModal(){const p=$('#player');if(p)p.pause();$('#modal').classList.remove('on');$('#mbox').innerHTML=''}

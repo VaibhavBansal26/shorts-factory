@@ -12,6 +12,7 @@ video:
   fps: 30
   min_seconds: 15
   max_seconds: 45
+  max_seconds_remix: 50          # remix keeps the owner's clip pacing
   fonts:                         # first one that exists wins
     - /System/Library/Fonts/Supplemental/Arial Black.ttf
     - /System/Library/Fonts/Supplemental/Arial Bold.ttf

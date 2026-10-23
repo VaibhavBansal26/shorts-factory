@@ -85,6 +85,15 @@ textarea{min-height:130px;font-family:ui-monospace,Menlo,monospace;font-size:12p
 .cand .t{flex:1;min-width:0}.cand .t b{display:block;font-weight:600;font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .cand .t small{color:var(--dim)}
 
+/* ---------- remix ---------- */
+let rxFile=null,rxVoices='two';
+async function loadRemix(){const m=await api('/api/music');$('#rxMusic').innerHTML='<option value="auto">Auto (matches the mood)</option><option value="none">No music</option>'+m.map(t=>`<option value="${esc(t.name)}">${esc(t.mood)} · ${esc(t.name)}</option>`).join('')}
+dropzone($('#dropRemix'),$('#fileRemix'),f=>{rxFile=f;$('#dropRemix').textContent=f.name;const v=$('#remixPreview');v.src=URL.createObjectURL(f);v.style.display='block'});
+$('#rxVoices').onclick=e=>{const b=e.target.closest('button');if(b){rxVoices=b.dataset.v;$$('#rxVoices button').forEach(x=>x.classList.toggle('on',x===b))}};
+$('#rxGo').onclick=async()=>{if(!rxFile)return toast('Choose a clip first',1);
+  const fd=new FormData();fd.append('file',rxFile);fd.append('hint',$('#rxHint').value);fd.append('topic',$('#rxTopic').value);fd.append('voices',rxVoices);fd.append('memes',$('#rxMemes').value);fd.append('music',$('#rxMusic').value);fd.append('rights',$('#rxRights').checked);
+  try{await api('/api/remix',{method:'POST',body:fd});toast('Creating remix…');pollJobs()}catch(e){toast(e.message,1)}};
+
 /* ---------- library ---------- */
 .filters{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px}
 .filters button{background:var(--panel);border:1px solid var(--line);color:var(--mute);border-radius:99px;padding:5px 13px;cursor:pointer;font-size:12.5px}
@@ -181,6 +190,32 @@ pre{background:var(--bg2);border:1px solid var(--line);border-radius:10px;paddin
   </div>
 </section>
 
+<!-- ================= REMIX ================= -->
+<section class="page" id="p-remix">
+  <h1>Remix a clip</h1>
+  <p class="sub">Upload a clip (about 30s). Claude looks at it, writes a new English dub of people discussing AI, drops memes in between and adds music from your library. The original audio is replaced.</p>
+  <div class="two" style="margin-top:0">
+    <div class="card">
+      <div class="drop" id="dropRemix">Drop a video here, or click to choose (mp4 / mov, up to ~40s used)<input type="file" id="fileRemix" accept="video/*" hidden></div>
+      <video id="remixPreview" controls style="display:none;width:100%;max-height:340px;margin-top:12px;border-radius:12px;background:#000"></video>
+      <label class="l" style="margin-top:12px">What is in the clip? (optional, helps the dub)</label>
+      <input id="rxHint" placeholder="e.g. two people arguing in an office">
+      <label class="l" style="margin-top:10px">What should they discuss?</label>
+      <input id="rxTopic" value="AI agents, hallucinations and prompting, explained like a friendly argument">
+    </div>
+    <div class="card">
+      <h2>Options</h2>
+      <label class="l">Voices</label>
+      <div class="seg" id="rxVoices"><button class="on" data-v="two">Two voices (male + female)</button><button data-v="one">One narrator</button></div>
+      <div class="row" style="margin-top:12px"><div class="grow"><label class="l">Memes in between</label>
+        <select id="rxMemes"><option>0</option><option>1</option><option selected>2</option><option>3</option></select></div>
+        <div class="grow"><label class="l">Music</label><select id="rxMusic"><option value="auto">Auto (matches the mood)</option><option value="none">No music</option></select></div></div>
+      <label style="display:flex;gap:10px;align-items:flex-start;margin-top:16px;color:var(--mute);font-size:12.5px"><input type="checkbox" id="rxRights" style="width:auto;margin-top:3px">I own this clip or have the rights to use it. I understand clips can still trigger copyright claims.</label>
+      <p style="margin:16px 0 0"><button class="btn p" id="rxGo">Create remix</button></p>
+    </div>
+  </div>
+</section>
+
 <!-- ================= LIBRARY ================= -->
 <section class="page" id="p-library">
   <h1>Library</h1>
@@ -261,18 +296,19 @@ const api=(p,o)=>fetch(p,o).then(async r=>{const j=await r.json().catch(()=>({})
 const post=(p,b)=>api(p,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(b)});
 function toast(m,bad){const t=document.createElement('div');t.className='toast'+(bad?' bad':'');t.textContent=m;document.body.append(t);setTimeout(()=>t.remove(),3200)}
 const ICON={
+ remix:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 7h12l-3-3M20 17H8l3 3"/></svg>',
  studio:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3l2.2 5.3L20 9l-4.4 3.8L17 19l-5-3-5 3 1.4-6.2L4 9l5.8-.7z"/></svg>',
  library:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="4" width="18" height="16" rx="3"/><path d="M10 9l5 3-5 3z"/></svg>',
  assets:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M9 18V6l10-2v12"/><circle cx="7" cy="18" r="2.5"/><circle cx="17" cy="16" r="2.5"/></svg>',
  schedules:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>',
  setup:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M5 12l4 4 10-10"/></svg>'};
-const PAGES=[['studio','Studio'],['library','Library'],['assets','Music & clips'],['schedules','Schedules'],['setup','Setup']];
+const PAGES=[['studio','Studio'],['remix','Remix'],['library','Library'],['assets','Music & clips'],['schedules','Schedules'],['setup','Setup']];
 let S={},VIDS=[],fmtSel='',filter='all',openJob=null;
 
 /* ---------- nav ---------- */
 $('#nav').innerHTML=PAGES.map(([id,l])=>`<button data-p="${id}">${ICON[id]}<span>${l}</span>${id==='library'?'<span class="count" id="vcount">0</span>':''}</button>`).join('');
 function go(id){$$('.page').forEach(p=>p.classList.toggle('on',p.id==='p-'+id));$$('#nav button').forEach(b=>b.classList.toggle('on',b.dataset.p===id));location.hash=id;
-  ({library:loadVideos,assets:loadAssets,schedules:loadSchedules,setup:renderSetup,studio:loadCands})[id]?.()}
+  ({remix:loadRemix,library:loadVideos,assets:loadAssets,schedules:loadSchedules,setup:renderSetup,studio:loadCands})[id]?.()}
 $('#nav').onclick=e=>{const b=e.target.closest('button');if(b)go(b.dataset.p)};
 
 /* ---------- status ---------- */

@@ -34,11 +34,15 @@ def add(cfg, src: str, mood: str) -> Path:
     return dest / src_p.name
 
 
-def pick(cfg, fmt: str) -> Path | None:
+def pick(cfg, fmt: str, choice: str | None = None) -> Path | None:
     """fixed track > track in one of the format's moods > any track. 'off' disables music."""
     m = cfg["video"].get("music", {})
-    if m.get("mode") == "off":
+    if m.get("mode") == "off" or choice == "none":
         return None
+    if choice and choice != "auto":  # a specific track picked in the UI/CLI, matched by file name
+        hit = [p for _, p in tracks(cfg) if p.name == choice]
+        if hit:
+            return hit[0]
     if m.get("fixed"):
         p = resolve(cfg, m["fixed"])
         if p.exists():

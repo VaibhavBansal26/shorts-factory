@@ -114,7 +114,8 @@ def status():
                    pexels_key=bool(os.getenv("PEXELS_API_KEY")),
                    music_tracks=len(music.tracks(cfg)), library_clips=len(media.load_library()),
                    formats=[{"id": k, "label": v["label"], "blurb": v.get("blurb", ""), "theme": v.get("theme", "default"),
-                             "accent": "#%02x%02x%02x" % v["accent"]} for k, v in formats.FORMATS.items()],
+                             "accent": "#%02x%02x%02x" % v["accent"]} for k, v in formats.FORMATS.items()
+                            if not v.get("needs_upload")],
                    logo=cfg["channel"]["logo"], handle=cfg["channel"]["handle"],
                    channel=cfg["channel"]["name"], privacy=cfg["youtube"]["privacy"])
 
@@ -159,6 +160,25 @@ def generate():
     jid = start_job(f"Generate {n} ({fmt or 'auto'}{', canned script' if mock else ''})",
                     lambda: pipeline.run(cfg, n, fmt, False, None, mock, src))
     return jsonify(job=jid)
+
+
+@app.post("/api/remix")
+def remix_upload():
+    from src import remix
+    f = request.files.get("file")
+    form = request.form
+    if not f:
+        return jsonify(error="choose a video file"), 400
+    if form.get("rights") != "true":
+        return jsonify(error="Please confirm you own this clip or have the rights to use it."), 400
+    up = ROOT / "data" / "uploads"
+    up.mkdir(parents=True, exist_ok=True)
+    dest = up / f"{uuid.uuid4().hex[:6]}_{secure_filename(f.filename)}"
+    f.save(dest)
+    args = dict(hint=form.get("hint", ""), voices=form.get("voices", "two"),
+                memes=max(0, min(int(form.get("memes", 2) or 2), 3)), music=form.get("music", "auto"),
+                topic=form.get("topic") or "AI agents, hallucinations and prompting, explained like a friendly argument")
+    return jsonify(job=start_job(f"Remix {f.filename}", lambda: remix.make(cfg, dest, **args)[0].name))
 
 
 @app.post("/api/render-script")

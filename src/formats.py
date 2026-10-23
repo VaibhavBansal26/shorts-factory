@@ -183,6 +183,16 @@ FORMATS = {
             "technical takeaway in one sentence plus a question to the viewer."
         ),
     },
+    "remix": {
+        "blurb": "Upload your own clip. It gets an English AI-discussion dub, memes in between and your music.",
+        "theme": "default",
+        "needs_upload": True,
+        "label": "REMIX",
+        "moods": ["funny", "upbeat", "sigma", "any"],
+        "accent": (96, 165, 250),
+        "words": (30, 110),
+        "guide": "Built from an uploaded clip (see src/remix.py).",
+    },
 }
 
 

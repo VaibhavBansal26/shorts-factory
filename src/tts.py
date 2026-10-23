@@ -76,7 +76,7 @@ def synthesize(script: dict, cfg: dict, workdir: Path, rate: str | None = None) 
             raise RuntimeError(f"TTS returned no audio for scene {i}")
         mp3.write_bytes(audio)
         subprocess.run(
-            ["ffmpeg", "-y", "-loglevel", "error", "-i", str(mp3), "-af", f"apad=pad_dur={SCENE_PAD}",
+            ["ffmpeg", "-y", "-loglevel", "error", "-i", str(mp3), "-af", f"apad=pad_dur={SCENE_PAD}" + (f",apad=whole_dur={sc['min_duration']}" if sc.get("min_duration") else ""),
              "-ar", "44100", "-ac", "1", str(wav)], check=True)
         dur = _probe(wav)
         if not words:

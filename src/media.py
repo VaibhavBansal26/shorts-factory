@@ -251,6 +251,13 @@ def prepare(cfg: dict, script: dict, timeline: dict, workdir: Path) -> dict[int,
                                 "frames": _extract_frames(f, e.get("start", 0), d, fps, workdir / f"clip{idx}", *size)}
                 else:
                     out[idx] = {"kind": "image", "path": f, "credit": e.get("credit")}
+            elif kind == "upload":  # the owner's own uploaded clip (Remix); no footage cap applies
+                f = Path(v["file"])
+                full = sc.get("layout") == "clip_dub" or bool(v.get("fullscreen"))
+                size = (cfg["video"]["width"], cfg["video"]["height"]) if full else (BOX_W, BOX_H)
+                d = min(float(v.get("duration", dur)), 12.0)
+                out[idx] = {"kind": "video", "full": full, "frames": _extract_frames(
+                    f, float(v.get("start", 0)), d, fps, workdir / f"clip{idx}", *size)}
             elif kind == "archive":
                 d = min(dur, pd_left, MAX_CLIP_SECONDS)
                 if d < 1.5:

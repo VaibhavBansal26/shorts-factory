@@ -55,6 +55,12 @@ def main():
     sr.add_argument("action", choices=["list", "episode"])
     sr.add_argument("id", nargs="?")
     sr.add_argument("--source")
+    rx = sub.add_parser("remix")
+    rx.add_argument("clip")
+    rx.add_argument("--hint", default="")
+    rx.add_argument("--voices", choices=["two", "one"], default="two")
+    rx.add_argument("--memes", type=int, default=2)
+    rx.add_argument("--music", default="auto", help="auto | none | a track file name from the library")
     rs = sub.add_parser("render")
     rs.add_argument("script", help="script JSON, e.g. examples/meme_titus.json")
     u = sub.add_parser("upload")
@@ -94,6 +100,9 @@ def main():
         else:
             for i in media.load_library():
                 print(f"{i['id']:24} {i.get('kind', 'clip'):6} {i.get('description', '')}")
+    elif a.cmd == "remix":
+        from src import remix
+        remix.make(cfg, a.clip, a.hint, a.voices, a.memes, a.music)
     elif a.cmd == "series":
         from src import series
         if a.action == "list":

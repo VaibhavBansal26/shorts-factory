@@ -234,7 +234,9 @@ class Renderer:
             img.paste(av, (x, y), av)
             if on:
                 d.ellipse((x - 6, y - 6, x + self.AV + 6, y + self.AV + 6), outline=(*self.accent, 255), width=8)
-            d.text((cx, y + self.AV + 44), c.get("name", c["id"]), font=self.font(46),
+            nm = c.get("name", c["id"])
+            nsize = 46 if d.textlength(nm, font=self.font(46)) <= 440 else 36
+            d.text((cx, y + self.AV + 44), nm, font=self.font(nsize),
                    fill=WHITE if on else (130, 130, 150), anchor="mm")
             role = c.get("role", "")
             if c.get("name_ko") and self.font_ko_path:
@@ -266,8 +268,11 @@ class Renderer:
         d.text((60 + tw / 2 + 25, 245), self.label, font=self.font(34), fill=(10, 14, 28), anchor="mm")
         if self.theme == "drama" and self.font_ko_path:
             kf = ImageFont.truetype(self.font_ko_path, 46)
-            d.text((self.W - 60, 120), "드라마", font=kf, fill=(*self.accent, 255), anchor="rm")
-            d.text((self.W - 60, 172), "PARODY", font=self.font(30), fill=(200, 190, 210), anchor="rm")
+            ser = self.script.get("series")
+            d.text((self.W - 60, 120), f"제 {ser['episode']}화" if ser else "드라마", font=kf,
+                   fill=(*self.accent, 255), anchor="rm")
+            d.text((self.W - 60, 172), f"EP. {ser['episode']}" if ser else "PARODY", font=self.font(30),
+                   fill=(200, 190, 210), anchor="rm")
         # progress bar sits above YouTube's bottom UI
         d.rounded_rectangle((60, 1560, self.W - 60, 1568), radius=4, fill=(255, 255, 255, 40))
         d.rounded_rectangle((60, 1560, 60 + (self.W - 120) * min(1, t / total), 1568), radius=4,

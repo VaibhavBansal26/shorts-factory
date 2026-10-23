@@ -85,6 +85,8 @@ TOOL = {
                     "required": ["narration", "layout", "headline"],
                 },
             },
+            "episode_title": {"type": "string", "description": "series episodes only"},
+            "episode_summary": {"type": "string", "description": "series episodes only: 2 sentences"},
             "description": {"type": "string", "description": "2-3 sentence YouTube description (no URL)"},
             "tags": {"type": "array", "items": {"type": "string"}, "maxItems": 8},
         },
@@ -110,17 +112,18 @@ def _prompt(item: Item, fmt: str, article_text: str, feedback: str = "") -> str:
     )
 
 
-def generate(cfg: dict, item: Item, fmt: str, article_text: str) -> dict:
+def generate(cfg: dict, item: Item, fmt: str, article_text: str, series_ctx: str = "") -> dict:
     client = anthropic.Anthropic()
     feedback, script = "", None
+    base = f"\n{series_ctx}\n" if series_ctx else ""
     for attempt in range(3):
         resp = client.messages.create(
             model=cfg["llm"]["model"],
-            max_tokens=2000,
+            max_tokens=2500,
             system=SYSTEM,
             tools=[TOOL],
             tool_choice={"type": "auto"},  # newer models reject forced tool choice
-            messages=[{"role": "user", "content": _prompt(item, fmt, article_text, feedback)}],
+            messages=[{"role": "user", "content": _prompt(item, fmt, article_text, base + feedback)}],
         )
         block = next((b for b in resp.content if b.type == "tool_use"), None)
         if block is None:

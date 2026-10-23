@@ -1,5 +1,5 @@
 channel:
-  name: "YOUR CHANNEL NAME"      # shown next to the logo in every video
+  name: "VB AI Engineer"      # shown next to the logo in every video
   handle: "@yourhandle"
   logo: assets/logo.png          # replace with your own PNG (transparent background works best)
 

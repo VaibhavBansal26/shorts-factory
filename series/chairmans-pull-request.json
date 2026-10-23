@@ -1,0 +1,81 @@
+{
+  "id": "chairmans-pull-request",
+  "title": "The Chairman's Pull Request",
+  "title_ko": "회장님의 풀 리퀘스트",
+  "logline": "At a Seoul AI giant, a ice-cold chairman, a tearful junior engineer and a suspiciously emotional AI assistant fight over one question: who is allowed to merge into main?",
+  "tone": "Melodramatic Korean-drama tropes (slaps, rain, amnesia, love triangles, 'it's not what it looks like') applied to real AI engineering ideas. Funny, earnest, always teaches one true concept per episode.",
+  "characters": [
+    {
+      "id": "minjun",
+      "name": "Chairman Seo Min-jun",
+      "name_ko": "서민준",
+      "role": "Chairman of Hanbit AI",
+      "gender": "male",
+      "look": "chairman",
+      "traits": "Ice-cold, speaks in proverbs about uptime, secretly cries at benchmark charts, never says 'sorry', only 'noted'."
+    },
+    {
+      "id": "haeun",
+      "name": "Han Ha-eun",
+      "name_ko": "한하은",
+      "role": "Junior engineer",
+      "gender": "female",
+      "look": "intern",
+      "traits": "Sincere, tearful, deploys on Fridays against all advice, secretly the most brilliant engineer in the building.",
+      "pitch": "+4Hz"
+    },
+    {
+      "id": "airi",
+      "name": "AIRI",
+      "name_ko": "에이리",
+      "role": "The AI assistant",
+      "gender": "female",
+      "look": "ai",
+      "traits": "Overconfident, hallucinates with total sincerity, claims to have feelings, keeps accidentally revealing the Chairman's private prompts.",
+      "voice": "en-US-JennyNeural",
+      "pitch": "+0Hz"
+    },
+    {
+      "id": "kangwoo",
+      "name": "Do Kang-woo",
+      "name_ko": "도강우",
+      "role": "CTO of rival Baekho Labs",
+      "gender": "male",
+      "look": "rival",
+      "traits": "Smug, always mentions his model has more parameters, secretly afraid of unit tests.",
+      "voice": "en-US-EricNeural",
+      "pitch": "+0Hz"
+    }
+  ],
+  "arc": [
+    "The Hallucination",
+    "The Friday Deploy",
+    "The Rival's Benchmark",
+    "The Secret Prompt",
+    "The Rollback",
+    "The Merge"
+  ],
+  "episodes": [
+    {
+      "n": 1,
+      "title": "The Confident Guess",
+      "summary": "AIRI confidently blames a failed nightly test on flakiness without any evidence, and Chairman Seo makes her ask questions and wait for human approval. Then Ha-eun walks in holding a deploy button on a Friday.",
+      "topic": "How Rescale built an AI triage agent with Strands Agents and AI-DLC",
+      "folder": "2026-10-23_the-chairman-s-pull-request-ep-1-the-con"
+    },
+    {
+      "n": 2,
+      "title": "The Friday Unmasking",
+      "summary": "Ha-eun defends her Friday deploy by claiming her unmasking policy was learned, and Chairman Seo keeps the mask on until Monday. Then AIRI walks in holding a secret prompt that is not hers to share.",
+      "topic": "What Makes a Good Unmasking Policy? A Controlled Study of Learned Unmasking in Diffusion Language Models",
+      "folder": "2026-10-23_the-chairman-s-pull-request-ep-2-the-fri"
+    },
+    {
+      "n": 3,
+      "title": "The Rival's Benchmark",
+      "summary": "Rival CTO Kang-woo brags about his model's size, but Ha-eun exposes that it reasons in English even when told to use French. He learns that you can't polish a behavior the model doesn't have, until AIRI appears holding his private benchmark prompt.",
+      "topic": "Fine-tuning GPT-OSS-20B for multilingual reasoning on Amazon SageMaker HyperPod",
+      "folder": "2026-10-23_the-chairman-s-pull-request-ep-3-the-riv"
+    }
+  ]
+}

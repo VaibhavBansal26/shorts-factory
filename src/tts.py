@@ -49,13 +49,14 @@ def voice_for(script: dict, cfg: dict, scene: dict, rate_override: str | None):
         prefix = "ko" if script.get("language") == "ko" else "dub"
         key = f"{prefix}_{'female' if chars[speaker].get('gender') == 'female' else 'male'}"
         spec.update(cfg["voices"][key])
+        spec.update({k: chars[speaker][k] for k in ("voice", "pitch", "rate") if chars[speaker].get(k)})
     elif scene.get("voice") in ("male", "female"):  # clip_dub scenes: a generic dub voice, no real actor
         spec.update(cfg["voices"][f"dub_{scene['voice']}"])
     elif script.get("format") == "sigma_reel":
         spec.update(cfg["voices"]["sigma"])
     if rate_override:
         spec["rate"] = rate_override
-    return spec["name"], spec["rate"], spec.get("pitch", "+0Hz")
+    return spec.get("voice") or spec["name"], spec["rate"], spec.get("pitch", "+0Hz")
 
 
 def _even_words(text: str, dur: float):

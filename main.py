@@ -49,7 +49,12 @@ def main():
     lb.add_argument("--tags", default="")
     lb.add_argument("--desc", default="")
     lb.add_argument("--credit", default="")
+    lb.add_argument("--no-copy", action="store_true", help="reference the file where it is (for big local episode files)")
     lb.add_argument("--series", default="", help="show/film title, shown to Claude and credited")
+    sr = sub.add_parser("series")
+    sr.add_argument("action", choices=["list", "episode"])
+    sr.add_argument("id", nargs="?")
+    sr.add_argument("--source")
     rs = sub.add_parser("render")
     rs.add_argument("script", help="script JSON, e.g. examples/meme_titus.json")
     u = sub.add_parser("upload")
@@ -76,16 +81,26 @@ def main():
         if a.action == "add":
             src = Path(a.file).expanduser()
             dest = ROOT / "assets" / "clips" / src.name
-            dest.parent.mkdir(parents=True, exist_ok=True)
-            shutil.copy2(src, dest)
+            if a.no_copy:
+                dest = src.resolve()
+            else:
+                dest.parent.mkdir(parents=True, exist_ok=True)
+                shutil.copy2(src, dest)
             media.add_library({
-                "id": a.id or src.stem, "kind": a.kind, "file": str(dest.relative_to(ROOT)),
+                "id": a.id or src.stem, "kind": a.kind, "file": str(dest) if a.no_copy else str(dest.relative_to(ROOT)),
                 "start": a.start, "duration": a.duration, "tags": [t for t in a.tags.split(",") if t],
                 "description": a.desc, "credit": a.credit or a.series, "series": a.series})
             print("added", a.id or src.stem)
         else:
             for i in media.load_library():
                 print(f"{i['id']:24} {i.get('kind', 'clip'):6} {i.get('description', '')}")
+    elif a.cmd == "series":
+        from src import series
+        if a.action == "list":
+            for b in series.list_all():
+                print(f"{b['id']:24} {b['title']} · {len(b['episodes'])} episodes")
+        else:
+            series.make_episode(cfg, a.id, source=a.source)
     elif a.cmd == "render":
         from src import pipeline
         pipeline.render_script(cfg, json.loads(Path(a.script).read_text()))

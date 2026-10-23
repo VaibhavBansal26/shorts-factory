@@ -1,0 +1,10 @@
+.venv/
+.git/
+.env
+token.json
+client_secret.json
+output/
+data/
+assets/cache/
+assets/music/
+__pycache__/

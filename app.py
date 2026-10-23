@@ -15,7 +15,7 @@ import uuid
 from datetime import datetime
 from pathlib import Path
 
-from flask import Flask, jsonify, request, send_from_directory
+from flask import Flask, Response, jsonify, request, send_from_directory
 from werkzeug.utils import secure_filename
 
 from src import config, db, formats, media, music, pipeline
@@ -105,6 +105,24 @@ def load_schedules():
 def save_schedules(items):
     SCHEDULES.parent.mkdir(exist_ok=True)
     SCHEDULES.write_text(json.dumps(items, indent=2))
+
+
+# ---------- password gate (set APP_PASSWORD when the app is reachable from the internet) ----------
+@app.before_request
+def gate():
+    pw = os.getenv("APP_PASSWORD")
+    if not pw or request.path == "/healthz":
+        return None
+    import hmac
+    auth = request.authorization
+    if auth and hmac.compare_digest((auth.password or "").encode(), pw.encode()):
+        return None
+    return Response("Login required", 401, {"WWW-Authenticate": 'Basic realm="Shorts Factory"'})
+
+
+@app.get("/healthz")
+def healthz():
+    return "ok"
 
 
 # ---------- API ----------
@@ -362,6 +380,9 @@ def scheduler_loop():
 def index():
     return (ROOT / "ui.html").read_text()
 
+
+if __name__ != "__main__":  # running under gunicorn
+    threading.Thread(target=scheduler_loop, daemon=True).start()
 
 if __name__ == "__main__":
     threading.Thread(target=scheduler_loop, daemon=True).start()

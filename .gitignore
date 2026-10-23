@@ -9,3 +9,7 @@ assets/cache/
 assets/library.yaml
 assets/clips/
 assets/music/sigma/
+build/
+dist/
+*.spec
+desktop-icon.icns

@@ -5,15 +5,13 @@ from pathlib import Path
 
 import edge_tts
 
+from .ff import FFMPEG, duration
+
 SCENE_PAD = 0.22  # seconds of breathing room after each scene
 
 
 def _probe(path: Path) -> float:
-    out = subprocess.run(
-        ["ffprobe", "-v", "error", "-show_entries", "format=duration", "-of", "csv=p=0", str(path)],
-        capture_output=True, text=True, check=True,
-    ).stdout
-    return float(out.strip())
+    return duration(path)
 
 
 async def _synth(text: str, voice: str, rate: str, pitch: str = "+0Hz", tries: int = 4):
@@ -76,7 +74,7 @@ def synthesize(script: dict, cfg: dict, workdir: Path, rate: str | None = None) 
             raise RuntimeError(f"TTS returned no audio for scene {i}")
         mp3.write_bytes(audio)
         subprocess.run(
-            ["ffmpeg", "-y", "-loglevel", "error", "-i", str(mp3), "-af", f"apad=pad_dur={SCENE_PAD}" + (f",apad=whole_dur={sc['min_duration']}" if sc.get("min_duration") else ""),
+            [FFMPEG, "-y", "-loglevel", "error", "-i", str(mp3), "-af", f"apad=pad_dur={SCENE_PAD}" + (f",apad=whole_dur={sc['min_duration']}" if sc.get("min_duration") else ""),
              "-ar", "44100", "-ac", "1", str(wav)], check=True)
         dur = _probe(wav)
         if not words:
@@ -97,7 +95,7 @@ def synthesize(script: dict, cfg: dict, workdir: Path, rate: str | None = None) 
     listing.write_text("".join(f"file '{w.name}'\n" for w in wavs))
     voice = workdir / "voice.wav"
     subprocess.run(
-        ["ffmpeg", "-y", "-loglevel", "error", "-f", "concat", "-safe", "0", "-i", str(listing),
+        [FFMPEG, "-y", "-loglevel", "error", "-f", "concat", "-safe", "0", "-i", str(listing),
          "-c", "copy", str(voice)], check=True)
     for w in wavs:
         w.unlink()

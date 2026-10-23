@@ -11,3 +11,5 @@ google-auth-httplib2>=0.2
 flask
 numpy
 gunicorn
+pywebview
+imageio-ffmpeg

@@ -19,7 +19,7 @@ from flask import Flask, Response, jsonify, request, send_from_directory
 from werkzeug.utils import secure_filename
 
 from src import config, db, formats, media, music, pipeline
-from src.config import ROOT
+from src.config import CODE, ROOT
 
 cfg = config.load()
 app = Flask(__name__)
@@ -135,6 +135,7 @@ def status():
                              "accent": "#%02x%02x%02x" % v["accent"]} for k, v in formats.FORMATS.items()
                             if not v.get("needs_upload")],
                    logo=cfg["channel"]["logo"], handle=cfg["channel"]["handle"],
+                   client_secret=(ROOT / "client_secret.json").exists(), desktop=os.getenv("SF_DESKTOP") == "1",
                    channel=cfg["channel"]["name"], privacy=cfg["youtube"]["privacy"])
 
 
@@ -285,6 +286,53 @@ def settings():
     return jsonify(ok=True)
 
 
+def _set_env_file(key: str, value: str):
+    """Persist a secret in <data dir>/.env and apply it to the running process."""
+    f = ROOT / ".env"
+    lines = [l for l in (f.read_text().splitlines() if f.exists() else []) if not l.startswith(key + "=")]
+    lines.append(f"{key}={value.strip()}")
+    f.write_text("\n".join(lines) + "\n")
+    try:
+        f.chmod(0o600)
+    except OSError:
+        pass
+    os.environ[key] = value.strip()
+
+
+@app.post("/api/secrets")
+def secrets():
+    b = request.json or {}
+    for field, env in (("anthropic_key", "ANTHROPIC_API_KEY"), ("pexels_key", "PEXELS_API_KEY")):
+        if b.get(field, "").strip():
+            _set_env_file(env, b[field])
+    return jsonify(ok=True)
+
+
+@app.post("/api/youtube/client-secret")
+def yt_client_secret():
+    f = request.files["file"]
+    data = f.read()
+    try:
+        j = json.loads(data)
+        assert "installed" in j or "web" in j
+    except Exception:
+        return jsonify(error="That doesn't look like a Google OAuth client file (client_secret.json)."), 400
+    (ROOT / "client_secret.json").write_bytes(data)
+    return jsonify(ok=True)
+
+
+@app.post("/api/youtube/connect")
+def yt_connect():
+    """Opens Google's sign-in page in the browser on this computer (desktop app / local use only)."""
+    from src import youtube
+
+    def go():
+        youtube.authorize()
+        return "connected"
+
+    return jsonify(job=start_job("Connect YouTube (finish in the browser window)", go))
+
+
 @app.post("/api/logo")
 def logo():
     f = request.files["file"]
@@ -378,7 +426,7 @@ def scheduler_loop():
 
 @app.get("/")
 def index():
-    return (ROOT / "ui.html").read_text()
+    return (CODE / "ui.html").read_text()
 
 
 if __name__ != "__main__":  # running under gunicorn

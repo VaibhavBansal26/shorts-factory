@@ -145,8 +145,8 @@ def mock(item: Item, fmt: str) -> dict:
     import json
     import random
 
-    from .config import ROOT
-    pool = [json.loads(p.read_text()) for p in sorted((ROOT / "examples").glob("*.json"))]
+    from .config import CODE
+    pool = [json.loads(p.read_text()) for p in sorted((CODE / "examples").glob("*.json"))]
     pool = [s for s in pool if s.get("format") == fmt]
     if pool:  # hand-written example of the same format, so the look/voices are right
         return _finish(random.choice(pool), item, fmt, keep_source=True)

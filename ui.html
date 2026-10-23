@@ -294,6 +294,10 @@ const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
 const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const api=(p,o)=>fetch(p,o).then(async r=>{const j=await r.json().catch(()=>({}));if(!r.ok)throw new Error(j.error||r.statusText);return j});
 const post=(p,b)=>api(p,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(b)});
+function askConfirm(msg){return new Promise(res=>{const o=document.createElement('div');o.className='modal on';o.style.zIndex=99;
+  o.innerHTML=`<div class="card" style="max-width:380px"><p style="margin:0 0 16px">${esc(msg)}</p><div class="row" style="justify-content:flex-end"><button class="btn" data-a="0">Cancel</button><button class="btn p" data-a="1">Continue</button></div></div>`;
+  o.onclick=e=>{const b=e.target.closest('[data-a]');if(b){o.remove();res(b.dataset.a==='1')}};document.body.append(o)})}
+document.addEventListener('click',e=>{const a=e.target.closest('a[target=_blank]');if(a&&window.pywebview){e.preventDefault();window.pywebview.api.open(a.href)}});
 function toast(m,bad){const t=document.createElement('div');t.className='toast'+(bad?' bad':'');t.textContent=m;document.body.append(t);setTimeout(()=>t.remove(),3200)}
 const ICON={
  remix:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 7h12l-3-3M20 17H8l3 3"/></svg>',
@@ -389,8 +393,8 @@ function openModal(folder){
   $('#modal').classList.add('on');
   $('#mx').onclick=closeModal;
   $('#pseg')?.addEventListener('click',e=>{const b=e.target.closest('button');if(b){priv=b.dataset.v;$$('#pseg button').forEach(x=>x.classList.toggle('on',x===b))}});
-  $('#deploy')?.addEventListener('click',async()=>{if(!confirm(`Upload to YouTube as ${priv}?`))return;try{await post('/api/publish',{folder,privacy:priv});closeModal();toast('Uploading…');pollJobs()}catch(e){toast(e.message,1)}});
-  $('#del')?.addEventListener('click',async()=>{if(confirm('Delete this video?')){await api('/api/videos/'+folder,{method:'DELETE'});closeModal();loadVideos()}});
+  $('#deploy')?.addEventListener('click',async()=>{if(!await askConfirm(`Upload to YouTube as ${priv}?`))return;try{await post('/api/publish',{folder,privacy:priv});closeModal();toast('Uploading…');pollJobs()}catch(e){toast(e.message,1)}});
+  $('#del')?.addEventListener('click',async()=>{if(await askConfirm('Delete this video?')){await api('/api/videos/'+folder,{method:'DELETE'});closeModal();loadVideos()}});
 }
 function closeModal(){$('#modal').classList.remove('on');$('#mbox').innerHTML=''}
 $('#modal').onclick=e=>{if(e.target.id==='modal')closeModal()};
@@ -443,14 +447,17 @@ function renderSetup(){
      <div class="row"><div class="grow"><label class="l">Channel name</label><input id="cName" value="${esc(S.channel)}"></div><div class="grow"><label class="l">Handle</label><input id="cHandle" value="${esc(S.handle)}"></div>
      <div><button class="btn p" id="saveCh">Save</button></div></div>`)+
    st(false,2,'Your logo',`<p>Square PNG with a transparent background works best.</p><div class="row" style="align-items:center"><img src="/logo.png?${Date.now()}" width="56" height="56" style="border-radius:12px;background:#fff1"><div class="drop grow" id="dropLogo" style="padding:14px">Drop a PNG to replace it<input type="file" id="fileLogo" accept="image/*" hidden></div></div>`)+
-   st(S.anthropic_key,3,'Claude API key',`<p>Claude writes the scripts. Without it, the Studio uses hand-written example scripts of the same format so you can still preview everything.</p><pre>echo 'ANTHROPIC_API_KEY=sk-ant-…' &gt; .env</pre>`)+
-   st(S.youtube_authorised,4,'Connect YouTube',`<p>You sign in on Google’s own page; this app never sees your password.</p><pre>1. console.cloud.google.com → new project → enable “YouTube Data API v3”
-2. OAuth consent screen (External) → add yourself as a test user
-3. Credentials → OAuth client ID → “Desktop app” → download JSON
-4. Save it as client_secret.json next to config.yaml
-5. python main.py auth</pre>`)+
+   st(S.anthropic_key,3,'Claude API key',`<p>Claude writes the scripts. Without it the Studio uses hand-written example scripts of the same format.</p>
+     <div class="row"><div class="grow"><input id="keyIn" type="password" placeholder="${S.anthropic_key?'Key saved. Paste a new one to replace it':'sk-ant-…'}"></div><div><button class="btn p" id="saveKey">Save key</button></div></div>`)+
+   st(S.youtube_authorised,4,'Connect YouTube',`<p>Two parts: your Google Cloud client file, then a one-time sign-in on Google’s own page. This app never sees your password.</p>
+     <div class="row" style="align-items:center"><div class="drop grow" id="dropCS" style="padding:12px">${S.client_secret?'client_secret.json is in place. Drop another to replace it':'Drop your client_secret.json here'}<input type="file" id="fileCS" accept=".json" hidden></div>
+     <div><button class="btn p" id="ytConnect" ${S.client_secret?'':'disabled'}>${S.youtube_authorised?'Reconnect':'Connect YouTube'}</button></div></div>
+     <pre>How to get the file: console.cloud.google.com → new project → enable “YouTube Data API v3” → OAuth consent screen (External, add yourself as a test user) → Credentials → OAuth client ID → Desktop app → Download JSON</pre>`)+
    st(S.music_tracks>0,5,'Background music',`<p>${S.music_tracks} track(s). The sigma BGM is generated automatically on first use.</p><button class="btn" onclick="go('assets')">Manage music</button>`)+
    st(S.pexels_key,6,'Stock video (optional)',`<p>Free Pexels key lets scenes use portrait b-roll.</p><pre>echo 'PEXELS_API_KEY=…' &gt;&gt; .env</pre>`);
+  $('#saveKey').onclick=async()=>{if(!$('#keyIn').value.trim())return;await post('/api/secrets',{anthropic_key:$('#keyIn').value});toast('Key saved');loadStatus().then(renderSetup)};
+  dropzone($('#dropCS'),$('#fileCS'),async f=>{const fd=new FormData();fd.append('file',f);try{await api('/api/youtube/client-secret',{method:'POST',body:fd});toast('Client file saved');loadStatus().then(renderSetup)}catch(e){toast(e.message,1)}});
+  $('#ytConnect').onclick=async()=>{try{await post('/api/youtube/connect',{});toast('Finish signing in in the browser window that opened');pollJobs()}catch(e){toast(e.message,1)}};
   $('#saveCh').onclick=async()=>{await post('/api/settings',{name:$('#cName').value,handle:$('#cHandle').value});toast('Saved');loadStatus().then(renderSetup)};
   dropzone($('#dropLogo'),$('#fileLogo'),async f=>{const fd=new FormData();fd.append('file',f);await api('/api/logo',{method:'POST',body:fd});toast('Logo updated');renderSetup()});
 }

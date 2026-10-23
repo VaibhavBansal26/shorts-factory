@@ -18,6 +18,7 @@ import yaml
 from PIL import Image, ImageDraw, ImageFont
 
 from .config import ROOT, resolve
+from .ff import FFMPEG
 
 CACHE = ROOT / "assets" / "cache"
 LIB = ROOT / "assets" / "library.yaml"
@@ -201,7 +202,7 @@ def _extract_frames(src: Path, start: float, dur: float, fps: int, out_dir: Path
     out_dir.mkdir(parents=True, exist_ok=True)
     vf = (f"fps={fps},scale={w}:{h}:force_original_aspect_ratio=increase,"
           f"crop={w}:{h}")
-    subprocess.run(["ffmpeg", "-y", "-loglevel", "error", "-ss", str(start), "-t", f"{dur:.2f}", "-i", str(src),
+    subprocess.run([FFMPEG, "-y", "-loglevel", "error", "-ss", str(start), "-t", f"{dur:.2f}", "-i", str(src),
                     "-an", "-vf", vf, "-q:v", "4", str(out_dir / "%04d.jpg")], check=True)
     return sorted(out_dir.glob("*.jpg"))
 

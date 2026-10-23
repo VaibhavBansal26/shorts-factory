@@ -8,6 +8,7 @@ from pathlib import Path
 from PIL import Image, ImageDraw, ImageFilter, ImageFont
 
 from . import themes
+from .ff import FFMPEG
 from .config import ROOT, resolve
 from .formats import FORMATS
 
@@ -387,7 +388,7 @@ class Renderer:
     def render(self, out: Path, voice: Path, music: Path | None = None):
         total = self.tl["total"] + 0.4
         frames = int(total * self.fps)
-        cmd = ["ffmpeg", "-y", "-loglevel", "error", "-f", "rawvideo", "-pix_fmt", "rgb24",
+        cmd = [FFMPEG, "-y", "-loglevel", "error", "-f", "rawvideo", "-pix_fmt", "rgb24",
                "-s", f"{self.W}x{self.H}", "-r", str(self.fps), "-i", "-", "-i", str(voice)]
         if music:
             vol = self.cfg["video"].get("music_volume", 0.06) * self.th["music_gain"]

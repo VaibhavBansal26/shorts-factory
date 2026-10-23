@@ -102,3 +102,13 @@ Auto-deploy needs YouTube authorised first. There is no cron job; if you close t
   yourself (`library add ... --series "Title"`) and use the `series_moment` format. Korean broadcasters and streamers enforce Content ID,
   so prefer official promo clips or footage you have licensed, keep clips short, and check each video while it's private.
   The dub voices are generic; don't imitate or name real actors.
+
+## Desktop app (macOS)
+
+```bash
+./build_desktop.sh        # creates dist/Shorts Factory.app (and you can drag it to Applications)
+```
+
+The app is the same portal in a native window, with ffmpeg bundled. Your data (videos, music, clips, keys, YouTube login) lives in
+`~/Library/Application Support/Shorts Factory`, separate from the app. Add your Claude key and connect YouTube from the Setup page.
+To run it without building: `python desktop.py`. The build is unsigned, so on another Mac use right-click → Open the first time.

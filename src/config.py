@@ -3,7 +3,12 @@ from pathlib import Path
 import yaml
 from dotenv import load_dotenv
 
-ROOT = Path(__file__).resolve().parent.parent
+import os
+import sys
+
+# CODE: where the program and its bundled defaults live. ROOT: where the user's data lives (videos, db, music, keys).
+CODE = Path(getattr(sys, "_MEIPASS", Path(__file__).resolve().parent.parent))
+ROOT = Path(os.environ["SF_HOME"]) if os.getenv("SF_HOME") else CODE
 load_dotenv(ROOT / ".env")
 
 

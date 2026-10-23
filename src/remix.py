@@ -11,6 +11,7 @@ from pathlib import Path
 import anthropic
 
 from . import media, pipeline
+from .ff import FFMPEG, duration
 from .config import ROOT
 
 MAX_CLIP = 40.0  # seconds of the upload we will use; keeps the final video under ~50s
@@ -62,9 +63,7 @@ TOOL = {
 
 
 def probe(path: Path) -> float:
-    out = subprocess.run(["ffprobe", "-v", "error", "-show_entries", "format=duration", "-of", "csv=p=0", str(path)],
-                         capture_output=True, text=True, check=True).stdout
-    return float(out.strip())
+    return duration(path)
 
 
 def sample_frames(path: Path, dur: float, workdir: Path, n: int = 6) -> list[tuple[float, bytes]]:
@@ -72,7 +71,7 @@ def sample_frames(path: Path, dur: float, workdir: Path, n: int = 6) -> list[tup
     for i in range(n):
         t = dur * (i + 0.5) / n
         out = workdir / f"probe{i}.jpg"
-        subprocess.run(["ffmpeg", "-y", "-loglevel", "error", "-ss", f"{t:.2f}", "-i", str(path), "-frames:v", "1",
+        subprocess.run([FFMPEG, "-y", "-loglevel", "error", "-ss", f"{t:.2f}", "-i", str(path), "-frames:v", "1",
                         "-vf", "scale=512:-2", "-q:v", "5", str(out)], check=True)
         frames.append((t, out.read_bytes()))
         out.unlink()

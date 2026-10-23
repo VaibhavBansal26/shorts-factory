@@ -266,8 +266,8 @@ class Renderer:
         d.text((60 + tw / 2 + 25, 245), self.label, font=self.font(34), fill=(10, 14, 28), anchor="mm")
         if self.theme == "drama" and self.font_ko_path:
             kf = ImageFont.truetype(self.font_ko_path, 46)
-            d.text((self.W - 60, 120), "제 1화", font=kf, fill=(*self.accent, 255), anchor="rm")
-            d.text((self.W - 60, 172), "EP. 1", font=self.font(30), fill=(200, 190, 210), anchor="rm")
+            d.text((self.W - 60, 120), "드라마", font=kf, fill=(*self.accent, 255), anchor="rm")
+            d.text((self.W - 60, 172), "PARODY", font=self.font(30), fill=(200, 190, 210), anchor="rm")
         # progress bar sits above YouTube's bottom UI
         d.rounded_rectangle((60, 1560, self.W - 60, 1568), radius=4, fill=(255, 255, 255, 40))
         d.rounded_rectangle((60, 1560, 60 + (self.W - 120) * min(1, t / total), 1568), radius=4,

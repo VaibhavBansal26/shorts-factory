@@ -112,21 +112,27 @@ def _prompt(item: Item, fmt: str, article_text: str, feedback: str = "") -> str:
 
 def generate(cfg: dict, item: Item, fmt: str, article_text: str) -> dict:
     client = anthropic.Anthropic()
-    feedback = ""
+    feedback, script = "", None
     for attempt in range(3):
         resp = client.messages.create(
             model=cfg["llm"]["model"],
             max_tokens=2000,
             system=SYSTEM,
             tools=[TOOL],
-            tool_choice={"type": "tool", "name": "submit_script"},
+            tool_choice={"type": "auto"},  # newer models reject forced tool choice
             messages=[{"role": "user", "content": _prompt(item, fmt, article_text, feedback)}],
         )
-        script = next(b.input for b in resp.content if b.type == "tool_use")
+        block = next((b for b in resp.content if b.type == "tool_use"), None)
+        if block is None:
+            feedback = "You must answer by calling the submit_script tool."
+            continue
+        script = block.input
         n, (lo, hi) = word_count(script), FORMATS[fmt]["words"]
         if lo - 10 <= n <= hi + 10:
             return _finish(script, item, fmt)
         feedback = f"Your last draft had {n} words. Rewrite it with {lo}-{hi} words."
+    if script is None:
+        raise RuntimeError("Claude did not return a script")
     return _finish(script, item, fmt)
 
 

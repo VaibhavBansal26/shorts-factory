@@ -1,0 +1,59 @@
+{
+  "format": "meme_explainer",
+  "title": "Shared servers: efficient until they aren't",
+  "source": {
+    "name": "Netflix TechBlog",
+    "title": "Single-tenant Titus: VM-level isolation on a multi-tenant container platform",
+    "url": "https://netflixtechblog.com/single-tenant-titus-vm-level-isolation-on-a-multi-tenant-container-platform-6d8b1909d163"
+  },
+  "description": "Netflix wrote about adding VM-level isolation for single-tenant workloads on its Titus container platform.",
+  "tags": [
+    "containers",
+    "infrastructure",
+    "netflix"
+  ],
+  "scenes": [
+    {
+      "narration": "Containers share a host. Great for cost. Less great when a neighbour gets loud.",
+      "layout": "big_text",
+      "headline": "Shared hosts, shared problems"
+    },
+    {
+      "narration": "Netflix's engineering blog describes single tenant Titus, adding virtual machine level isolation to its multi tenant container platform.",
+      "layout": "big_text",
+      "headline": "Isolation, but make it VM",
+      "visual": {
+        "type": "meme",
+        "meme_template": "Drake Hotline Bling",
+        "top_text": "Hoping the noisy neighbour behaves",
+        "bottom_text": "A VM boundary around your workload"
+      }
+    },
+    {
+      "narration": "The trade off in three lines. Containers are cheap and dense. A VM boundary is a stronger wall. Pick per workload, not per religion.",
+      "layout": "bullets",
+      "headline": "The trade off",
+      "bullets": [
+        "Containers: cheap, dense",
+        "VMs: stronger wall",
+        "Choose per workload"
+      ]
+    },
+    {
+      "narration": "So the question is never containers versus VMs. It is which workloads deserve their own walls.",
+      "layout": "big_text",
+      "headline": "Which workloads get walls?",
+      "visual": {
+        "type": "meme",
+        "meme_template": "Two guys on a bus",
+        "top_text": "Containers for everything",
+        "bottom_text": "VMs for the sensitive stuff"
+      }
+    },
+    {
+      "narration": "My take: isolate by risk, not by habit. Where do you draw the line? Tell me below.",
+      "layout": "question",
+      "headline": "Where do you draw the line?"
+    }
+  ]
+}

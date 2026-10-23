@@ -1,0 +1,59 @@
+{
+  "format": "meme_explainer",
+  "title": "Trusting an LLM judge blindly?",
+  "source": {
+    "name": "Netflix TechBlog",
+    "title": "The Lifecycle of LLM-as-a-Judge: Building, Aligning, and Monitoring at scale",
+    "url": "https://netflixtechblog.com/the-lifecycle-of-llm-as-a-judge-building-aligning-and-monitoring-at-scale-c95bd8283508"
+  },
+  "description": "Netflix engineers wrote about building, aligning and monitoring an LLM judge at scale. The meme version.",
+  "tags": [
+    "llm",
+    "evaluation",
+    "netflix"
+  ],
+  "scenes": [
+    {
+      "narration": "You use an LLM to grade your LLM. Who grades the grader?",
+      "layout": "big_text",
+      "headline": "Who grades the grader?"
+    },
+    {
+      "narration": "Netflix's engineering blog covers the full lifecycle of an LLM as a judge: building it, aligning it, and monitoring it at scale.",
+      "layout": "big_text",
+      "headline": "The judge has a lifecycle",
+      "visual": {
+        "type": "meme",
+        "meme_template": "Evil Kermit",
+        "top_text": "Ship the judge, trust the scores",
+        "bottom_text": "Compare it to human labels first"
+      }
+    },
+    {
+      "narration": "In plain terms, a judge is only useful if you keep checking it. Build it, align it, then keep monitoring it.",
+      "layout": "bullets",
+      "headline": "Judge checklist",
+      "bullets": [
+        "Build it",
+        "Align it with humans",
+        "Monitor it forever"
+      ]
+    },
+    {
+      "narration": "Otherwise your dashboard is green and your product is quietly getting worse.",
+      "layout": "big_text",
+      "headline": "Green dashboard, bad product",
+      "visual": {
+        "type": "meme",
+        "meme_template": "This Is Fine",
+        "top_text": "Judge scores: all great",
+        "bottom_text": "Users: this is fine"
+      }
+    },
+    {
+      "narration": "My take: treat the judge like any model that can drift. Would you trust one with no human spot checks?",
+      "layout": "question",
+      "headline": "Trust a judge with no spot checks?"
+    }
+  ]
+}

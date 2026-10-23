@@ -5,7 +5,7 @@ import time
 from datetime import date
 
 from . import db, media, music, scriptgen, sources, tts
-from .config import ROOT, resolve
+from .config import ROOT
 from .formats import pick_format
 from .render import Renderer
 
@@ -16,17 +16,11 @@ def slug(s: str) -> str:
     return re.sub(r"[^a-z0-9]+", "-", s.lower()).strip("-")[:40]
 
 
-def make_video(cfg: dict, item, fmt: str, mock: bool = False):
+def produce(cfg: dict, script: dict):
+    """voiceover + visuals + music + render for a finished script dict. Returns (folder, video_path)."""
     lo, hi = cfg["video"]["min_seconds"], cfg["video"]["max_seconds"]
-    folder = ROOT / "output" / f"{date.today()}_{slug(item.title)}"
+    folder = ROOT / "output" / f"{date.today()}_{slug(script['source']['title'] or script['title'])}"
     folder.mkdir(parents=True, exist_ok=True)
-
-    print(f"\n▶ [{fmt}] {item.title}\n  {item.source} · {item.url}")
-    if mock:
-        script = scriptgen.mock(item, fmt)
-    else:
-        text = sources.fetch_article_text(item)
-        script = scriptgen.generate(cfg, item, fmt, text)
     (folder / "script.json").write_text(json.dumps(script, indent=2))
     print(f"  script: {len(script['scenes'])} scenes, {scriptgen.word_count(script)} words")
 
@@ -44,32 +38,60 @@ def make_video(cfg: dict, item, fmt: str, mock: bool = False):
         print(f"  visuals: {len(scene_media)} scene(s) with media")
         script["media_credits"] = media.credits(scene_media)
         (folder / "script.json").write_text(json.dumps(script, indent=2))
-    track = music.pick(cfg, fmt)
+    track = music.pick(cfg, script["format"])
     print(f"  music: {track.name if track else 'none'}")
     out = folder / "video.mp4"
     t0 = time.time()
     Renderer(cfg, script, timeline, scene_media).render(out, timeline["audio"], track)
     print(f"  rendered {out.name} in {time.time() - t0:.0f}s")
+    return folder, out
+
+
+def make_video(cfg: dict, item, fmt: str, mock: bool = False):
+    print(f"\n▶ [{fmt}] {item.title}\n  {item.source} · {item.url}")
+    if mock:
+        script = scriptgen.mock(item, fmt)
+    else:
+        text = sources.fetch_article_text(item)
+        script = scriptgen.generate(cfg, item, fmt, text)
+    folder, out = produce(cfg, script)
+    return folder, script, out
+
+
+def render_script(cfg: dict, script: dict):
+    """Render a hand-written/imported script (see examples/)."""
+    script.setdefault("tags", [])
+    script.setdefault("description", "")
+    print(f"\n▶ [{script['format']}] {script['title']}")
+    folder, out = produce(cfg, script)
+    con = db.connect()
+    db.mark_used(con, script["source"]["url"], script["source"]["title"], script["format"], str(folder))
     return folder, script, out
 
 
 def run(cfg: dict, n: int, fmt: str | None, publish: bool, privacy: str | None,
-        mock: bool, source: str | None):
+        mock: bool, source: str | None, formats: list[str] | None = None) -> list[dict]:
     con = db.connect()
     items = sources.pick(cfg, n, source)
     if not items:
         print("No fresh candidates found.")
-        return
-    from . import youtube  # lazy: only needed when publishing
-
+        return []
+    results = []
     for item in items:
-        f = pick_format(cfg, fmt)
+        f = pick_format(cfg, fmt) if fmt or not formats else random.choice(formats)
         try:
             folder, script, video = make_video(cfg, item, f, mock)
         except Exception as e:
             print(f"  ✗ skipped ({e})")
             continue
         db.mark_used(con, item.url, item.title, f, str(folder))
+        res = {"folder": str(folder), "title": script["title"], "video_id": None}
         if publish:
-            vid = youtube.upload(video, script, cfg, privacy)
-            db.set_video_id(con, str(folder), vid)
+            from . import youtube  # lazy: only needed when publishing
+            try:
+                res["video_id"] = youtube.upload(video, script, cfg, privacy)
+                db.set_video_id(con, str(folder), res["video_id"])
+            except BaseException as e:  # SystemExit when not authorised
+                print(f"  ✗ upload failed: {e}")
+        results.append(res)
+    return results

@@ -1,0 +1,191 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Shorts Factory</title>
+<style>
+:root{--bg:#0b0f1a;--panel:#131a2b;--line:#222c45;--text:#e8edf7;--mute:#8a97b4;--accent:#38bdf8;--ok:#34d399;--bad:#f87171;--warn:#fbbf24}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);font:15px/1.45 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+header{display:flex;align-items:center;gap:16px;padding:16px 24px;border-bottom:1px solid var(--line);flex-wrap:wrap}
+header h1{font-size:18px;margin:0}
+.pills{display:flex;gap:8px;flex-wrap:wrap;margin-left:auto}
+.pill{font-size:12px;padding:4px 10px;border-radius:99px;border:1px solid var(--line);color:var(--mute)}
+.pill.ok{color:var(--ok);border-color:#1f5a47}.pill.no{color:var(--warn);border-color:#5a4a1f}
+nav{display:flex;gap:4px;padding:0 24px;border-bottom:1px solid var(--line)}
+nav button{background:none;border:0;color:var(--mute);padding:12px 14px;cursor:pointer;font:inherit;border-bottom:2px solid transparent}
+nav button.on{color:var(--text);border-color:var(--accent)}
+main{padding:24px;max-width:1100px;margin:0 auto}
+section{display:none}section.on{display:block}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:16px;margin-bottom:16px}
+label{display:block;font-size:12px;color:var(--mute);margin:10px 0 4px}
+input,select,textarea{width:100%;background:#0d1322;color:var(--text);border:1px solid var(--line);border-radius:8px;padding:8px 10px;font:inherit}
+textarea{min-height:120px;font-family:ui-monospace,Menlo,monospace;font-size:12px}
+.row{display:flex;gap:12px;flex-wrap:wrap}.row>*{flex:1;min-width:140px}
+button.primary{background:var(--accent);color:#04121d;border:0;border-radius:8px;padding:9px 16px;font-weight:600;cursor:pointer}
+button.ghost{background:none;color:var(--text);border:1px solid var(--line);border-radius:8px;padding:7px 12px;cursor:pointer}
+button.danger{color:var(--bad)}
+button:disabled{opacity:.5;cursor:default}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:16px}
+.vid video{width:100%;border-radius:10px;background:#000;aspect-ratio:9/16;max-height:440px}
+.vid h3{font-size:14px;margin:10px 0 4px}
+.tag{display:inline-block;font-size:11px;padding:2px 8px;border-radius:99px;background:#1c2742;color:var(--accent);margin-right:6px}
+.mute{color:var(--mute);font-size:12px}
+pre{background:#0d1322;border:1px solid var(--line);border-radius:8px;padding:10px;max-height:220px;overflow:auto;font-size:12px;white-space:pre-wrap}
+.job{display:flex;justify-content:space-between;gap:10px;padding:6px 0;border-bottom:1px solid var(--line);font-size:13px}
+.st-done{color:var(--ok)}.st-failed{color:var(--bad)}.st-running{color:var(--warn)}
+table{width:100%;border-collapse:collapse;font-size:13px}td,th{padding:6px 8px;border-bottom:1px solid var(--line);text-align:left}
+.days label{display:inline-flex;gap:4px;align-items:center;margin-right:10px;color:var(--text);font-size:13px}.days input{width:auto}
+</style>
+</head>
+<body>
+<header>
+  <h1>Shorts Factory</h1><span class="mute" id="channel"></span>
+  <div class="pills" id="pills"></div>
+</header>
+<nav id="tabs"></nav>
+<main>
+<section id="create" class="on">
+  <div class="card">
+    <h3 style="margin-top:0">Generate from live sources</h3>
+    <div class="row">
+      <div><label>Format</label><select id="fmt"></select></div>
+      <div><label>How many</label><input id="n" type="number" min="1" max="10" value="1"></div>
+      <div><label>Only from source (optional)</label><input id="src" placeholder="e.g. netflix, arxiv, towards"></div>
+    </div>
+    <label class="mute" id="mockNote"></label>
+    <p><button class="primary" id="go">Generate</button> <span class="mute">Videos are saved, not published. Deploy from the Videos tab.</span></p>
+  </div>
+  <div class="card">
+    <h3 style="margin-top:0">Render a script you wrote</h3>
+    <p class="mute">Paste a script JSON (see <code>examples/</code>). Good for hand-tuned memes.</p>
+    <textarea id="scriptjson" placeholder='{"format":"meme_explainer","title":"...","source":{...},"scenes":[...]}'></textarea>
+    <p><button class="ghost" id="renderBtn">Render script</button></p>
+  </div>
+  <div class="card"><h3 style="margin-top:0">Jobs</h3><div id="jobs" class="mute">No jobs yet.</div><pre id="joblog" hidden></pre></div>
+</section>
+
+<section id="videos"><div class="grid" id="vgrid"></div></section>
+
+<section id="assets">
+  <div class="card">
+    <h3 style="margin-top:0">Background music</h3>
+    <form id="musicForm" class="row">
+      <div><label>Audio file</label><input type="file" name="file" accept="audio/*" required></div>
+      <div><label>Mood</label><select name="mood"><option>any</option><option>calm</option><option>chill</option><option>upbeat</option><option>tense</option><option>funny</option></select></div>
+      <div style="align-self:end;flex:0"><button class="primary">Upload</button></div>
+    </form>
+    <table id="musicTable"></table>
+    <p class="mute">Each format prefers certain moods; music ducks under the voice. Only upload music you have the licence for.</p>
+  </div>
+  <div class="card">
+    <h3 style="margin-top:0">Clip / image library (series moments, screen recordings)</h3>
+    <form id="libForm">
+      <div class="row">
+        <div><label>File</label><input type="file" name="file" accept="video/*,image/*" required></div>
+        <div><label>ID</label><input name="id" placeholder="my-clip"></div>
+        <div><label>Kind</label><select name="kind"><option>clip</option><option>image</option></select></div>
+      </div>
+      <div class="row">
+        <div><label>Start (s)</label><input name="start" type="number" step="0.1" value="0"></div>
+        <div><label>Duration (s, max 8)</label><input name="duration" type="number" step="0.1" value="6"></div>
+        <div><label>Tags</label><input name="tags" placeholder="startup, scaling"></div>
+      </div>
+      <label>What happens in it (Claude uses this to pick it)</label><input name="description">
+      <label>Credit (shown in the video description)</label><input name="credit" placeholder="Show name (Network)">
+      <p><button class="primary">Add to library</button></p>
+    </form>
+    <table id="libTable"></table>
+    <p class="mute">You are responsible for having the rights to anything you upload. Unlicensed clips can get Content ID claims.</p>
+  </div>
+</section>
+
+<section id="schedules">
+  <div class="card">
+    <h3 style="margin-top:0">Create a schedule</h3>
+    <p class="mute">Off by default. A schedule runs only while this app is running, and creates (and optionally deploys) videos at its time.</p>
+    <div class="row">
+      <div><label>Name</label><input id="sName" value="Daily shorts"></div>
+      <div><label>Time</label><input id="sTime" type="time" value="09:00"></div>
+      <div><label>Videos per run</label><input id="sCount" type="number" min="1" max="10" value="3"></div>
+    </div>
+    <label>Days</label>
+    <div class="days" id="sDays"></div>
+    <label>Formats (none = all, weighted)</label>
+    <div class="days" id="sFormats"></div>
+    <div class="row">
+      <div><label><input id="sDeploy" type="checkbox" style="width:auto"> Auto-deploy to YouTube after creating</label></div>
+      <div><label>Privacy when deploying</label><select id="sPrivacy"><option>private</option><option>unlisted</option><option>public</option></select></div>
+    </div>
+    <p><button class="primary" id="sCreate">Create schedule</button></p>
+  </div>
+  <div class="card"><h3 style="margin-top:0">Active schedules</h3><table id="sTable"></table></div>
+</section>
+</main>
+
+<script>
+const $=s=>document.querySelector(s), api=(p,o)=>fetch(p,o).then(async r=>{const j=await r.json().catch(()=>({}));if(!r.ok)throw new Error(j.error||r.statusText);return j});
+const post=(p,b)=>api(p,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(b)});
+const TABS=[['create','Create'],['videos','Videos'],['assets','Music & clips'],['schedules','Schedules']];
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+let status={};
+$('#tabs').innerHTML=TABS.map(([id,l])=>`<button data-t="${id}">${l}</button>`).join('');
+function tab(id){document.querySelectorAll('section').forEach(s=>s.classList.toggle('on',s.id===id));document.querySelectorAll('nav button').forEach(b=>b.classList.toggle('on',b.dataset.t===id));if(id==='videos')loadVideos();if(id==='assets')loadAssets();if(id==='schedules')loadSchedules();location.hash=id}
+document.querySelectorAll('nav button').forEach(b=>b.onclick=()=>tab(b.dataset.t));
+
+async function loadStatus(){
+  status=await api('/api/status');
+  $('#channel').textContent=status.channel;
+  const p=(ok,t,n)=>`<span class="pill ${ok?'ok':'no'}">${ok?'✓':'•'} ${ok?t:n}</span>`;
+  $('#pills').innerHTML=p(status.anthropic_key,'Claude key set','Claude key missing (canned scripts)')+p(status.youtube_authorised,'YouTube connected','YouTube not connected')+p(status.music_tracks>0,status.music_tracks+' music tracks','no music')+p(status.pexels_key,'Stock video on','stock video off');
+  $('#fmt').innerHTML='<option value="">Auto (weighted mix)</option>'+status.formats.map(f=>`<option value="${f.id}">${esc(f.label)} · ${f.id}</option>`).join('');
+  $('#mockNote').textContent=status.anthropic_key?'':'No ANTHROPIC_API_KEY found: a canned script is used so you can preview the look, voice and memes. Add the key to .env for real Claude-written scripts.';
+  $('#sFormats').innerHTML=status.formats.map(f=>`<label><input type="checkbox" value="${f.id}"> ${esc(f.label)}</label>`).join('');
+}
+$('#sDays').innerHTML=['Mon','Tue','Wed','Thu','Fri','Sat','Sun'].map((d,i)=>`<label><input type="checkbox" value="${i}" checked> ${d}</label>`).join('');
+
+$('#go').onclick=async()=>{try{await post('/api/generate',{format:$('#fmt').value,n:+$('#n').value,source:$('#src').value});pollJobs()}catch(e){alert(e.message)}};
+$('#renderBtn').onclick=async()=>{try{await post('/api/render-script',JSON.parse($('#scriptjson').value));pollJobs()}catch(e){alert(e.message)}};
+let sel=null;
+async function pollJobs(){
+  const jobs=await api('/api/jobs');
+  $('#jobs').innerHTML=jobs.length?jobs.map(j=>`<div class="job" style="cursor:pointer" onclick="sel='${j.id}';pollJobs()"><span>${esc(j.title)}</span><span class="st-${j.status}">${j.status}</span></div>`).join(''):'No jobs yet.';
+  const j=jobs.find(x=>x.id===sel)||jobs[0];
+  if(j){$('#joblog').hidden=false;$('#joblog').textContent=j.log||'…';$('#joblog').scrollTop=1e9}
+  if(jobs.some(x=>x.status==='running'||x.status==='queued')){setTimeout(pollJobs,1500)}else if(jobs.length){loadVideos()}
+}
+async function loadVideos(){
+  const v=await api('/api/videos');
+  $('#vgrid').innerHTML=v.length?v.map(x=>`<div class="card vid">
+    ${x.has_video?`<video controls preload="metadata" src="/output/${x.folder}/video.mp4"></video>`:'<div class="mute">no video</div>'}
+    <h3>${esc(x.title)}</h3>
+    <div><span class="tag">${esc(x.label)}</span><span class="tag">${x.scenes.filter(s=>s.visual!=='none').length} visual(s)</span></div>
+    <div class="mute" style="margin:6px 0">${esc(x.source.name)}</div>
+    <div class="row" style="align-items:center">
+      ${x.video_id?`<a class="mute" target="_blank" href="https://youtube.com/shorts/${x.video_id}">On YouTube ↗</a>`:
+      `<select id="pv-${x.folder}" style="flex:1"><option>private</option><option>unlisted</option><option>public</option></select>
+       <button class="primary" style="flex:1" onclick="deploy('${x.folder}')">Deploy</button>`}
+      <button class="ghost danger" style="flex:0" onclick="del('${x.folder}')">✕</button>
+    </div></div>`).join(''):'<div class="mute">No videos yet. Generate one from the Create tab.</div>';
+}
+async function deploy(f){if(!confirm('Upload this video to YouTube as '+$('#pv-'+f).value+'?'))return;try{await post('/api/publish',{folder:f,privacy:$('#pv-'+f).value});tab('create');pollJobs()}catch(e){alert(e.message)}}
+async function del(f){if(confirm('Delete this video folder?')){await api('/api/videos/'+f,{method:'DELETE'});loadVideos()}}
+
+async function loadAssets(){
+  const m=await api('/api/music');$('#musicTable').innerHTML='<tr><th>Mood</th><th>Track</th></tr>'+(m.map(t=>`<tr><td>${t.mood}</td><td>${esc(t.name)}</td></tr>`).join('')||'<tr><td colspan=2 class="mute">None yet</td></tr>');
+  const l=await api('/api/library');$('#libTable').innerHTML='<tr><th>ID</th><th>Kind</th><th>Description</th></tr>'+(l.map(t=>`<tr><td>${esc(t.id)}</td><td>${t.kind}</td><td>${esc(t.description||'')}</td></tr>`).join('')||'<tr><td colspan=3 class="mute">None yet</td></tr>');
+}
+for(const [f,u] of [['#musicForm','/api/music'],['#libForm','/api/library']]){$(f).onsubmit=async e=>{e.preventDefault();try{await api(u,{method:'POST',body:new FormData(e.target)});e.target.reset();loadAssets();loadStatus()}catch(x){alert(x.message)}}}
+
+async function loadSchedules(){
+  const s=await api('/api/schedules');const D=['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+  $('#sTable').innerHTML='<tr><th>Name</th><th>When</th><th>Count</th><th>Deploy</th><th></th></tr>'+(s.map(x=>`<tr><td>${esc(x.name)} ${x.enabled?'':'<span class="mute">(paused)</span>'}</td><td>${x.time} · ${x.days.length===7?'daily':x.days.map(d=>D[d]).join(' ')}</td><td>${x.count}</td><td>${x.auto_deploy?'auto → '+x.privacy:'manual'}</td><td><button class="ghost" onclick="tog('${x.id}')">${x.enabled?'Pause':'Resume'}</button> <button class="ghost danger" onclick="rm('${x.id}')">Delete</button></td></tr>`).join('')||'<tr><td colspan=5 class="mute">No schedules. Nothing runs automatically.</td></tr>');
+}
+$('#sCreate').onclick=async()=>{try{await post('/api/schedules',{name:$('#sName').value,time:$('#sTime').value,count:+$('#sCount').value,days:[...document.querySelectorAll('#sDays input:checked')].map(i=>+i.value),formats:[...document.querySelectorAll('#sFormats input:checked')].map(i=>i.value),auto_deploy:$('#sDeploy').checked,privacy:$('#sPrivacy').value});loadSchedules()}catch(e){alert(e.message)}};
+async function tog(id){await post('/api/schedules/'+id+'/toggle',{});loadSchedules()}
+async function rm(id){await api('/api/schedules/'+id,{method:'DELETE'});loadSchedules()}
+loadStatus().then(()=>{tab(location.hash.slice(1)||'create');pollJobs()});
+</script>
+</body>
+</html>

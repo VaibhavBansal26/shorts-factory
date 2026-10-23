@@ -16,7 +16,19 @@ def _probe(path: Path) -> float:
     return float(out.strip())
 
 
-async def _synth(text: str, voice: str, rate: str):
+async def _synth(text: str, voice: str, rate: str, tries: int = 4):
+    for attempt in range(tries):
+        try:
+            audio, words = await _synth_once(text, voice, rate)
+            if audio:
+                return audio, words
+        except edge_tts.exceptions.NoAudioReceived:
+            pass
+        await asyncio.sleep(1.5 * (attempt + 1))  # the free endpoint occasionally drops a request
+    raise RuntimeError(f"TTS failed after {tries} attempts: {text[:50]!r}")
+
+
+async def _synth_once(text: str, voice: str, rate: str):
     com = edge_tts.Communicate(text, voice, rate=rate, boundary="WordBoundary")
     audio, words = bytearray(), []
     async for ch in com.stream():

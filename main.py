@@ -6,6 +6,8 @@
   python main.py run --n 3 --publish          # make + upload to YouTube
   python main.py run --format research_opinion --n 1
   python main.py run --mock --n 1             # no API key needed: canned script, real voice + render
+  python app.py                               # web UI at http://127.0.0.1:8765
+  python main.py render examples/meme_titus.json   # render a hand-written script
   python main.py auth                         # one-time YouTube login
   python main.py upload output/<folder>       # upload an already-rendered video
   python main.py music add song.mp3 --mood upbeat    # add background music (moods: calm chill upbeat tense funny any)
@@ -47,6 +49,8 @@ def main():
     lb.add_argument("--tags", default="")
     lb.add_argument("--desc", default="")
     lb.add_argument("--credit", default="")
+    rs = sub.add_parser("render")
+    rs.add_argument("script", help="script JSON, e.g. examples/meme_titus.json")
     u = sub.add_parser("upload")
     u.add_argument("folder")
     u.add_argument("--privacy", choices=["private", "unlisted", "public"])
@@ -81,6 +85,9 @@ def main():
         else:
             for i in media.load_library():
                 print(f"{i['id']:24} {i.get('kind', 'clip'):6} {i.get('description', '')}")
+    elif a.cmd == "render":
+        from src import pipeline
+        pipeline.render_script(cfg, json.loads(Path(a.script).read_text()))
     elif a.cmd == "auth":
         from src import youtube
         youtube.authorize()

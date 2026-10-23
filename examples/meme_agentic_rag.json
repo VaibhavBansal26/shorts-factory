@@ -1,0 +1,59 @@
+{
+  "format": "meme_explainer",
+  "title": "Agentic RAG: smarter, or just busier?",
+  "source": {
+    "name": "Towards Data Science",
+    "title": "Does Agentic RAG Actually Retrieve Better Evidence? I Tested It on 298 Questions",
+    "url": "https://towardsdatascience.com/does-agentic-rag-actually-retrieve-better-evidence-i-tested-it-on-298-questions/"
+  },
+  "description": "Does an agent loop actually improve retrieval? A quick look at what to measure before you add one.",
+  "tags": [
+    "rag",
+    "agents",
+    "llm"
+  ],
+  "scenes": [
+    {
+      "narration": "Everyone says agentic RAG retrieves better evidence. But does it?",
+      "layout": "big_text",
+      "headline": "Smarter, or just busier?"
+    },
+    {
+      "narration": "A Towards Data Science writer tested it on two hundred ninety eight questions, because the demo always looks smart.",
+      "layout": "big_text",
+      "headline": "The pitch vs the bill",
+      "visual": {
+        "type": "meme",
+        "meme_template": "Tuxedo Winnie The Pooh",
+        "top_text": "Plain RAG: one retrieval",
+        "bottom_text": "Agentic RAG: five retrievals and a plan"
+      }
+    },
+    {
+      "narration": "Before you add an agent loop, check three things. Does recall go up? Does latency stay sane? Is the cost worth it?",
+      "layout": "bullets",
+      "headline": "Before adding the loop",
+      "bullets": [
+        "Does recall go up?",
+        "Latency still sane?",
+        "Cost worth it?"
+      ]
+    },
+    {
+      "narration": "The classic trap: if you never measure retrieval on its own, you never see the bad evidence.",
+      "layout": "big_text",
+      "headline": "Measure retrieval first",
+      "visual": {
+        "type": "meme",
+        "meme_template": "Roll Safe Think About It",
+        "top_text": "Can't retrieve bad evidence",
+        "bottom_text": "If you never measure retrieval"
+      }
+    },
+    {
+      "narration": "My take: evaluate retrieval separately from answer quality. Do you? Tell me in the comments.",
+      "layout": "question",
+      "headline": "Do you evaluate retrieval separately?"
+    }
+  ]
+}

@@ -77,8 +77,17 @@ Daily automation (cron, 3 videos at 09:00):
   Rights are your call: unlicensed show/film clips can trigger Content ID claims or strikes even with commentary.
   Prefer clips you own or have licensed, and check results while videos are still private.
 
-## Daily schedule
+## Web UI (manual by default)
 
-`./schedule.sh install` adds a cron job (09:00, 3 videos, `--publish`); `./schedule.sh remove` deletes it.
-The Mac must be awake at that time (or use `pmset repeat wakeorpoweron`). Requires `.env`, `client_secret.json`
-and `token.json` to exist first.
+```bash
+python app.py        # http://127.0.0.1:8765
+```
+
+Create shorts, preview them, and press **Deploy** per video. Nothing is uploaded unless you press it.
+Tabs: Create (live sources or a pasted script), Videos, Music & clips (upload), Schedules.
+
+**Schedules are an opt-in feature.** None exist by default. Create one in the Schedules tab (time, days, count, formats,
+auto-deploy on/off) and while `app.py` is running it creates videos at that time and, if auto-deploy is on, uploads them.
+Auto-deploy needs YouTube authorised first. There is no cron job; if you close the app, schedules pause.
+
+`python main.py render examples/meme_titus.json` renders a hand-written script (three meme examples included).

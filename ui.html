@@ -74,7 +74,12 @@ textarea{min-height:130px;font-family:ui-monospace,Menlo,monospace;font-size:12p
 .stepper button{width:34px;height:36px;border:0;background:none;cursor:pointer;font-size:16px}
 .stepper input{width:42px;text-align:center;border:0;border-radius:0;background:none;padding:0}
 .two{display:grid;grid-template-columns:minmax(0,1.25fr) minmax(0,1fr);gap:18px;margin-top:20px}
-@media(max-width:1000px){.two{grid-template-columns:1fr}aside{display:none}main{padding:18px}}
+@media(max-width:1000px){.two{grid-template-columns:1fr}main{padding:18px 16px 90px}
+  body{flex-direction:column}
+  aside{width:100%;height:auto;position:sticky;top:0;z-index:30;flex-direction:row;align-items:center;gap:10px;padding:8px 12px;border-right:0;border-bottom:1px solid var(--line)}
+  .brand{padding:0}.brand div:last-child,.side-foot{display:none}
+  nav{flex-direction:row;overflow-x:auto;gap:4px}nav button{padding:8px 10px;white-space:nowrap}nav button span.count{display:none}
+  #dock{left:12px;right:12px;width:auto}}
 .cand{display:flex;gap:10px;align-items:center;padding:10px 0;border-bottom:1px solid var(--line)}
 .cand:last-child{border:0}
 .cand .t{flex:1;min-width:0}.cand .t b{display:block;font-weight:600;font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -414,6 +419,7 @@ function renderSetup(){
   dropzone($('#dropLogo'),$('#fileLogo'),async f=>{const fd=new FormData();fd.append('file',f);await api('/api/logo',{method:'POST',body:fd});toast('Logo updated');renderSetup()});
 }
 
+window.addEventListener('hashchange',()=>go(location.hash.slice(1)||'studio'));
 loadStatus().then(()=>{go(location.hash.slice(1)||'studio');pollJobs();loadVideos()});
 </script>
 </body>

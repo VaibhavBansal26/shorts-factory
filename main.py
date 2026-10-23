@@ -123,7 +123,9 @@ def main():
         from src import youtube
         folder = Path(a.folder)
         script = json.loads((folder / "script.json").read_text())
-        youtube.upload(folder / "video.mp4", script, cfg, a.privacy)
+        from src import db
+        vid = youtube.upload(folder / "video.mp4", script, cfg, a.privacy)
+        db.set_video_id(db.connect(), str(folder.resolve()), vid)
 
 
 if __name__ == "__main__":

@@ -18,7 +18,7 @@ from pathlib import Path
 from flask import Flask, Response, jsonify, request, send_from_directory
 from werkzeug.utils import secure_filename
 
-from src import config, db, formats, media, music, pipeline
+from src import config, db, formats, media, music, pipeline, suggest
 from src.config import CODE, ROOT
 
 cfg = config.load()
@@ -84,11 +84,11 @@ def list_videos():
         if not sj.exists():
             continue
         s = json.loads(sj.read_text())
-        row = con.execute("SELECT video_id FROM used WHERE folder=?", (str(d),)).fetchone()
+        vid_id = db.video_id_for(con, str(d))
         vids.append({
             "folder": d.name, "title": s["title"], "format": s["format"],
             "label": formats.FORMATS[s["format"]]["label"], "source": s["source"],
-            "has_video": (d / "video.mp4").exists(), "video_id": row[0] if row else None,
+            "has_video": (d / "video.mp4").exists(), "video_id": vid_id,
             "accent": "#%02x%02x%02x" % formats.FORMATS[s["format"]]["accent"],
             "description": s.get("description", ""), "characters": s.get("characters", []),
             "scenes": [{"narration": x["narration"], "subtitle": x.get("subtitle"), "speaker": x.get("speaker"),
@@ -169,8 +169,12 @@ def generate():
     n = max(1, min(int(b.get("n", 1)), 10))
     fmt = b.get("format") or None
     src = b.get("source") or None
-    if b.get("url"):  # make a short from one specific item in the candidates list
+    if b.get("url"):  # make a short from one specific item (candidates list or a suggestion)
         item = next((i for i in _CAND["items"] if i.url == b["url"]), None)
+        if not item:
+            from src.sources import Item
+            hit = next((x["item"] for x in suggest.load().get("ideas", []) if x["url"] == b["url"]), None)
+            item = Item(**hit) if hit else None
         if not item:
             return jsonify(error="item expired, refresh the list"), 404
         f = formats.pick_format(cfg, fmt)
@@ -235,6 +239,49 @@ def delete_video(name):
     d = OUT / secure_filename(name)
     if d.is_dir() and d.parent == OUT:
         shutil.rmtree(d)
+    return jsonify(ok=True)
+
+
+@app.get("/thumb/<name>.jpg")
+def thumb(name):
+    d = OUT / secure_filename(name)
+    t = d / "thumb.jpg"
+    if not t.exists() and (d / "video.mp4").exists():
+        import subprocess
+        from src.ff import FFMPEG
+        subprocess.run([FFMPEG, "-y", "-loglevel", "error", "-ss", "1.2", "-i", str(d / "video.mp4"),
+                        "-frames:v", "1", "-vf", "scale=360:-2", "-q:v", "4", str(t)])
+    return send_from_directory(d, "thumb.jpg")
+
+
+@app.post("/api/open")
+def open_local():
+    """Desktop only: open a video in the default player or reveal it in Finder."""
+    if os.getenv("SF_DESKTOP") != "1":
+        return jsonify(error="Only available in the desktop app"), 400
+    import subprocess
+    f = OUT / secure_filename(request.json["folder"]) / "video.mp4"
+    subprocess.run(["open", "-R", str(f)] if request.json.get("reveal") else ["open", str(f)])
+    return jsonify(ok=True)
+
+
+@app.get("/api/suggestions")
+def suggestions_get():
+    s = suggest.load()
+    return jsonify(ideas=s.get("ideas", []), generated_at=s.get("generated_at"), frequency=suggest.prefs()["frequency"],
+                   stale=suggest.is_stale(), running=suggest.RUNNING.is_set(), has_key=have_key())
+
+
+@app.post("/api/suggestions/refresh")
+def suggestions_refresh():
+    if not have_key():
+        return jsonify(error="Add your Claude API key in Setup to get suggestions"), 400
+    return jsonify(started=suggest.refresh_async(cfg))
+
+
+@app.post("/api/prefs")
+def prefs_set():
+    suggest.set_frequency((request.json or {}).get("frequency", "daily"))
     return jsonify(ok=True)
 
 
@@ -421,6 +468,8 @@ def scheduler_loop():
                     s["formats"] or None))
         if changed:
             save_schedules(items)
+        if have_key() and suggest.is_stale():  # new ideas daily or weekly, whichever the user picked
+            suggest.refresh_async(cfg)
         time.sleep(20)
 
 

@@ -1,164 +1,206 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" data-theme="dark">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Shorts Factory</title>
 <style>
 :root{
-  --bg:#080b14;--bg2:#0c1120;--panel:#10172a;--panel2:#151e35;--line:#1f2a47;--line2:#2a3860;
-  --text:#eef2fb;--mute:#8c99b8;--dim:#5d6a89;--accent:#38bdf8;--ok:#34d399;--bad:#f87171;--warn:#fbbf24;
-  --r:14px;--shadow:0 10px 30px rgba(0,0,0,.35);
+  --bg:#070a12;--bg2:#0b101d;--panel:#0f1626;--panel2:#141d33;--line:#1c2742;--line2:#2a3a60;
+  --text:#eef2fb;--mute:#93a0c0;--dim:#5f6d8f;--accent:#38bdf8;--accent2:#818cf8;--ok:#34d399;--bad:#f87171;--warn:#fbbf24;
+  --glow:#38bdf822;--shadow:0 14px 40px rgba(0,0,0,.4);--r:16px;--chip:#ffffff0a;
+}
+html[data-theme=light]{
+  --bg:#f4f6fb;--bg2:#ffffff;--panel:#ffffff;--panel2:#eef2fa;--line:#e1e7f3;--line2:#cfd9ec;
+  --text:#0f1830;--mute:#55627f;--dim:#8793ad;--accent:#0ea5e9;--accent2:#6366f1;--ok:#059669;--bad:#dc2626;--warn:#b45309;
+  --glow:#0ea5e922;--shadow:0 10px 30px rgba(30,50,100,.12);--chip:#0f18300a;
 }
 *{box-sizing:border-box}
 html,body{height:100%}
-body{margin:0;background:radial-gradient(1200px 600px at 80% -10%,#14204a55,transparent),var(--bg);color:var(--text);
-  font:14px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Inter,sans-serif;display:flex}
+body{margin:0;background:var(--bg);color:var(--text);font:14px/1.5 -apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Inter,sans-serif;display:flex;-webkit-font-smoothing:antialiased}
+body::before{content:"";position:fixed;inset:0;pointer-events:none;background:radial-gradient(900px 480px at 85% -8%,#6366f122,transparent),radial-gradient(700px 420px at 10% 110%,#38bdf81a,transparent)}
 button,input,select,textarea{font:inherit;color:inherit}
 a{color:var(--accent);text-decoration:none}
+::selection{background:#38bdf844}
 
-/* ---------- sidebar ---------- */
-aside{width:236px;flex:none;border-right:1px solid var(--line);background:var(--bg2);display:flex;flex-direction:column;padding:18px 14px;position:sticky;top:0;height:100vh}
-.brand{display:flex;align-items:center;gap:10px;padding:4px 8px 18px}
-.brand .mark{width:34px;height:34px;border-radius:10px;background:linear-gradient(135deg,#38bdf8,#a78bfa 60%,#f472b6);display:grid;place-items:center;font-weight:800;color:#08101c}
-.brand b{font-size:15px;letter-spacing:.2px}.brand small{display:block;color:var(--dim);font-size:11px;margin-top:-2px}
+/* sidebar */
+aside{width:244px;flex:none;border-right:1px solid var(--line);background:color-mix(in srgb,var(--bg2) 92%,transparent);backdrop-filter:blur(14px);display:flex;flex-direction:column;padding:20px 14px;position:sticky;top:0;height:100vh;z-index:20}
+.brand{display:flex;align-items:center;gap:11px;padding:2px 8px 22px}
+.brand .mark{width:36px;height:36px;border-radius:11px;background:linear-gradient(135deg,#38bdf8,#818cf8 55%,#f472b6);display:grid;place-items:center;font-weight:800;color:#07101e;box-shadow:0 6px 18px #6366f144}
+.brand b{font-size:15px;letter-spacing:.2px;display:block}.brand small{color:var(--dim);font-size:11px}
+.navlabel{font-size:10.5px;letter-spacing:.9px;text-transform:uppercase;color:var(--dim);padding:14px 12px 6px}
 nav{display:flex;flex-direction:column;gap:2px}
-nav button{display:flex;align-items:center;gap:11px;background:none;border:0;color:var(--mute);padding:10px 12px;border-radius:10px;cursor:pointer;text-align:left}
+nav button{display:flex;align-items:center;gap:11px;background:none;border:0;color:var(--mute);padding:9px 12px;border-radius:11px;cursor:pointer;text-align:left;transition:.12s}
 nav button svg{width:18px;height:18px;flex:none}
-nav button:hover{background:#ffffff08;color:var(--text)}
-nav button.on{background:linear-gradient(90deg,#38bdf81f,#38bdf808);color:var(--text);box-shadow:inset 2px 0 0 var(--accent)}
+nav button:hover{background:var(--chip);color:var(--text)}
+nav button.on{background:linear-gradient(90deg,var(--glow),transparent);color:var(--text);box-shadow:inset 2.5px 0 0 var(--accent)}
 nav .count{margin-left:auto;font-size:11px;background:var(--panel2);border-radius:99px;padding:1px 8px;color:var(--mute)}
-.side-foot{margin-top:auto;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px}
-.side-foot .bar{height:6px;background:var(--line);border-radius:9px;overflow:hidden;margin:8px 0}
-.side-foot .bar i{display:block;height:100%;background:linear-gradient(90deg,#38bdf8,#34d399);border-radius:9px}
-.side-foot small{color:var(--mute)}
+.side-foot{margin-top:auto;display:grid;gap:10px}
+.setup-card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:12px;cursor:pointer}
+.setup-card .bar{height:6px;background:var(--line);border-radius:9px;overflow:hidden;margin:8px 0}
+.setup-card .bar i{display:block;height:100%;background:linear-gradient(90deg,var(--accent),var(--ok));border-radius:9px;transition:.4s}
+.setup-card small{color:var(--mute)}
+.themebtn{display:flex;align-items:center;justify-content:space-between;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:8px 12px;cursor:pointer;color:var(--mute);width:100%}
 
-/* ---------- main ---------- */
-main{flex:1;min-width:0;padding:26px 34px 80px;max-width:1280px}
-.page{display:none}.page.on{display:block;animation:fade .25s ease}
-@keyframes fade{from{opacity:0;transform:translateY(6px)}to{opacity:1}}
-h1{font-size:26px;margin:0 0 4px;letter-spacing:-.3px}
-.sub{color:var(--mute);margin:0 0 22px}
-h2{font-size:15px;margin:0 0 12px}
-.card{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:18px}
-.row{display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end}
-.grow{flex:1;min-width:160px}
+/* main */
+main{flex:1;min-width:0;padding:30px 38px 96px;max-width:1320px;position:relative}
+.page{display:none}.page.on{display:block;animation:rise .28s ease both}
+@keyframes rise{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+h1{font-size:28px;margin:0 0 4px;letter-spacing:-.5px}
+h2{font-size:15px;margin:0}
+.sub{color:var(--mute);margin:0 0 24px}
+.sec{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:30px 0 14px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:18px;box-shadow:0 1px 0 #ffffff05 inset}
+.row{display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end}.grow{flex:1;min-width:150px}
 label.l{display:block;font-size:12px;color:var(--mute);margin:0 0 5px}
-input,select,textarea{width:100%;background:var(--bg2);border:1px solid var(--line2);border-radius:10px;padding:9px 11px;outline:none}
-input:focus,select:focus,textarea:focus{border-color:var(--accent);box-shadow:0 0 0 3px #38bdf822}
+input,select,textarea{width:100%;background:var(--bg2);border:1px solid var(--line2);border-radius:11px;padding:9px 12px;outline:none;transition:.12s}
+input:focus,select:focus,textarea:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--glow)}
 textarea{min-height:130px;font-family:ui-monospace,Menlo,monospace;font-size:12px}
-.btn{border:0;border-radius:10px;padding:9px 16px;font-weight:600;cursor:pointer;background:var(--panel2);border:1px solid var(--line2)}
+.btn{border:1px solid var(--line2);border-radius:11px;padding:9px 16px;font-weight:600;cursor:pointer;background:var(--panel2);transition:.12s}
 .btn:hover{border-color:var(--accent)}
-.btn.p{background:linear-gradient(135deg,#38bdf8,#6366f1);border:0;color:#04101e}
-.btn.p:hover{filter:brightness(1.08)}
-.btn.d{color:var(--bad)}
-.btn.sm{padding:6px 11px;font-size:12px}
-.btn:disabled{opacity:.45;cursor:default}
-.chip{display:inline-flex;align-items:center;gap:6px;font-size:11px;padding:3px 10px;border-radius:99px;background:var(--panel2);border:1px solid var(--line2);color:var(--mute)}
-.chip.ok{color:var(--ok);border-color:#1c5b48}.chip.warn{color:var(--warn);border-color:#5c4a17}
-.dot{width:7px;height:7px;border-radius:50%;background:currentColor}
-
-/* ---------- format gallery ---------- */
-.fgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px}
-.fcard{position:relative;text-align:left;background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:14px;cursor:pointer;overflow:hidden;transition:.15s}
-.fcard::before{content:"";position:absolute;inset:0 0 auto 0;height:3px;background:var(--c)}
-.fcard::after{content:"";position:absolute;right:-30px;top:-30px;width:110px;height:110px;border-radius:50%;background:var(--c);opacity:.10;filter:blur(8px)}
-.fcard:hover{transform:translateY(-2px);border-color:var(--line2)}
-.fcard.sel{border-color:var(--c);box-shadow:0 0 0 1px var(--c),0 8px 24px color-mix(in srgb,var(--c) 25%,transparent)}
-.fcard b{display:block;font-size:13px;color:var(--c);letter-spacing:.6px;margin-bottom:5px}
-.fcard span{font-size:12.5px;color:var(--mute);display:block;min-height:36px}
-.fcard .tags{margin-top:10px;display:flex;gap:6px}
-.new{white-space:nowrap;flex:none;font-size:10px;background:var(--c);color:#06101c;padding:1px 7px;border-radius:99px;font-weight:700}
-.actionbar{position:sticky;bottom:14px;margin-top:16px;display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap;background:#0d1426ee;backdrop-filter:blur(10px);border:1px solid var(--line2);border-radius:16px;padding:14px;box-shadow:var(--shadow)}
-.stepper{display:flex;align-items:center;border:1px solid var(--line2);border-radius:10px;overflow:hidden;background:var(--bg2)}
-.stepper button{width:34px;height:36px;border:0;background:none;cursor:pointer;font-size:16px}
-.stepper input{width:42px;text-align:center;border:0;border-radius:0;background:none;padding:0}
-.two{display:grid;grid-template-columns:minmax(0,1.25fr) minmax(0,1fr);gap:18px;margin-top:20px}
-@media(max-width:1000px){.two{grid-template-columns:1fr}main{padding:18px 16px 90px}
-  body{flex-direction:column}
-  aside{width:100%;height:auto;position:sticky;top:0;z-index:30;flex-direction:row;align-items:center;gap:10px;padding:8px 12px;border-right:0;border-bottom:1px solid var(--line)}
-  .brand{padding:0}.brand div:last-child,.side-foot{display:none}
-  nav{flex-direction:row;overflow-x:auto;gap:4px}nav button{padding:8px 10px;white-space:nowrap}nav button span.count{display:none}
-  #dock{left:12px;right:12px;width:auto}}
-.cand{display:flex;gap:10px;align-items:center;padding:10px 0;border-bottom:1px solid var(--line)}
-.cand:last-child{border:0}
-.cand .t{flex:1;min-width:0}.cand .t b{display:block;font-weight:600;font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.cand .t small{color:var(--dim)}
-
-/* ---------- library ---------- */
-.filters{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px}
-.filters button{background:var(--panel);border:1px solid var(--line);color:var(--mute);border-radius:99px;padding:5px 13px;cursor:pointer;font-size:12.5px}
-.filters button.on{color:var(--text);border-color:var(--accent);background:#38bdf814}
-.vgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:18px}
-.vcard{background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:10px;transition:.15s}
-.vcard:hover{border-color:var(--line2);transform:translateY(-2px)}
-.phone{position:relative;border-radius:14px;overflow:hidden;background:#000;aspect-ratio:9/16;cursor:pointer}
-.phone video{width:100%;height:100%;object-fit:cover;display:block}
-.phone .badge{position:absolute;left:8px;top:8px;font-size:10.5px;font-weight:700;padding:3px 9px;border-radius:99px;color:#06101c;background:var(--c)}
-.phone .play{position:absolute;inset:0;display:grid;place-items:center;background:linear-gradient(transparent 60%,#000a);opacity:0;transition:.15s}
-.phone:hover .play{opacity:1}
-.phone .play i{width:46px;height:46px;border-radius:50%;background:#fff;display:grid;place-items:center}
-.vcard h3{font-size:13px;margin:10px 4px 4px;line-height:1.3;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
-.vmeta{display:flex;justify-content:space-between;align-items:center;margin:0 4px 8px;color:var(--dim);font-size:11.5px}
-.vact{display:flex;gap:8px;padding:0 4px 4px}.vact .btn{flex:1;padding:7px}
-.empty{border:1px dashed var(--line2);border-radius:var(--r);padding:50px;text-align:center;color:var(--mute)}
-
-/* ---------- modal ---------- */
-.modal{position:fixed;inset:0;background:#02050dcc;backdrop-filter:blur(6px);display:none;place-items:center;z-index:50;padding:24px}
-.modal.on{display:grid}
-.mbox{display:grid;grid-template-columns:320px 1fr;gap:22px;background:var(--panel);border:1px solid var(--line2);border-radius:20px;padding:20px;max-width:900px;width:100%;max-height:92vh;overflow:auto;box-shadow:var(--shadow)}
-.mbox video{width:100%;border-radius:14px;background:#000;aspect-ratio:9/16}
-@media(max-width:760px){.mbox{grid-template-columns:1fr}}
-.scene{display:flex;gap:10px;padding:8px 0;border-bottom:1px solid var(--line);font-size:12.5px}
-.scene:last-child{border:0}.scene i{font-style:normal;color:var(--dim);width:18px}
-.scene em{font-style:normal;color:var(--mute);display:block}
-.seg{display:inline-flex;border:1px solid var(--line2);border-radius:10px;overflow:hidden}
-.seg button{background:var(--bg2);border:0;padding:7px 12px;cursor:pointer;color:var(--mute)}
+.btn.p{background:linear-gradient(135deg,var(--accent),var(--accent2));border:0;color:#06111f;box-shadow:0 6px 18px #6366f13a}
+.btn.p:hover{filter:brightness(1.08);transform:translateY(-1px)}
+.btn.d{color:var(--bad)}.btn.sm{padding:6px 12px;font-size:12px;border-radius:9px}
+.btn:disabled{opacity:.45;cursor:default;transform:none}
+.chip{display:inline-flex;align-items:center;gap:6px;font-size:11px;padding:3px 10px;border-radius:99px;background:var(--chip);border:1px solid var(--line2);color:var(--mute);white-space:nowrap}
+.chip.ok{color:var(--ok);border-color:color-mix(in srgb,var(--ok) 40%,transparent)}
+.chip.warn{color:var(--warn)}.dot{width:7px;height:7px;border-radius:50%;background:currentColor}
+.seg{display:inline-flex;border:1px solid var(--line2);border-radius:11px;overflow:hidden}
+.seg button{background:var(--bg2);border:0;padding:7px 13px;cursor:pointer;color:var(--mute)}
 .seg button.on{background:var(--accent);color:#04101e;font-weight:600}
 
-/* ---------- assets ---------- */
+/* home */
+.hero{display:flex;justify-content:space-between;gap:20px;align-items:flex-end;flex-wrap:wrap;margin-bottom:22px}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px}
+.stat{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:16px 18px;position:relative;overflow:hidden}
+.stat b{font-size:30px;letter-spacing:-1px;display:block;line-height:1.1}
+.stat span{color:var(--mute);font-size:12.5px}
+.stat::after{content:"";position:absolute;right:-24px;top:-24px;width:90px;height:90px;border-radius:50%;background:var(--c,var(--accent));opacity:.13;filter:blur(6px)}
+.picks{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:14px}
+.pick{--c:var(--accent);position:relative;background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:16px;display:flex;flex-direction:column;gap:10px;overflow:hidden;transition:.15s}
+.pick:hover{transform:translateY(-2px);border-color:var(--line2);box-shadow:var(--shadow)}
+.pick::before{content:"";position:absolute;inset:0 0 auto 0;height:3px;background:var(--c)}
+.pick .fmt{font-size:11px;font-weight:700;letter-spacing:.7px;color:var(--c)}
+.pick .hook{font-size:16px;font-weight:650;line-height:1.35;letter-spacing:-.2px}
+.pick .why{color:var(--mute);font-size:12.5px}
+.pick .src{color:var(--dim);font-size:11.5px;margin-top:auto;display:flex;justify-content:space-between;gap:8px;align-items:center}
+.pick .src span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.skeleton{height:170px;border-radius:var(--r);background:linear-gradient(90deg,var(--panel),var(--panel2),var(--panel));background-size:200% 100%;animation:sk 1.3s infinite}
+@keyframes sk{to{background-position:-200% 0}}
+.emptybox{border:1px dashed var(--line2);border-radius:var(--r);padding:34px;text-align:center;color:var(--mute)}
+
+/* create */
+.fgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(215px,1fr));gap:12px}
+.fcard{position:relative;text-align:left;background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:15px;cursor:pointer;overflow:hidden;transition:.15s}
+.fcard::before{content:"";position:absolute;inset:0 0 auto 0;height:3px;background:var(--c)}
+.fcard::after{content:"";position:absolute;right:-30px;top:-30px;width:110px;height:110px;border-radius:50%;background:var(--c);opacity:.12;filter:blur(8px)}
+.fcard:hover{transform:translateY(-2px);border-color:var(--line2)}
+.fcard.sel{border-color:var(--c);box-shadow:0 0 0 1px var(--c),0 10px 26px color-mix(in srgb,var(--c) 22%,transparent)}
+.fcard b{display:block;font-size:12.5px;color:var(--c);letter-spacing:.7px;margin-bottom:5px}
+.fcard span{font-size:12.5px;color:var(--mute);display:block;min-height:36px}
+.fcard .tags{margin-top:10px;display:flex;gap:6px;flex-wrap:wrap}
+.new{white-space:nowrap;flex:none;font-size:10px;background:var(--c);color:#06101c;padding:1px 8px;border-radius:99px;font-weight:800}
+.actionbar{position:sticky;bottom:16px;margin-top:18px;display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap;background:color-mix(in srgb,var(--bg2) 90%,transparent);backdrop-filter:blur(12px);border:1px solid var(--line2);border-radius:18px;padding:14px;box-shadow:var(--shadow);z-index:5}
+.stepper{display:flex;align-items:center;border:1px solid var(--line2);border-radius:11px;overflow:hidden;background:var(--bg2)}
+.stepper button{width:34px;height:36px;border:0;background:none;cursor:pointer;font-size:16px}
+.stepper input{width:42px;text-align:center;border:0;border-radius:0;background:none;padding:0;box-shadow:none}
+.two{display:grid;grid-template-columns:minmax(0,1.25fr) minmax(0,1fr);gap:18px;margin-top:20px}
+.cand{display:flex;gap:10px;align-items:center;padding:10px 0;border-bottom:1px solid var(--line)}.cand:last-child{border:0}
+.cand .t{flex:1;min-width:0}.cand .t b{display:block;font-weight:600;font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.cand .t small{color:var(--dim)}
+
+/* library */
+.filters{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px}
+.filters button{background:var(--panel);border:1px solid var(--line);color:var(--mute);border-radius:99px;padding:5px 14px;cursor:pointer;font-size:12.5px}
+.filters button.on{color:var(--text);border-color:var(--accent);background:var(--glow)}
+.vgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:16px}
+.vcard{--c:var(--accent);background:var(--panel);border:1px solid var(--line);border-radius:20px;padding:9px;transition:.15s}
+.vcard:hover{border-color:var(--line2);transform:translateY(-3px);box-shadow:var(--shadow)}
+.thumb{position:relative;border-radius:14px;overflow:hidden;background:#000;aspect-ratio:9/16;cursor:pointer}
+.thumb img{width:100%;height:100%;object-fit:cover;display:block;transition:.25s}
+.thumb:hover img{transform:scale(1.04)}
+.thumb .badge{position:absolute;left:8px;top:8px;font-size:10.5px;font-weight:800;padding:3px 9px;border-radius:99px;color:#06101c;background:var(--c)}
+.thumb .live{position:absolute;right:8px;top:8px}
+.thumb .play{position:absolute;inset:0;display:grid;place-items:center;background:linear-gradient(transparent 55%,#000b);opacity:0;transition:.15s}
+.thumb:hover .play{opacity:1}.thumb .play i{width:50px;height:50px;border-radius:50%;background:#fff;display:grid;place-items:center;box-shadow:0 8px 24px #0008}
+.vcard h3{font-size:13px;margin:10px 4px 4px;line-height:1.3;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.vmeta{display:flex;justify-content:space-between;align-items:center;margin:0 4px 8px;color:var(--dim);font-size:11.5px}
+.vact{display:flex;gap:8px;padding:0 4px 4px}.vact .btn{flex:1;padding:7px;text-align:center}
+.strip{display:flex;gap:14px;overflow-x:auto;padding-bottom:6px}.strip .vcard{width:168px;flex:none}
+
+/* modal */
+.modal{position:fixed;inset:0;background:#02050dcc;backdrop-filter:blur(8px);display:none;place-items:center;z-index:50;padding:24px}
+.modal.on{display:grid}
+.mbox{display:grid;grid-template-columns:330px 1fr;gap:24px;background:var(--panel);border:1px solid var(--line2);border-radius:22px;padding:22px;max-width:940px;width:100%;max-height:92vh;overflow:auto;box-shadow:var(--shadow)}
+.mbox video{width:100%;border-radius:16px;background:#000;aspect-ratio:9/16;max-height:62vh}
+.scene{display:flex;gap:10px;padding:8px 0;border-bottom:1px solid var(--line);font-size:12.5px}.scene:last-child{border:0}
+.scene i{font-style:normal;color:var(--dim);width:18px}.scene em{font-style:normal;color:var(--mute);display:block}
+
+/* assets, schedule, setup */
 .drop{border:1.5px dashed var(--line2);border-radius:14px;padding:22px;text-align:center;color:var(--mute);cursor:pointer;transition:.15s}
-.drop.over,.drop:hover{border-color:var(--accent);background:#38bdf80d;color:var(--text)}
+.drop.over,.drop:hover{border-color:var(--accent);background:var(--glow);color:var(--text)}
 .tracks{display:grid;gap:8px;margin-top:14px}
 .track{display:flex;align-items:center;gap:12px;background:var(--bg2);border:1px solid var(--line);border-radius:12px;padding:8px 12px}
 .track audio{height:32px;flex:1;min-width:0}.track b{font-size:12.5px;width:170px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .mood{font-size:10.5px;text-transform:uppercase;letter-spacing:.6px;padding:2px 8px;border-radius:99px;background:#fbbf2418;color:var(--warn)}
 table{width:100%;border-collapse:collapse}td,th{padding:9px 8px;border-bottom:1px solid var(--line);text-align:left;font-size:13px}th{color:var(--dim);font-weight:500;font-size:12px}
-
-/* ---------- setup ---------- */
 .steps{display:grid;gap:12px}
 .step{display:flex;gap:14px;background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:16px}
 .step .n{width:30px;height:30px;border-radius:50%;display:grid;place-items:center;flex:none;background:var(--panel2);border:1px solid var(--line2);font-weight:700;color:var(--mute)}
-.step.done .n{background:#34d39922;border-color:#1c5b48;color:var(--ok)}
+.step.done .n{background:#34d39922;border-color:color-mix(in srgb,var(--ok) 45%,transparent);color:var(--ok)}
 .step h3{margin:0 0 4px;font-size:14px}.step p{margin:0 0 8px;color:var(--mute)}
 code{background:var(--bg2);border:1px solid var(--line);border-radius:6px;padding:1px 6px;font-size:12px}
 pre{background:var(--bg2);border:1px solid var(--line);border-radius:10px;padding:10px;margin:8px 0 0;overflow:auto;font-size:12px;white-space:pre-wrap}
 
-/* ---------- jobs dock + toasts ---------- */
-#dock{position:fixed;right:18px;bottom:18px;width:360px;z-index:40;display:flex;flex-direction:column;gap:8px}
+/* jobs + toast */
+#dock{position:fixed;right:18px;bottom:18px;width:360px;z-index:60;display:flex;flex-direction:column;gap:8px}
 .job{background:var(--panel2);border:1px solid var(--line2);border-radius:14px;padding:11px 13px;box-shadow:var(--shadow)}
-.job .h{display:flex;justify-content:space-between;gap:8px;font-size:12.5px;cursor:pointer}
-.job .h b{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.job .h{display:flex;justify-content:space-between;gap:8px;font-size:12.5px;cursor:pointer}.job .h b{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .job .prog{height:3px;background:var(--line);border-radius:3px;margin-top:8px;overflow:hidden}
 .job .prog i{display:block;height:100%;width:40%;background:var(--accent);animation:slide 1.2s infinite ease-in-out}
 .job.done .prog i,.job.failed .prog i{animation:none;width:100%;background:var(--ok)}.job.failed .prog i{background:var(--bad)}
 @keyframes slide{0%{margin-left:-40%}100%{margin-left:100%}}
 .job pre{max-height:150px;margin-top:8px;font-size:11px}
-.toast{position:fixed;left:50%;top:20px;transform:translateX(-50%);background:var(--panel2);border:1px solid var(--line2);padding:10px 16px;border-radius:12px;z-index:90;box-shadow:var(--shadow)}
+.toast{position:fixed;left:50%;top:20px;transform:translateX(-50%);background:var(--panel2);border:1px solid var(--line2);padding:10px 18px;border-radius:12px;z-index:90;box-shadow:var(--shadow)}
 .toast.bad{border-color:var(--bad)}
+
+@media(max-width:1000px){
+  .two{grid-template-columns:1fr}main{padding:18px 16px 96px}
+  body{flex-direction:column}
+  aside{width:100%;height:auto;position:sticky;top:0;flex-direction:row;align-items:center;gap:10px;padding:8px 12px;border-right:0;border-bottom:1px solid var(--line)}
+  .brand{padding:0}.brand div:last-child,.side-foot,.navlabel{display:none}
+  nav{flex-direction:row;overflow-x:auto;gap:4px}nav button{padding:8px 10px;white-space:nowrap}nav .count{display:none}
+  #dock{left:12px;right:12px;width:auto}.mbox{grid-template-columns:1fr}
+}
 </style>
 </head>
 <body>
 <aside>
   <div class="brand"><div class="mark">SF</div><div><b>Shorts Factory</b><small id="chan">—</small></div></div>
   <nav id="nav"></nav>
-  <div class="side-foot"><small>Setup</small><div class="bar"><i id="setupBar" style="width:0"></i></div><small id="setupTxt"></small></div>
+  <div class="side-foot">
+    <div class="setup-card" onclick="go('setup')"><small>Setup</small><div class="bar"><i id="setupBar" style="width:0"></i></div><small id="setupTxt"></small></div>
+    <button class="themebtn" id="themeBtn"><span id="themeLbl">Light mode</span><span id="themeIco">☀</span></button>
+  </div>
 </aside>
 
 <main>
-<!-- ================= STUDIO ================= -->
-<section class="page on" id="p-studio">
-  <h1>Studio</h1>
+<!-- HOME -->
+<section class="page on" id="p-home">
+  <div class="hero">
+    <div><h1 id="greet">Welcome back</h1><p class="sub" style="margin:0" id="heroSub">Here’s what’s worth making next.</p></div>
+    <div class="row"><button class="btn p" onclick="go('create')">+ New short</button><button class="btn" onclick="go('remix')">Remix a clip</button></div>
+  </div>
+  <div class="stats" id="stats"></div>
+  <div class="sec"><div><h2>Today’s picks</h2><span class="sub" style="margin:0;font-size:12.5px" id="pickMeta"></span></div>
+    <div class="row" style="align-items:center;gap:8px"><div class="seg" id="freq"><button data-v="daily">Daily</button><button data-v="weekly">Weekly</button></div><button class="btn sm" id="pickRefresh">Refresh ideas</button></div></div>
+  <div class="picks" id="picks"><div class="skeleton"></div><div class="skeleton"></div><div class="skeleton"></div></div>
+  <div class="sec"><h2>Recent reels</h2><a href="#library" onclick="go('library');return false">See all →</a></div>
+  <div class="strip" id="recent"></div>
+</section>
+
+<!-- CREATE -->
+<section class="page" id="p-create">
+  <h1>Create</h1>
   <p class="sub">Pick a format, choose how many, and generate. Nothing is published until you deploy from the Library.</p>
   <div class="fgrid" id="fgrid"></div>
   <div class="actionbar">
@@ -169,19 +211,19 @@ pre{background:var(--bg2);border:1px solid var(--line);border-radius:10px;paddin
   </div>
   <div class="two">
     <div class="card">
-      <div class="row" style="justify-content:space-between;align-items:center;margin-bottom:6px"><h2 style="margin:0">Fresh from your sources</h2><button class="btn sm" id="refresh">Refresh</button></div>
+      <div class="row" style="justify-content:space-between;align-items:center;margin-bottom:6px"><h2>More from your sources</h2><button class="btn sm" id="refresh">Refresh</button></div>
       <div id="cands" class="sub" style="margin:0">Loading the latest articles and papers…</div>
     </div>
     <div class="card">
-      <h2>Render your own script</h2>
-      <p class="sub" style="margin-bottom:10px">Paste a script JSON (see <code>examples/</code>) for hand-tuned memes, sigma rules or K-drama scenes.</p>
+      <h2 style="margin-bottom:6px">Render your own script</h2>
+      <p class="sub" style="margin-bottom:10px;font-size:12.5px">Paste a script JSON (see <code>examples/</code>) for hand-tuned memes, sigma rules or K-drama scenes.</p>
       <textarea id="scriptjson" placeholder='{"format":"kdrama_parody","title":"…","source":{…},"characters":[…],"scenes":[…]}'></textarea>
       <p style="margin:10px 0 0"><button class="btn" id="renderBtn">Render script</button></p>
     </div>
   </div>
 </section>
 
-<!-- ================= REMIX ================= -->
+<!-- REMIX -->
 <section class="page" id="p-remix">
   <h1>Remix a clip</h1>
   <p class="sub">Upload a clip (about 30s). Claude looks at it, writes a new English dub of people discussing AI, drops memes in between and adds music from your library. The original audio is replaced.</p>
@@ -195,7 +237,7 @@ pre{background:var(--bg2);border:1px solid var(--line);border-radius:10px;paddin
       <input id="rxTopic" value="AI agents, hallucinations and prompting, explained like a friendly argument">
     </div>
     <div class="card">
-      <h2>Options</h2>
+      <h2 style="margin-bottom:12px">Options</h2>
       <label class="l">Voices</label>
       <div class="seg" id="rxVoices"><button class="on" data-v="two">Two voices (male + female)</button><button data-v="one">One narrator</button></div>
       <div class="row" style="margin-top:12px"><div class="grow"><label class="l">Memes in between</label>
@@ -207,7 +249,7 @@ pre{background:var(--bg2);border:1px solid var(--line);border-radius:10px;paddin
   </div>
 </section>
 
-<!-- ================= LIBRARY ================= -->
+<!-- LIBRARY -->
 <section class="page" id="p-library">
   <h1>Library</h1>
   <p class="sub">Preview what was made. Deploy sends it to YouTube; nothing goes out automatically.</p>
@@ -215,13 +257,13 @@ pre{background:var(--bg2);border:1px solid var(--line);border-radius:10px;paddin
   <div class="vgrid" id="vgrid"></div>
 </section>
 
-<!-- ================= ASSETS ================= -->
+<!-- ASSETS -->
 <section class="page" id="p-assets">
   <h1>Music &amp; clips</h1>
   <p class="sub">Background music is ducked under the voice. Sigma and K-drama formats use the sigma mood.</p>
   <div class="two" style="margin-top:0">
     <div class="card">
-      <div class="row" style="justify-content:space-between;align-items:center"><h2 style="margin:0">Background music</h2><button class="btn sm" id="genSigma">Synthesize sigma BGM</button></div>
+      <div class="row" style="justify-content:space-between;align-items:center"><h2>Background music</h2><button class="btn sm" id="genSigma">Synthesize sigma BGM</button></div>
       <p class="sub" style="margin:6px 0 12px;font-size:12.5px">Sigma tracks are original, synthesized here (dark phonk-style). Upload real tracks only if you hold the rights.</p>
       <label class="l">Mood for the next upload</label>
       <select id="mood" style="margin-bottom:10px"><option>sigma</option><option>any</option><option>calm</option><option>chill</option><option>upbeat</option><option>tense</option><option>funny</option></select>
@@ -229,11 +271,11 @@ pre{background:var(--bg2);border:1px solid var(--line);border-radius:10px;paddin
       <div class="tracks" id="tracks"></div>
     </div>
     <div class="card">
-      <h2>Clip &amp; image library</h2>
+      <h2 style="margin-bottom:6px">Clip &amp; image library</h2>
       <p class="sub" style="margin:0 0 12px;font-size:12.5px">Series moments, screen recordings, reaction images. Claude only uses what you list, and credits it in the description.</p>
       <form id="libForm">
         <div class="drop" id="dropLib" style="margin-bottom:12px">Drop a clip/image here, or click<input type="file" id="fileLib" name="file" accept="video/*,image/*" hidden></div>
-        <label class="l">Series / film title</label><input name="series" placeholder="e.g. the show this moment is from" style="margin-bottom:10px">
+        <label class="l">Series / film title</label><input name="series" placeholder="the show this moment is from" style="margin-bottom:10px">
         <div class="row"><div class="grow"><label class="l">ID</label><input name="id" placeholder="my-clip"></div>
           <div class="grow"><label class="l">Start (s)</label><input name="start" type="number" step="0.1" value="0"></div>
           <div class="grow"><label class="l">Length (s, max 8)</label><input name="duration" type="number" step="0.1" value="6"></div></div>
@@ -243,18 +285,18 @@ pre{background:var(--bg2);border:1px solid var(--line);border-radius:10px;paddin
         <p style="margin:12px 0 0"><button class="btn p">Add to library</button> <span class="sub" id="libFile" style="margin:0 0 0 8px"></span></p>
       </form>
       <table id="libTable" style="margin-top:14px"></table>
-      <p class="sub" style="font-size:12px;margin:10px 0 0">You are responsible for the rights to anything you add. Unlicensed show clips can trigger Content ID claims.</p>
+      <p class="sub" style="font-size:12px;margin:10px 0 0">You are responsible for the rights to anything you add. Unlicensed clips can trigger Content ID claims.</p>
     </div>
   </div>
 </section>
 
-<!-- ================= SCHEDULES ================= -->
+<!-- SCHEDULES -->
 <section class="page" id="p-schedules">
   <h1>Schedules</h1>
-  <p class="sub">Off by default. A schedule creates (and optionally deploys) videos at its time, while this app is running.</p>
+  <p class="sub">Off by default. A schedule creates (and optionally deploys) videos at its time, while this app is open.</p>
   <div class="two" style="margin-top:0">
     <div class="card">
-      <h2>New schedule</h2>
+      <h2 style="margin-bottom:12px">New schedule</h2>
       <div class="row"><div class="grow"><label class="l">Name</label><input id="sName" value="Daily shorts"></div>
         <div style="width:120px"><label class="l">Time</label><input id="sTime" type="time" value="09:00"></div>
         <div style="width:90px"><label class="l">Videos</label><input id="sCount" type="number" min="1" max="10" value="3"></div></div>
@@ -265,11 +307,11 @@ pre{background:var(--bg2);border:1px solid var(--line);border-radius:10px;paddin
         <div style="width:150px"><label class="l">Privacy</label><select id="sPrivacy"><option>private</option><option>unlisted</option><option>public</option></select></div></div>
       <p style="margin:14px 0 0"><button class="btn p" id="sCreate">Create schedule</button></p>
     </div>
-    <div class="card"><h2>Active schedules</h2><table id="sTable"></table></div>
+    <div class="card"><h2 style="margin-bottom:12px">Active schedules</h2><table id="sTable"></table></div>
   </div>
 </section>
 
-<!-- ================= SETUP ================= -->
+<!-- SETUP -->
 <section class="page" id="p-setup">
   <h1>Setup</h1>
   <p class="sub">Everything needed to go from preview to a real channel.</p>
@@ -289,56 +331,89 @@ function askConfirm(msg){return new Promise(res=>{const o=document.createElement
   o.innerHTML=`<div class="card" style="max-width:380px"><p style="margin:0 0 16px">${esc(msg)}</p><div class="row" style="justify-content:flex-end"><button class="btn" data-a="0">Cancel</button><button class="btn p" data-a="1">Continue</button></div></div>`;
   o.onclick=e=>{const b=e.target.closest('[data-a]');if(b){o.remove();res(b.dataset.a==='1')}};document.body.append(o)})}
 document.addEventListener('click',e=>{const a=e.target.closest('a[target=_blank]');if(a&&window.pywebview){e.preventDefault();window.pywebview.api.open(a.href)}});
-function toast(m,bad){const t=document.createElement('div');t.className='toast'+(bad?' bad':'');t.textContent=m;document.body.append(t);setTimeout(()=>t.remove(),3200)}
+function toast(m,bad){const t=document.createElement('div');t.className='toast'+(bad?' bad':'');t.textContent=m;document.body.append(t);setTimeout(()=>t.remove(),3400)}
+const ago=ts=>{if(!ts)return'';const m=Math.round((Date.now()/1000-ts)/60);return m<2?'just now':m<60?m+' min ago':m<1440?Math.round(m/60)+' h ago':Math.round(m/1440)+' d ago'};
+
+/* theme */
+function setTheme(t){document.documentElement.dataset.theme=t;$('#themeLbl').textContent=t==='dark'?'Light mode':'Dark mode';$('#themeIco').textContent=t==='dark'?'☀':'☾';try{localStorage.setItem('sf-theme',t)}catch(e){}}
+let th='dark';try{th=localStorage.getItem('sf-theme')||(matchMedia('(prefers-color-scheme: light)').matches?'light':'dark')}catch(e){}
+$('#themeBtn').onclick=()=>setTheme(document.documentElement.dataset.theme==='dark'?'light':'dark');
+
 const ICON={
+ home:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 11l8-7 8 7v8a1 1 0 01-1 1h-4v-6H9v6H5a1 1 0 01-1-1z"/></svg>',
+ create:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3l2.2 5.3L20 9l-4.4 3.8L17 19l-5-3-5 3 1.4-6.2L4 9l5.8-.7z"/></svg>',
  remix:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 7h12l-3-3M20 17H8l3 3"/></svg>',
- studio:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3l2.2 5.3L20 9l-4.4 3.8L17 19l-5-3-5 3 1.4-6.2L4 9l5.8-.7z"/></svg>',
  library:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="4" width="18" height="16" rx="3"/><path d="M10 9l5 3-5 3z"/></svg>',
  assets:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M9 18V6l10-2v12"/><circle cx="7" cy="18" r="2.5"/><circle cx="17" cy="16" r="2.5"/></svg>',
  schedules:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>',
- setup:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M5 12l4 4 10-10"/></svg>'};
-const PAGES=[['studio','Studio'],['remix','Remix'],['library','Library'],['assets','Music & clips'],['schedules','Schedules'],['setup','Setup']];
-let S={},VIDS=[],fmtSel='',filter='all',openJob=null;
-
-/* ---------- nav ---------- */
-$('#nav').innerHTML=PAGES.map(([id,l])=>`<button data-p="${id}">${ICON[id]}<span>${l}</span>${id==='library'?'<span class="count" id="vcount">0</span>':''}</button>`).join('');
-function go(id){$$('.page').forEach(p=>p.classList.toggle('on',p.id==='p-'+id));$$('#nav button').forEach(b=>b.classList.toggle('on',b.dataset.p===id));location.hash=id;
-  ({remix:loadRemix,library:loadVideos,assets:loadAssets,schedules:loadSchedules,setup:renderSetup,studio:loadCands})[id]?.()}
+ setup:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="3"/><path d="M19 12a7 7 0 00-.1-1.2l2-1.5-2-3.4-2.3 1a7 7 0 00-2-1.2L14.3 3h-4l-.3 2.7a7 7 0 00-2 1.2l-2.3-1-2 3.4 2 1.5A7 7 0 005 12c0 .4 0 .8.1 1.2l-2 1.5 2 3.4 2.3-1a7 7 0 002 1.2l.3 2.7h4l.3-2.7a7 7 0 002-1.2l2.3 1 2-3.4-2-1.5c.1-.4.1-.8.1-1.2z"/></svg>'};
+const PAGES=[['home','Home'],['create','Create'],['remix','Remix'],['library','Library'],null,['assets','Music & clips'],['schedules','Schedules'],['setup','Setup']];
+let S={},VIDS=[],fmtSel='',filter='all',openJob=null,sugg={};
+$('#nav').innerHTML=PAGES.map(p=>p?`<button data-p="${p[0]}">${ICON[p[0]]}<span>${p[1]}</span>${p[0]==='library'?'<span class="count" id="vcount">0</span>':''}</button>`:'<div class="navlabel">Manage</div>').join('');
+function go(id){$$('.page').forEach(p=>p.classList.toggle('on',p.id==='p-'+id));$$('#nav button').forEach(b=>b.classList.toggle('on',b.dataset.p===id));
+  try{history.replaceState(null,'','#'+id)}catch(e){}
+  ({home:loadHome,create:loadCands,remix:loadRemix,library:loadVideos,assets:loadAssets,schedules:loadSchedules,setup:renderSetup})[id]?.()}
 $('#nav').onclick=e=>{const b=e.target.closest('button');if(b)go(b.dataset.p)};
 
-/* ---------- status ---------- */
+/* status */
 async function loadStatus(){
-  S=await api('/api/status');
-  $('#chan').textContent=S.channel;
-  renderFormats();
+  S=await api('/api/status');$('#chan').textContent=S.channel;renderFormats();
   const checks=[S.anthropic_key,S.youtube_authorised,S.music_tracks>0,S.channel!=='YOUR CHANNEL NAME'];
   const done=checks.filter(Boolean).length;
-  $('#setupBar').style.width=done/checks.length*100+'%';
-  $('#setupTxt').textContent=`${done} of ${checks.length} ready`;
+  $('#setupBar').style.width=done/checks.length*100+'%';$('#setupTxt').textContent=`${done} of ${checks.length} ready`;
 }
 function renderFormats(){
   const NEW=['sigma_reel','kdrama_parody','meme_explainer'];
   $('#fgrid').innerHTML=`<button class="fcard ${fmtSel===''?'sel':''}" data-f="" style="--c:#a78bfa"><b>AUTO MIX</b><span>Weighted mix of every format, picked per video.</span><div class="tags"><span class="chip">recommended</span></div></button>`+
-   S.formats.map(f=>`<button class="fcard ${fmtSel===f.id?'sel':''}" data-f="${f.id}" style="--c:${f.accent}"><b>${esc(f.label)}</b><span>${esc(f.blurb)}</span><div class="tags">${NEW.includes(f.id)?'<span class="new">NEW</span>':''}${f.theme!=='default'?`<span class="chip">${f.theme==='sigma'?'deep voice + phonk':'2 voices + subtitles'}</span>`:''}</div></button>`).join('');
+   S.formats.map(f=>`<button class="fcard ${fmtSel===f.id?'sel':''}" data-f="${f.id}" style="--c:${f.accent}"><b>${esc(f.label)}</b><span>${esc(f.blurb)}</span><div class="tags">${NEW.includes(f.id)?'<span class="new">NEW</span>':''}${f.theme!=='default'?`<span class="chip">${f.theme==='sigma'?'deep voice + phonk':'2 voices + dub'}</span>`:''}</div></button>`).join('');
   const f=S.formats.find(x=>x.id===fmtSel);$('#selName').textContent=f?f.label:'Auto mix';
 }
 $('#fgrid').onclick=e=>{const c=e.target.closest('.fcard');if(c){fmtSel=c.dataset.f;renderFormats()}};
 $('#dec').onclick=()=>{$('#n').value=Math.max(1,+$('#n').value-1)};$('#inc').onclick=()=>{$('#n').value=Math.min(10,+$('#n').value+1)};
 
-/* ---------- studio actions ---------- */
+/* home */
+async function loadHome(){
+  const h=new Date().getHours();$('#greet').textContent=(h<12?'Good morning':h<18?'Good afternoon':'Good evening')+(S.channel?`, ${S.channel.split(' ')[0]}`:'');
+  const v=await api('/api/videos').catch(()=>[]);VIDS=v;
+  const live=v.filter(x=>x.video_id).length;
+  $('#stats').innerHTML=[['Reels made',v.length,'#38bdf8'],['Drafts',v.length-live,'#fbbf24'],['On YouTube',live,'#34d399'],['Formats',S.formats?.length||0,'#a78bfa']].map(([l,n,c])=>`<div class="stat" style="--c:${c}"><b>${n}</b><span>${l}</span></div>`).join('');
+  $('#recent').innerHTML=v.slice(0,8).map(cardHtml).join('')||'<div class="emptybox" style="width:100%">No reels yet. Make your first one from Create.</div>';
+  loadPicks();
+}
+async function loadPicks(){
+  sugg=await api('/api/suggestions').catch(()=>({ideas:[]}));
+  $$('#freq button').forEach(b=>b.classList.toggle('on',b.dataset.v===sugg.frequency));
+  $('#pickMeta').textContent=sugg.running?'Looking for ideas…':sugg.generated_at?`Updated ${ago(sugg.generated_at)} · refreshes ${sugg.frequency}`:'';
+  const fmt=Object.fromEntries((S.formats||[]).map(f=>[f.id,f]));
+  if(sugg.ideas?.length){
+    $('#picks').innerHTML=sugg.ideas.map(i=>{const f=fmt[i.format]||{label:i.format,accent:'#38bdf8'};
+      return `<div class="pick" style="--c:${f.accent}"><div class="fmt">${esc(f.label)}</div><div class="hook">“${esc(i.hook)}”</div><div>${esc(i.angle)}</div><div class="why">⚡ ${esc(i.why_now)}</div>
+      <div class="row" style="gap:8px"><button class="btn p sm" data-make="${esc(i.url)}" data-fmt="${esc(i.format)}">Make this</button><a class="btn sm" target="_blank" href="${esc(i.url)}">Read source ↗</a></div>
+      <div class="src"><span>${esc(i.source)} · ${i.age_days}d ago</span></div></div>`}).join('');
+  }else{
+    $('#picks').innerHTML=`<div class="emptybox" style="grid-column:1/-1">${!sugg.has_key?'Add your Claude API key in <a href="#setup" onclick="go(\'setup\');return false">Setup</a> to get daily content ideas.':sugg.running?'Claude is reading the latest articles and papers…':'No ideas yet. Press “Refresh ideas”.'}</div>`;
+    if(sugg.running)setTimeout(loadPicks,3000);
+  }
+}
+$('#picks').onclick=async e=>{const b=e.target.closest('[data-make]');if(!b)return;
+  try{await post('/api/generate',{url:b.dataset.make,format:b.dataset.fmt});toast('Making it…');pollJobs()}catch(x){toast(x.message,1)}};
+$('#pickRefresh').onclick=async()=>{try{await post('/api/suggestions/refresh',{});toast('Looking for fresh ideas…');setTimeout(loadPicks,800)}catch(e){toast(e.message,1)}};
+$('#freq').onclick=async e=>{const b=e.target.closest('button');if(b){await post('/api/prefs',{frequency:b.dataset.v});toast(`Ideas will refresh ${b.dataset.v}`);loadPicks()}};
+
+/* create */
 $('#go').onclick=async()=>{try{await post('/api/generate',{format:fmtSel,n:+$('#n').value,source:$('#src').value});toast('Generating…');pollJobs()}catch(e){toast(e.message,1)}};
 $('#renderBtn').onclick=async()=>{try{await post('/api/render-script',JSON.parse($('#scriptjson').value));toast('Rendering script…');pollJobs()}catch(e){toast(e.message,1)}};
 async function loadCands(refresh){
-  $('#cands').textContent='Loading the latest articles and papers…';
-  try{const c=await api('/api/candidates'+(refresh?'?refresh=1':''));
-    $('#cands').outerHTML=`<div id="cands" style="margin:0">${c.map(i=>`<div class="cand"><div class="t"><b title="${esc(i.title)}">${esc(i.title)}</b><small>${esc(i.source)} · ${i.age_days}d ago</small></div><button class="btn sm" data-url="${esc(i.url)}">Make</button></div>`).join('')||'Nothing new right now.'}</div>`}
-  catch(e){$('#cands').textContent=e.message}
+  const el=$('#cands');el.textContent='Loading the latest articles and papers…';
+  try{const c=await api('/api/candidates'+(refresh===true?'?refresh=1':''));
+    el.innerHTML=c.map(i=>`<div class="cand"><div class="t"><b title="${esc(i.title)}">${esc(i.title)}</b><small>${esc(i.source)} · ${i.age_days}d ago</small></div><button class="btn sm" data-url="${esc(i.url)}">Make</button></div>`).join('')||'Nothing new right now.'}
+  catch(e){el.textContent=e.message}
 }
 $('#refresh').onclick=()=>loadCands(true);
 document.addEventListener('click',async e=>{const b=e.target.closest('[data-url]');if(!b)return;
   try{await post('/api/generate',{url:b.dataset.url,format:fmtSel});toast('Making it…');pollJobs()}catch(x){toast(x.message,1)}});
 
-/* ---------- jobs dock ---------- */
+/* jobs */
 async function pollJobs(){
   const jobs=(await api('/api/jobs')).slice(0,4);
   $('#dock').innerHTML=jobs.map(j=>`<div class="job ${j.status}" data-j="${j.id}"><div class="h"><b>${esc(j.title)}</b><span style="color:var(--${j.status==='done'?'ok':j.status==='failed'?'bad':'warn'})">${j.status}</span></div><div class="prog"><i></i></div>${openJob===j.id?`<pre>${esc(j.log||'…')}</pre>`:''}</div>`).join('');
@@ -348,65 +423,69 @@ async function pollJobs(){
 }
 $('#dock').onclick=e=>{const j=e.target.closest('.job');if(j){openJob=openJob===j.dataset.j?null:j.dataset.j;pollJobs()}};
 
-/* ---------- remix ---------- */
+/* remix */
 let rxFile=null,rxVoices='two';
 async function loadRemix(){const m=await api('/api/music');$('#rxMusic').innerHTML='<option value="auto">Auto (matches the mood)</option><option value="none">No music</option>'+m.map(t=>`<option value="${esc(t.name)}">${esc(t.mood)} · ${esc(t.name)}</option>`).join('')}
-dropzone($('#dropRemix'),$('#fileRemix'),f=>{rxFile=f;$('#dropRemix').textContent=f.name;const v=$('#remixPreview');v.src=URL.createObjectURL(f);v.style.display='block'});
-$('#rxVoices').onclick=e=>{const b=e.target.closest('button');if(b){rxVoices=b.dataset.v;$$('#rxVoices button').forEach(x=>x.classList.toggle('on',x===b))}};
-$('#rxGo').onclick=async()=>{if(!rxFile)return toast('Choose a clip first',1);
-  const fd=new FormData();fd.append('file',rxFile);fd.append('hint',$('#rxHint').value);fd.append('topic',$('#rxTopic').value);fd.append('voices',rxVoices);fd.append('memes',$('#rxMemes').value);fd.append('music',$('#rxMusic').value);fd.append('rights',$('#rxRights').checked);
-  try{await api('/api/remix',{method:'POST',body:fd});toast('Creating remix…');pollJobs()}catch(e){toast(e.message,1)}};
-
-/* ---------- library ---------- */
-async function loadVideos(){
-  VIDS=await api('/api/videos');$('#vcount').textContent=VIDS.length;
-  const fm=[...new Map(VIDS.map(v=>[v.format,v.label])).entries()];
-  $('#filters').innerHTML=`<button data-f="all" class="${filter==='all'?'on':''}">All · ${VIDS.length}</button>`+fm.map(([id,l])=>`<button data-f="${id}" class="${filter===id?'on':''}">${esc(l)}</button>`).join('');
-  const list=VIDS.filter(v=>filter==='all'||v.format===filter);
-  $('#vgrid').innerHTML=list.length?list.map(v=>`<div class="vcard" style="--c:${v.accent}">
-    <div class="phone" data-open="${v.folder}"><video muted loop playsinline preload="metadata" src="/output/${v.folder}/video.mp4#t=0.8"></video><span class="badge">${esc(v.label)}</span><div class="play"><i><svg width="18" height="18" viewBox="0 0 24 24"><path d="M8 5v14l11-7z" fill="#08101c"/></svg></i></div></div>
-    <h3>${esc(v.title)}</h3>
-    <div class="vmeta"><span>${v.scenes.length} scenes</span>${v.video_id?'<span class="chip ok"><i class="dot"></i>Live</span>':'<span class="chip">Draft</span>'}</div>
-    <div class="vact"><button class="btn sm" data-open="${v.folder}">Details</button>${v.video_id?`<a class="btn sm" style="text-align:center" target="_blank" href="https://youtube.com/shorts/${v.video_id}">YouTube ↗</a>`:`<button class="btn sm p" data-open="${v.folder}">Deploy</button>`}</div></div>`).join(''):
-    '<div class="empty" style="grid-column:1/-1">Nothing here yet. Head to the Studio and generate your first short.</div>';
-}
-$('#filters').onclick=e=>{const b=e.target.closest('button');if(b){filter=b.dataset.f;loadVideos()}};
-$('#vgrid').addEventListener('mouseover',e=>{const p=e.target.closest('.phone');if(p)p.querySelector('video').play().catch(()=>{})});
-$('#vgrid').addEventListener('mouseout',e=>{const p=e.target.closest('.phone');if(p){const v=p.querySelector('video');v.pause();v.currentTime=.8}});
-$('#vgrid').addEventListener('click',e=>{const o=e.target.closest('[data-open]');if(o)openModal(o.dataset.open)});
-
-let priv='private';
-function openModal(folder){
-  const v=VIDS.find(x=>x.folder===folder);priv=S.privacy||'private';
-  const ICO={meme:'🖼',library:'🎞',stock:'📹',none:''};
-  $('#mbox').innerHTML=`<div><video controls autoplay src="/output/${v.folder}/video.mp4"></video></div>
-   <div style="min-width:0"><div class="row" style="justify-content:space-between;align-items:center"><span class="chip" style="color:${v.accent}">${esc(v.label)}</span><button class="btn sm" id="mx">Close</button></div>
-   <h1 style="font-size:20px;margin:10px 0 4px">${esc(v.title)}</h1>
-   <p class="sub" style="margin-bottom:12px">${esc(v.source.name)}${v.source.url?` · <a target="_blank" href="${esc(v.source.url)}">source ↗</a>`:''}</p>
-   ${v.characters.length?`<p style="margin:0 0 10px">${v.characters.map(c=>`<span class="chip" style="margin-right:6px">${esc(c.name)} · ${c.gender==='female'?'female':'male'} KO voice</span>`).join('')}</p>`:''}
-   <div style="max-height:250px;overflow:auto;margin-bottom:14px">${v.scenes.map((s,i)=>`<div class="scene"><i>${i+1}</i><div>${esc(s.subtitle||s.narration)}${s.subtitle?`<em>${esc(s.narration)}</em>`:''}${s.visual!=='none'?`<em>${ICO[s.visual]} ${s.visual} visual</em>`:''}</div></div>`).join('')}</div>
-   ${v.video_id?`<a class="btn p" target="_blank" href="https://youtube.com/shorts/${v.video_id}">Open on YouTube ↗</a>`:`
-   <label class="l">Deploy to YouTube as</label>
-   <div class="row"><div class="seg" id="pseg">${['private','unlisted','public'].map(p=>`<button data-v="${p}" class="${p===priv?'on':''}">${p}</button>`).join('')}</div>
-   <button class="btn p" id="deploy">Deploy</button><button class="btn d" id="del">Delete</button></div>
-   ${S.youtube_authorised?'':'<p class="sub" style="margin:10px 0 0;font-size:12px;color:var(--warn)">YouTube isn’t connected yet. See Setup.</p>'}`}</div>`;
-  $('#modal').classList.add('on');
-  $('#mx').onclick=closeModal;
-  $('#pseg')?.addEventListener('click',e=>{const b=e.target.closest('button');if(b){priv=b.dataset.v;$$('#pseg button').forEach(x=>x.classList.toggle('on',x===b))}});
-  $('#deploy')?.addEventListener('click',async()=>{if(!await askConfirm(`Upload to YouTube as ${priv}?`))return;try{await post('/api/publish',{folder,privacy:priv});closeModal();toast('Uploading…');pollJobs()}catch(e){toast(e.message,1)}});
-  $('#del')?.addEventListener('click',async()=>{if(await askConfirm('Delete this video?')){await api('/api/videos/'+folder,{method:'DELETE'});closeModal();loadVideos()}});
-}
-function closeModal(){$('#modal').classList.remove('on');$('#mbox').innerHTML=''}
-$('#modal').onclick=e=>{if(e.target.id==='modal')closeModal()};
-document.addEventListener('keydown',e=>{if(e.key==='Escape')closeModal()});
-
-/* ---------- assets ---------- */
 function dropzone(zone,input,onfile){
   zone.onclick=()=>input.click();
   zone.ondragover=e=>{e.preventDefault();zone.classList.add('over')};zone.ondragleave=()=>zone.classList.remove('over');
   zone.ondrop=e=>{e.preventDefault();zone.classList.remove('over');if(e.dataTransfer.files[0])onfile(e.dataTransfer.files[0])};
   input.onchange=()=>input.files[0]&&onfile(input.files[0]);
 }
+dropzone($('#dropRemix'),$('#fileRemix'),f=>{rxFile=f;$('#dropRemix').textContent=f.name;const v=$('#remixPreview');v.src=URL.createObjectURL(f);v.style.display='block'});
+$('#rxVoices').onclick=e=>{const b=e.target.closest('button');if(b){rxVoices=b.dataset.v;$$('#rxVoices button').forEach(x=>x.classList.toggle('on',x===b))}};
+$('#rxGo').onclick=async()=>{if(!rxFile)return toast('Choose a clip first',1);
+  const fd=new FormData();fd.append('file',rxFile);fd.append('hint',$('#rxHint').value);fd.append('topic',$('#rxTopic').value);fd.append('voices',rxVoices);fd.append('memes',$('#rxMemes').value);fd.append('music',$('#rxMusic').value);fd.append('rights',$('#rxRights').checked);
+  try{await api('/api/remix',{method:'POST',body:fd});toast('Creating remix…');pollJobs()}catch(e){toast(e.message,1)}};
+
+/* library */
+function cardHtml(v){return `<div class="vcard" style="--c:${v.accent}">
+  <div class="thumb" data-open="${v.folder}"><img loading="lazy" src="/thumb/${v.folder}.jpg" alt=""><span class="badge">${esc(v.label)}</span>${v.video_id?'<span class="chip ok live"><i class="dot"></i>Live</span>':''}
+  <div class="play"><i><svg width="20" height="20" viewBox="0 0 24 24"><path d="M8 5v14l11-7z" fill="#08101c"/></svg></i></div></div>
+  <h3>${esc(v.title)}</h3>
+  <div class="vmeta"><span>${v.scenes.length} scenes</span>${v.video_id?'':'<span class="chip">Draft</span>'}</div>
+  <div class="vact"><button class="btn sm" data-open="${v.folder}">${v.video_id?'Details':'Open'}</button>${v.video_id?`<a class="btn sm" target="_blank" href="https://youtube.com/shorts/${v.video_id}">YouTube ↗</a>`:`<button class="btn sm p" data-open="${v.folder}">Deploy</button>`}</div></div>`}
+async function loadVideos(){
+  VIDS=await api('/api/videos');$('#vcount').textContent=VIDS.length;
+  const fm=[...new Map(VIDS.map(v=>[v.format,v.label])).entries()];
+  $('#filters').innerHTML=`<button data-f="all" class="${filter==='all'?'on':''}">All · ${VIDS.length}</button>`+fm.map(([id,l])=>`<button data-f="${id}" class="${filter===id?'on':''}">${esc(l)}</button>`).join('');
+  const list=VIDS.filter(v=>filter==='all'||v.format===filter);
+  $('#vgrid').innerHTML=list.length?list.map(cardHtml).join(''):'<div class="emptybox" style="grid-column:1/-1">Nothing here yet. Head to Create and generate your first short.</div>';
+}
+$('#filters').onclick=e=>{const b=e.target.closest('button');if(b){filter=b.dataset.f;loadVideos()}};
+document.addEventListener('click',e=>{const o=e.target.closest('[data-open]');if(o)openModal(o.dataset.open)});
+
+let priv='private';
+function openModal(folder){
+  const v=VIDS.find(x=>x.folder===folder);if(!v)return;priv=S.privacy||'private';
+  const ICO={meme:'🖼',library:'🎞',stock:'📹',archive:'🎬',upload:'🎞',none:''};
+  $('#mbox').innerHTML=`<div><video id="player" controls playsinline preload="auto" poster="/thumb/${v.folder}.jpg" src="/output/${v.folder}/video.mp4"></video>
+   <p class="sub" id="playerMsg" style="margin:8px 0 0;font-size:12px"></p>
+   <div class="row" style="margin-top:6px;gap:8px"><a class="btn sm" href="/output/${v.folder}/video.mp4" download="${esc(v.folder)}.mp4">Download</a>
+   ${S.desktop?`<button class="btn sm" id="openPlayer">Open in player</button><button class="btn sm" id="reveal">Show in Finder</button>`:''}</div></div>
+   <div style="min-width:0"><div class="row" style="justify-content:space-between;align-items:center"><span class="chip" style="color:${v.accent}">${esc(v.label)}</span><button class="btn sm" id="mx">Close</button></div>
+   <h1 style="font-size:20px;margin:10px 0 4px">${esc(v.title)}</h1>
+   <p class="sub" style="margin-bottom:12px">${esc(v.source.name)}${v.source.url?` · <a target="_blank" href="${esc(v.source.url)}">source ↗</a>`:''}</p>
+   ${v.characters.length?`<p style="margin:0 0 10px">${v.characters.map(c=>`<span class="chip" style="margin-right:6px">${esc(c.name)} · ${c.gender==='female'?'female':'male'} voice</span>`).join('')}</p>`:''}
+   <div style="max-height:240px;overflow:auto;margin-bottom:14px">${v.scenes.map((s,i)=>`<div class="scene"><i>${i+1}</i><div>${esc(s.subtitle||s.narration)}${s.visual!=='none'?`<em>${ICO[s.visual]||''} ${s.visual} visual</em>`:''}</div></div>`).join('')}</div>
+   ${v.video_id?`<a class="btn p" target="_blank" href="https://youtube.com/shorts/${v.video_id}">Open on YouTube ↗</a>`:`
+   <label class="l">Deploy to YouTube as</label>
+   <div class="row"><div class="seg" id="pseg">${['private','unlisted','public'].map(p=>`<button data-v="${p}" class="${p===priv?'on':''}">${p}</button>`).join('')}</div>
+   <button class="btn p" id="deploy">Deploy</button><button class="btn d" id="del">Delete</button></div>
+   ${S.youtube_authorised?'':'<p class="sub" style="margin:10px 0 0;font-size:12px;color:var(--warn)">YouTube isn’t connected yet. See Setup.</p>'}`}</div>`;
+  $('#modal').classList.add('on');
+  $('#player').addEventListener('error',()=>{$('#playerMsg').textContent='This player could not stream the file here. Use Open in player or Download.'});
+  $('#mx').onclick=closeModal;
+  $('#openPlayer')?.addEventListener('click',()=>post('/api/open',{folder}));$('#reveal')?.addEventListener('click',()=>post('/api/open',{folder,reveal:true}));
+  $('#pseg')?.addEventListener('click',e=>{const b=e.target.closest('button');if(b){priv=b.dataset.v;$$('#pseg button').forEach(x=>x.classList.toggle('on',x===b))}});
+  $('#deploy')?.addEventListener('click',async()=>{if(!await askConfirm(`Upload to YouTube as ${priv}?`))return;try{await post('/api/publish',{folder,privacy:priv});closeModal();toast('Uploading…');pollJobs()}catch(e){toast(e.message,1)}});
+  $('#del')?.addEventListener('click',async()=>{if(await askConfirm('Delete this video?')){await api('/api/videos/'+folder,{method:'DELETE'});closeModal();loadVideos()}});
+}
+function closeModal(){const p=$('#player');if(p)p.pause();$('#modal').classList.remove('on');$('#mbox').innerHTML=''}
+$('#modal').onclick=e=>{if(e.target.id==='modal')closeModal()};
+document.addEventListener('keydown',e=>{if(e.key==='Escape')closeModal()});
+
+/* assets */
 let libFile=null;
 dropzone($('#dropMusic'),$('#fileMusic'),async f=>{const fd=new FormData();fd.append('file',f);fd.append('mood',$('#mood').value);
   try{await api('/api/music',{method:'POST',body:fd});toast('Track added');loadAssets();loadStatus()}catch(e){toast(e.message,1)}});
@@ -422,11 +501,11 @@ async function loadAssets(){
   $('#libTable').innerHTML=l.length?'<tr><th>ID</th><th>Kind</th><th>Description</th></tr>'+l.map(t=>`<tr><td>${esc(t.id)}</td><td>${t.kind}</td><td>${esc(t.description||'')}</td></tr>`).join(''):'';
 }
 
-/* ---------- schedules ---------- */
+/* schedules */
 const DN=['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];let sDays=new Set([0,1,2,3,4,5,6]),sFm=new Set(),sAuto=0;
 function renderSchedForm(){
   $('#sDays').innerHTML=DN.map((d,i)=>`<button data-d="${i}" class="${sDays.has(i)?'on':''}">${d}</button>`).join('');
-  $('#sFormats').innerHTML=S.formats.map(f=>`<button data-f="${f.id}" class="${sFm.has(f.id)?'on':''}">${esc(f.label)}</button>`).join('');
+  $('#sFormats').innerHTML=(S.formats||[]).map(f=>`<button data-f="${f.id}" class="${sFm.has(f.id)?'on':''}">${esc(f.label)}</button>`).join('');
 }
 $('#sDays').onclick=e=>{const b=e.target.closest('button');if(b){const i=+b.dataset.d;sDays.has(i)?sDays.delete(i):sDays.add(i);renderSchedForm()}};
 $('#sFormats').onclick=e=>{const b=e.target.closest('button');if(b){const i=b.dataset.f;sFm.has(i)?sFm.delete(i):sFm.add(i);renderSchedForm()}};
@@ -439,7 +518,7 @@ async function loadSchedules(){
 $('#sTable').onclick=async e=>{const t=e.target.closest('[data-tog]'),r=e.target.closest('[data-rm]');
   if(t){await post('/api/schedules/'+t.dataset.tog+'/toggle',{});loadSchedules()}if(r){await api('/api/schedules/'+r.dataset.rm,{method:'DELETE'});loadSchedules()}};
 
-/* ---------- setup ---------- */
+/* setup */
 function renderSetup(){
   const st=(ok,n,t,body)=>`<div class="step ${ok?'done':''}"><div class="n">${ok?'✓':n}</div><div style="flex:1;min-width:0"><h3>${t} ${ok?'<span class="chip ok">ready</span>':''}</h3>${body}</div></div>`;
   $('#steps').innerHTML=
@@ -447,14 +526,14 @@ function renderSetup(){
      <div class="row"><div class="grow"><label class="l">Channel name</label><input id="cName" value="${esc(S.channel)}"></div><div class="grow"><label class="l">Handle</label><input id="cHandle" value="${esc(S.handle)}"></div>
      <div><button class="btn p" id="saveCh">Save</button></div></div>`)+
    st(false,2,'Your logo',`<p>Square PNG with a transparent background works best.</p><div class="row" style="align-items:center"><img src="/logo.png?${Date.now()}" width="56" height="56" style="border-radius:12px;background:#fff1"><div class="drop grow" id="dropLogo" style="padding:14px">Drop a PNG to replace it<input type="file" id="fileLogo" accept="image/*" hidden></div></div>`)+
-   st(S.anthropic_key,3,'Claude API key',`<p>Claude writes the scripts. Without it the Studio uses hand-written example scripts of the same format.</p>
+   st(S.anthropic_key,3,'Claude API key',`<p>Claude writes the scripts and your daily ideas. Without it the app uses hand-written example scripts.</p>
      <div class="row"><div class="grow"><input id="keyIn" type="password" placeholder="${S.anthropic_key?'Key saved. Paste a new one to replace it':'sk-ant-…'}"></div><div><button class="btn p" id="saveKey">Save key</button></div></div>`)+
    st(S.youtube_authorised,4,'Connect YouTube',`<p>Two parts: your Google Cloud client file, then a one-time sign-in on Google’s own page. This app never sees your password.</p>
      <div class="row" style="align-items:center"><div class="drop grow" id="dropCS" style="padding:12px">${S.client_secret?'client_secret.json is in place. Drop another to replace it':'Drop your client_secret.json here'}<input type="file" id="fileCS" accept=".json" hidden></div>
      <div><button class="btn p" id="ytConnect" ${S.client_secret?'':'disabled'}>${S.youtube_authorised?'Reconnect':'Connect YouTube'}</button></div></div>
      <pre>How to get the file: console.cloud.google.com → new project → enable “YouTube Data API v3” → OAuth consent screen (External, add yourself as a test user) → Credentials → OAuth client ID → Desktop app → Download JSON</pre>`)+
    st(S.music_tracks>0,5,'Background music',`<p>${S.music_tracks} track(s). The sigma BGM is generated automatically on first use.</p><button class="btn" onclick="go('assets')">Manage music</button>`)+
-   st(S.pexels_key,6,'Stock video (optional)',`<p>Free Pexels key lets scenes use portrait b-roll.</p><pre>echo 'PEXELS_API_KEY=…' &gt;&gt; .env</pre>`);
+   st(S.pexels_key,6,'Stock video (optional)',`<p>A free Pexels key lets scenes use portrait b-roll.</p><pre>echo 'PEXELS_API_KEY=…' &gt;&gt; .env</pre>`);
   $('#saveKey').onclick=async()=>{if(!$('#keyIn').value.trim())return;await post('/api/secrets',{anthropic_key:$('#keyIn').value});toast('Key saved');loadStatus().then(renderSetup)};
   dropzone($('#dropCS'),$('#fileCS'),async f=>{const fd=new FormData();fd.append('file',f);try{await api('/api/youtube/client-secret',{method:'POST',body:fd});toast('Client file saved');loadStatus().then(renderSetup)}catch(e){toast(e.message,1)}});
   $('#ytConnect').onclick=async()=>{try{await post('/api/youtube/connect',{});toast('Finish signing in in the browser window that opened');pollJobs()}catch(e){toast(e.message,1)}};
@@ -462,8 +541,9 @@ function renderSetup(){
   dropzone($('#dropLogo'),$('#fileLogo'),async f=>{const fd=new FormData();fd.append('file',f);await api('/api/logo',{method:'POST',body:fd});toast('Logo updated');renderSetup()});
 }
 
-window.addEventListener('hashchange',()=>go(location.hash.slice(1)||'studio'));
-loadStatus().then(()=>{go(location.hash.slice(1)||'studio');pollJobs();loadVideos()});
+window.addEventListener('hashchange',()=>go(location.hash.slice(1)||'home'));
+setTheme(th);
+loadStatus().then(()=>{go(location.hash.slice(1)||'home');pollJobs();api('/api/videos').then(v=>{VIDS=v;$('#vcount').textContent=v.length})});
 </script>
 </body>
 </html>

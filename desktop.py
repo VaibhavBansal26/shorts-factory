@@ -54,13 +54,13 @@ class Api:
 def main():
     seed()
     import app as portal  # noqa: E402
-    from werkzeug.serving import make_server
+    from waitress import create_server  # HTTP/1.1 keep-alive: macOS's video player needs it (Werkzeug sends Connection: close)
 
     threading.Thread(target=portal.scheduler_loop, daemon=True).start()
-    server = make_server("127.0.0.1", 0, portal.app, threaded=True)
-    port = server.server_port
+    server = create_server(portal.app, host="127.0.0.1", port=0, threads=8)
+    port = server.effective_port
     (HOME / "port.txt").write_text(str(port))
-    threading.Thread(target=server.serve_forever, daemon=True).start()
+    threading.Thread(target=server.run, daemon=True).start()
     url = f"http://127.0.0.1:{port}/"
     try:
         import webview
@@ -71,7 +71,7 @@ def main():
         import webbrowser
         webbrowser.open(url)
         threading.Event().wait()
-    server.shutdown()
+    server.close()
 
 
 if __name__ == "__main__":

@@ -1,6 +1,6 @@
 channel:
   name: "VB AI Engineer"      # shown next to the logo in every video
-  handle: "@yourhandle"
+  handle: "@VaibhavBansalCode"
   logo: assets/logo.png          # replace with your own PNG (transparent background works best)
 
 llm:
@@ -19,6 +19,7 @@ video:
   fonts_ko:                      # for Hangul text on screen (episode tags)
     - /System/Library/Fonts/AppleSDGothicNeo.ttc
     - /usr/share/fonts/truetype/noto/NotoSansCJK-Bold.ttc
+  archive_cap_seconds: 15        # public-domain archive.org footage per video
   footage_cap_seconds: 12        # max seconds of third-party clips in any one video
   footage_cap_ratio: 0.35        # ...and never more than this share of the video
   music_dir: assets/music        # assets/music/<mood>/*.mp3  (moods: calm chill upbeat tense funny any)

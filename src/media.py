@@ -131,7 +131,51 @@ def stock_video(query: str) -> Path | None:
     return None
 
 
-# ---------------- prompt menu + resolution ----------------
+# ---------------- public-domain archive footage (Internet Archive) ----------------
+# Only curated collections count. User-asserted licence tags on archive.org are NOT trusted (people upload
+# copyrighted material and tag it CC0), so a plain "publicdomain" licenceurl is never enough on its own.
+TRUSTED_COLLECTIONS = ("prelinger", "nasa")
+
+
+def _is_public_domain(meta: dict) -> bool:
+    colls = meta.get("metadata", {}).get("collection", [])
+    colls = [colls] if isinstance(colls, str) else colls
+    return any(c in TRUSTED_COLLECTIONS for c in colls)
+
+
+def archive_video(query: str, dur: float):
+    """Find a public-domain film on archive.org. Returns dict(url, start, title, id) or None. Never downloads the
+    whole file: ffmpeg seeks into the URL for just the seconds we need."""
+    import random
+    q = f'({query}) AND mediatype:movies AND (collection:prelinger OR collection:nasa)'
+    try:
+        r = requests.get("https://archive.org/advancedsearch.php", timeout=25, params={
+            "q": q, "fl[]": ["identifier", "title"], "rows": 12, "output": "json"})
+        docs = r.json()["response"]["docs"]
+        top = docs[:4]
+        random.shuffle(top)
+        docs = top + docs[4:]  # relevance first, a little variety among the best
+        for doc in docs:
+            meta = requests.get(f"https://archive.org/metadata/{doc['identifier']}", timeout=25).json()
+            if not _is_public_domain(meta):
+                continue
+            mp4 = [f for f in meta.get("files", []) if f["name"].lower().endswith(".mp4")
+                   and 0 < int(f.get("size", 0) or 0) < 250_000_000]
+            if not mp4:
+                continue
+            f = min(mp4, key=lambda x: int(x["size"]))
+            length = float(f.get("length") or 0)
+            if length < dur + 12:
+                continue
+            start = random.uniform(5, length - dur - 5)
+            return {"url": f"https://archive.org/download/{doc['identifier']}/{requests.utils.quote(f['name'])}",
+                    "start": round(start, 1), "title": doc["title"], "id": doc["identifier"]}
+    except Exception as e:
+        print(f"  ! archive search failed: {e}")
+    return None
+
+
+# ---------------- prompt menu + resolution ----------------------
 def menu() -> str:
     lines = []
     lib = load_library()
@@ -144,6 +188,9 @@ def menu() -> str:
     if memes:
         lines.append("MEME TEMPLATES (use meme_template with top_text/bottom_text): "
                      + "; ".join(m["name"] for m in memes[:40]))
+    lines.append("PUBLIC-DOMAIN ARCHIVE FOOTAGE (vintage films, always available): use type 'archive' with a short "
+                 "archive_query like 'vintage computer', '1950s office', 'factory assembly line', 'retro science'. Great "
+                 "as ironic b-roll for tech jokes; consider 1-2 scenes (about 15 seconds total).")
     if stock_available():
         lines.append("STOCK VIDEO available: give a short visual stock_query (e.g. 'server room', 'typing code').")
     return "\n".join(lines)
@@ -170,6 +217,7 @@ def prepare(cfg: dict, script: dict, timeline: dict, workdir: Path) -> dict[int,
     vcfg = cfg["video"]
     budget = min(vcfg.get("footage_cap_seconds", 12), vcfg.get("footage_cap_ratio", 0.35) * timeline["total"])
     used = 0.0
+    pd_left = float(vcfg.get("archive_cap_seconds", 15))
     for idx, sc in enumerate(script["scenes"]):
         v = sc.get("visual") or {}
         kind = v.get("type", "none")
@@ -203,6 +251,21 @@ def prepare(cfg: dict, script: dict, timeline: dict, workdir: Path) -> dict[int,
                                 "frames": _extract_frames(f, e.get("start", 0), d, fps, workdir / f"clip{idx}", *size)}
                 else:
                     out[idx] = {"kind": "image", "path": f, "credit": e.get("credit")}
+            elif kind == "archive":
+                d = min(dur, pd_left, MAX_CLIP_SECONDS)
+                if d < 1.5:
+                    continue
+                hit = archive_video(v.get("archive_query", ""), d)
+                if not hit:
+                    print(f"  no public-domain match for '{v.get('archive_query')}'")
+                    continue
+                full = sc.get("layout") == "clip_dub" or bool(v.get("fullscreen"))
+                size = (cfg["video"]["width"], cfg["video"]["height"]) if full else (BOX_W, BOX_H)
+                pd_left -= d
+                print(f"  archive: {hit['title'][:50]} ({hit['id']}) {d:.0f}s")
+                out[idx] = {"kind": "video", "full": full, "frames": _extract_frames(
+                    hit["url"], hit["start"], d, fps, workdir / f"clip{idx}", *size),
+                    "credit": f"{hit['title'][:60]} (Prelinger/NASA via Internet Archive, public domain) archive.org/details/{hit['id']}"}
             elif kind == "stock":
                 f = stock_video(v.get("stock_query", ""))
                 if f:

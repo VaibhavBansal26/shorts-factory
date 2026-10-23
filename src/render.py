@@ -239,10 +239,6 @@ class Renderer:
             d.text((cx, y + self.AV + 44), nm, font=self.font(nsize),
                    fill=WHITE if on else (130, 130, 150), anchor="mm")
             role = c.get("role", "")
-            if c.get("name_ko") and self.font_ko_path:
-                kf = ImageFont.truetype(self.font_ko_path, 34)
-                d.text((cx, y + self.AV + 88), c["name_ko"], font=kf, fill=self.accent if on else (110, 110, 130), anchor="mm")
-                role = ""
             d.text((cx, y + self.AV + 90), role, font=self.font(30),
                    fill=self.accent if on else (110, 110, 130), anchor="mm")
 
@@ -266,13 +262,10 @@ class Renderer:
         tw = d.textlength(self.label, font=self.font(34))
         d.rounded_rectangle((60, 215, 60 + tw + 50, 275), radius=30, fill=(*self.accent, 255))
         d.text((60 + tw / 2 + 25, 245), self.label, font=self.font(34), fill=(10, 14, 28), anchor="mm")
-        if self.theme == "drama" and self.font_ko_path:
-            kf = ImageFont.truetype(self.font_ko_path, 46)
+        if self.theme == "drama":
             ser = self.script.get("series")
-            d.text((self.W - 60, 120), f"제 {ser['episode']}화" if ser else "드라마", font=kf,
+            d.text((self.W - 60, 120), f"EP. {ser['episode']}" if ser else "PARODY", font=self.font(46),
                    fill=(*self.accent, 255), anchor="rm")
-            d.text((self.W - 60, 172), f"EP. {ser['episode']}" if ser else "PARODY", font=self.font(30),
-                   fill=(200, 190, 210), anchor="rm")
         # progress bar sits above YouTube's bottom UI
         d.rounded_rectangle((60, 1560, self.W - 60, 1568), radius=4, fill=(255, 255, 255, 40))
         d.rounded_rectangle((60, 1560, 60 + (self.W - 120) * min(1, t / total), 1568), radius=4,
@@ -298,17 +291,13 @@ class Renderer:
         if not active:
             return
         d = ImageDraw.Draw(img)
-        size = 74
-        f = self.font(size)
-        space = d.textlength(" ", font=f)
-        widths = [d.textlength(w[0], font=f) for w in active]
-        total_w = sum(widths) + space * (len(active) - 1)
-        if total_w > self.W - 120:
-            size = 58
+        for size in (74, 62, 52, 44, 38):  # shrink until the chunk fits the safe width
             f = self.font(size)
             space = d.textlength(" ", font=f)
             widths = [d.textlength(w[0], font=f) for w in active]
             total_w = sum(widths) + space * (len(active) - 1)
+            if total_w <= self.W - 120:
+                break
         x, y = (self.W - total_w) / 2, 1230
         for (w, t0, t1), wd in zip(active, widths):
             is_now = t0 - 0.02 <= t < t1 + 0.12

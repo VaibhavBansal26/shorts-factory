@@ -72,12 +72,13 @@ TOOL = {
                             "description": "Optional media shown instead of plain text for this scene. "
                                            "Use on 1-3 scenes at most; only options from the MEDIA MENU.",
                             "properties": {
-                                "type": {"type": "string", "enum": ["none", "meme", "library", "stock"]},
+                                "type": {"type": "string", "enum": ["none", "meme", "library", "stock", "archive"]},
                                 "meme_template": {"type": "string"},
                                 "top_text": {"type": "string"},
                                 "bottom_text": {"type": "string"},
                                 "library_id": {"type": "string"},
                                 "stock_query": {"type": "string"},
+                                "archive_query": {"type": "string"},
                             },
                             "required": ["type"],
                         },

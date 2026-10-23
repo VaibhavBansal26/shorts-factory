@@ -76,6 +76,13 @@
       "summary": "Rival CTO Kang-woo brags about his model's size, but Ha-eun exposes that it reasons in English even when told to use French. He learns that you can't polish a behavior the model doesn't have, until AIRI appears holding his private benchmark prompt.",
       "topic": "Fine-tuning GPT-OSS-20B for multilingual reasoning on Amazon SageMaker HyperPod",
       "folder": "2026-10-23_the-chairman-s-pull-request-ep-3-the-riv"
+    },
+    {
+      "n": 4,
+      "title": "The Secret Prompt",
+      "summary": "AIRI admits she memorized Kang-woo's secret prompt in full precision, and Chairman Seo coldly questions the memory cost. She offers to store word pairs in fewer bits, inspired by a paper on low-bit n-gram embeddings, but Friday returns.",
+      "topic": "Low-Bit N-Gram Embeddings for Language Models",
+      "folder": "2026-10-23_the-chairman-s-pull-request-ep-4-the-sec"
     }
   ]
 }

@@ -177,7 +177,7 @@ FORMATS = {
             "Never use real actors, real show titles or copy real dialogue; parody the TROPES only (cold chairman, "
             "tearful intern, slap, rain scene, amnesia, love triangle, 'it's not what it looks like'). "
             "4-5 dialogue scenes (layout 'dialogue'), speakers alternating. The characters are Korean (give them Korean "
-            "names plus `name_ko` in Hangul) and the show is ENGLISH-DUBBED: `narration` is the spoken ENGLISH line "
+            "names, written in English letters only) and the show is ENGLISH-DUBBED: `narration` is the spoken ENGLISH line "
             "(max ~14 words, melodramatic delivery, funny); `headline` is a short tag like 'Episode 7: The Hallucination'. "
             "Do not use `subtitle`. The final scene: speaker 'narrator', layout 'question', English, giving the real "
             "technical takeaway in one sentence plus a question to the viewer."

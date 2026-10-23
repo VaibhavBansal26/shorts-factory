@@ -74,7 +74,7 @@ Daily automation (cron, 3 videos at 09:00):
 - **Your own clips (series moments, screen recordings)**:
   `python main.py library add clip.mp4 --id my-clip --start 12 --duration 6 --tags scaling --desc "what happens" --credit "Show name"`.
   `series_moment` is an English fan-dub parody: your clips play muted, full-screen (max 8s each) while two generic English voices dub funny AI/tech lines over them, with a credit shown on screen.
-  Rights are your call: unlicensed show/film clips can trigger Content ID claims or strikes even with commentary.
+  Guardrail: clips are capped at 12s and 35% of any video (`video.footage_cap_*`), always interspersed with original scenes, voice and commentary. Rights are still your call: unlicensed show/film clips can trigger Content ID claims or strikes even with commentary.
   Prefer clips you own or have licensed, and check results while videos are still private.
 
 ## Web UI (manual by default)

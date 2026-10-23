@@ -166,6 +166,10 @@ def prepare(cfg: dict, script: dict, timeline: dict, workdir: Path) -> dict[int,
                  if Path(p).exists()), None)
     lib = {i["id"]: i for i in load_library()}
     out = {}
+    # footage guardrail: third-party clips stay a small, interspersed part of every video
+    vcfg = cfg["video"]
+    budget = min(vcfg.get("footage_cap_seconds", 12), vcfg.get("footage_cap_ratio", 0.35) * timeline["total"])
+    used = 0.0
     for idx, sc in enumerate(script["scenes"]):
         v = sc.get("visual") or {}
         kind = v.get("type", "none")
@@ -188,7 +192,11 @@ def prepare(cfg: dict, script: dict, timeline: dict, workdir: Path) -> dict[int,
                     continue
                 f = resolve(cfg, e["file"])
                 if e.get("kind", "clip") == "clip":
-                    d = min(dur, e.get("duration", MAX_CLIP_SECONDS))
+                    d = min(dur, e.get("duration", MAX_CLIP_SECONDS), budget - used)
+                    if d < 1.5:
+                        print(f"  footage budget ({budget:.0f}s) used up; scene {idx} shown without the clip")
+                        continue
+                    used += d
                     full = sc.get("layout") == "clip_dub" or bool(v.get("fullscreen"))
                     size = (cfg["video"]["width"], cfg["video"]["height"]) if full else (BOX_W, BOX_H)
                     out[idx] = {"kind": "video", "full": full, "credit": e.get("credit"),

@@ -19,6 +19,8 @@ video:
   fonts_ko:                      # for Hangul text on screen (episode tags)
     - /System/Library/Fonts/AppleSDGothicNeo.ttc
     - /usr/share/fonts/truetype/noto/NotoSansCJK-Bold.ttc
+  footage_cap_seconds: 12        # max seconds of third-party clips in any one video
+  footage_cap_ratio: 0.35        # ...and never more than this share of the video
   music_dir: assets/music        # assets/music/<mood>/*.mp3  (moods: calm chill upbeat tense funny any)
   music_volume: 0.14             # music is ducked automatically while the voice speaks
   music:

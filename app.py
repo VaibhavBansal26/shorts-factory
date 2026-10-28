@@ -5,6 +5,7 @@
 
 Nothing is published unless you press "Deploy" or create a schedule with auto-deploy turned on.
 """
+import contextlib
 import json
 import os
 import shutil
@@ -47,14 +48,19 @@ class _Tee:
 sys.stdout = _Tee(sys.stdout)
 
 
-def start_job(title: str, fn) -> str:
+def start_job(title: str, fn, exclusive: bool = True, key: str | None = None) -> str:
+    """exclusive jobs (renders) run one at a time; key de-duplicates a job that is already queued or running."""
+    if key:
+        live = next((j for j in JOBS.values() if j.get("key") == key and j["status"] in ("queued", "running")), None)
+        if live:
+            return live["id"]
     jid = uuid.uuid4().hex[:8]
-    job = {"id": jid, "title": title, "status": "queued", "log": "", "started": time.time(), "result": None}
+    job = {"id": jid, "title": title, "status": "queued", "log": "", "started": time.time(), "result": None, "key": key}
     JOBS[jid] = job
 
     def runner():
         threading.current_thread().job = job
-        with JOB_LOCK:
+        with (JOB_LOCK if exclusive else contextlib.nullcontext()):
             job["status"] = "running"
             try:
                 job["result"] = fn()
@@ -533,7 +539,9 @@ def yt_connect():
             channels.update(cid, name=title)
         return f"connected {title}".strip()
 
-    return jsonify(job=start_job(f"Connect YouTube: {channels.get(cfg, cid)['name']} (finish in the browser window)", go))
+    # the sign-in waits for you in the browser, so it must not block renders, and clicking twice reuses the same job
+    return jsonify(job=start_job(f"Connect YouTube: {channels.get(cfg, cid)['name']} (finish in the browser window)", go,
+                                 exclusive=False, key=f"connect:{cid}"))
 
 
 @app.get("/api/voice")

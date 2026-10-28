@@ -490,7 +490,7 @@ document.addEventListener('click',async e=>{const b=e.target.closest('[data-url]
 const DISMISSED=new Set();
 async function pollJobs(){
   const jobs=(await api('/api/jobs')).filter(j=>!DISMISSED.has(j.id)).slice(0,4);
-  $('#dock').innerHTML=jobs.map(j=>`<div class="job ${j.status}" data-j="${j.id}"><div class="h"><b>${esc(j.title)}</b><span style="color:var(--${j.status==='done'?'ok':j.status==='failed'?'bad':'warn'})">${j.status}</span>${j.status==='running'||j.status==='queued'?'':`<button class="xbtn" data-x="${j.id}" aria-label="Dismiss">✕</button>`}</div><div class="prog"><i></i></div>${openJob===j.id?`<pre>${esc(j.log||'…')}</pre>`:''}</div>`).join('');
+  $('#dock').innerHTML=jobs.map(j=>`<div class="job ${j.status}" data-j="${j.id}"><div class="h"><b>${esc(j.title)}</b><span style="color:var(--${j.status==='done'?'ok':j.status==='failed'?'bad':'warn'})">${j.status}</span>${j.status==='running'||j.status==='queued'?'':`<button class="xbtn" data-x="${j.id}" aria-label="Dismiss">✕</button>`}</div><div class="prog"><i></i></div>${(()=>{const m=(j.log||'').match(/https:\/\/accounts\.google\.com\S+/);return m&&j.status==='running'?`<a class="btn sm" style="margin-top:8px" target="_blank" href="${m[0]}">Open Google sign-in</a>`:''})()}${openJob===j.id?`<pre>${esc(j.log||'…')}</pre>`:''}</div>`).join('');
   const active=jobs.some(j=>j.status==='running'||j.status==='queued');
   if(active)setTimeout(pollJobs,1500);else if(jobs.length){loadVideos();loadStatus()}
   const pre=$('#dock pre');if(pre)pre.scrollTop=1e9;

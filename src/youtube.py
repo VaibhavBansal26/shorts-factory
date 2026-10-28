@@ -29,7 +29,8 @@ def _service(token: Path | None = None):
                     "client_secret.json not found. Create an OAuth 'Desktop app' client in Google Cloud "
                     "(YouTube Data API v3 enabled) and save it next to config.yaml. See README."
                 )
-            creds = InstalledAppFlow.from_client_secrets_file(str(CLIENT_SECRET), SCOPES).run_local_server(port=0)
+            creds = InstalledAppFlow.from_client_secrets_file(str(CLIENT_SECRET), SCOPES).run_local_server(
+                port=0, timeout_seconds=300)  # give up after 5 minutes instead of waiting forever
         token.write_text(creds.to_json())
     return build("youtube", "v3", credentials=creds)
 

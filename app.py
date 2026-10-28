@@ -61,6 +61,10 @@ def start_job(title: str, fn, exclusive: bool = True, key: str | None = None) ->
     def runner():
         threading.current_thread().job = job
         with (JOB_LOCK if exclusive else contextlib.nullcontext()):
+            if job.get("cancel"):  # closed while still queued
+                job["status"] = "failed"
+                job["log"] += "cancelled\n"
+                return
             job["status"] = "running"
             try:
                 job["result"] = fn()
@@ -151,6 +155,14 @@ def status():
 @app.get("/api/videos")
 def videos():
     return jsonify(list_videos())
+
+
+@app.post("/api/jobs/<jid>/cancel")
+def job_cancel(jid):
+    j = JOBS.get(jid)
+    if j and j["status"] == "queued":
+        j["cancel"] = True
+    return jsonify(ok=True)
 
 
 @app.get("/api/jobs")

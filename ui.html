@@ -159,7 +159,7 @@ pre{background:var(--bg2);border:1px solid var(--line);border-radius:10px;paddin
 .job .prog i{display:block;height:100%;width:40%;background:var(--accent);animation:slide 1.2s infinite ease-in-out}
 .job.done .prog i,.job.failed .prog i{animation:none;width:100%;background:var(--ok)}.job.failed .prog i{background:var(--bad)}
 @keyframes slide{0%{margin-left:-40%}100%{margin-left:100%}}
-.job pre{max-height:150px;margin-top:8px;font-size:11px}
+.job pre{max-height:150px;margin-top:8px;font-size:11px;white-space:pre-wrap;overflow-wrap:anywhere;user-select:text;-webkit-user-select:text;cursor:text}.job a{user-select:text;-webkit-user-select:text}.job .h{user-select:none;-webkit-user-select:none}
 .toast{position:fixed;left:50%;top:20px;transform:translateX(-50%);background:var(--panel2);border:1px solid var(--line2);padding:10px 18px;border-radius:12px;z-index:90;box-shadow:var(--shadow)}
 .toast.bad{border-color:var(--bad)}
 .toast{display:flex;gap:12px;align-items:center}.xbtn{background:none;border:0;color:var(--muted,#8a94a6);font-size:16px;line-height:1;cursor:pointer;padding:2px 4px;border-radius:6px}.xbtn:hover{color:var(--text,#fff)}
@@ -490,12 +490,16 @@ document.addEventListener('click',async e=>{const b=e.target.closest('[data-url]
 const DISMISSED=new Set();
 async function pollJobs(){
   const jobs=(await api('/api/jobs')).filter(j=>!DISMISSED.has(j.id)).slice(0,4);
-  $('#dock').innerHTML=jobs.map(j=>`<div class="job ${j.status}" data-j="${j.id}"><div class="h"><b>${esc(j.title)}</b><span style="color:var(--${j.status==='done'?'ok':j.status==='failed'?'bad':'warn'})">${j.status}</span>${j.status==='running'||j.status==='queued'?'':`<button class="xbtn" data-x="${j.id}" aria-label="Dismiss">✕</button>`}</div><div class="prog"><i></i></div>${(()=>{const m=(j.log||'').match(/https:\/\/accounts\.google\.com\S+/);return m&&j.status==='running'?`<a class="btn sm" style="margin-top:8px" target="_blank" href="${m[0]}">Open Google sign-in</a>`:''})()}${openJob===j.id?`<pre>${esc(j.log||'…')}</pre>`:''}</div>`).join('');
+  $('#dock').innerHTML=jobs.map(j=>`<div class="job ${j.status}" data-j="${j.id}"><div class="h"><b>${esc(j.title)}</b><span style="color:var(--${j.status==='done'?'ok':j.status==='failed'?'bad':'warn'})">${j.status}</span><button class="xbtn" data-x="${j.id}" data-st="${j.status}" aria-label="Close" title="${j.status==='running'||j.status==='queued'?'Hide (queued jobs are cancelled)':'Dismiss'}">✕</button></div><div class="prog"><i></i></div>${(()=>{const m=(j.log||'').match(/https:\/\/accounts\.google\.com\S+/);return m&&j.status==='running'?`<div class="row" style="margin-top:8px;gap:6px"><a class="btn sm" target="_blank" href="${m[0]}">Open Google sign-in</a><button class="btn sm" data-copy="${m[0]}">Copy link</button></div>`:''})()}${openJob===j.id?`<pre>${esc(j.log||'…')}</pre>`:''}</div>`).join('');
   const active=jobs.some(j=>j.status==='running'||j.status==='queued');
   if(active)setTimeout(pollJobs,1500);else if(jobs.length){loadVideos();loadStatus()}
   const pre=$('#dock pre');if(pre)pre.scrollTop=1e9;
 }
-$('#dock').onclick=e=>{const x=e.target.closest('[data-x]');if(x){DISMISSED.add(x.dataset.x);pollJobs();return}const j=e.target.closest('.job');if(j){openJob=openJob===j.dataset.j?null:j.dataset.j;pollJobs()}};
+$('#dock').onclick=async e=>{
+  const cp=e.target.closest('[data-copy]');
+  if(cp){try{await navigator.clipboard.writeText(cp.dataset.copy)}catch(_){const t=document.createElement('textarea');t.value=cp.dataset.copy;document.body.append(t);t.select();document.execCommand('copy');t.remove()}toast('Link copied');return}
+  if(e.target.closest('pre,a'))return;  // let people select and copy log text without toggling the card
+  const x=e.target.closest('[data-x]');if(x){DISMISSED.add(x.dataset.x);if(x.dataset.st==='queued')post('/api/jobs/'+x.dataset.x+'/cancel',{}).catch(()=>{});pollJobs();return}const j=e.target.closest('.job');if(j){openJob=openJob===j.dataset.j?null:j.dataset.j;pollJobs()}};
 
 /* remix */
 let rxFile=null,rxVoices='two';

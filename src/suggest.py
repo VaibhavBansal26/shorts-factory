@@ -38,7 +38,7 @@ TOOL = {
 
 def prefs() -> dict:
     try:
-        return json.loads(PREFS.read_text())
+        return {"frequency": "daily", **json.loads(PREFS.read_text())}  # the file also holds voice/channel prefs
     except Exception:
         return {"frequency": "daily"}
 

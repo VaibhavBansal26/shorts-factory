@@ -1,3 +1,4 @@
+config_version: 3
 channel:
   name: "VB AI Engineer"      # shown next to the logo in every video
   handle: "@VaibhavBansalCode"
@@ -32,13 +33,23 @@ video:
 
 voice:
   provider: edge                 # free Microsoft neural voices, no API key
-  name: en-US-AndrewMultilingualNeural
-  rate: "+6%"
+  name: en-IN-PrabhatNeural      # Indian English; ElevenLabs Indian voices are used instead when a key is set
+  rate: "+4%"
+
+elevenlabs:                      # used automatically when ELEVENLABS_API_KEY is set (Setup page)
+  voices: {male: "", female: ""}   # optional voice ids; blank = best Indian-accent English voices from the library
+
+accents:                         # the voice picker in the app: English spoken with each accent (edge voices, free)
+  indian:   {male: {name: en-IN-PrabhatNeural}, female: {name: en-IN-NeerjaNeural}}
+  american: {male: {name: en-US-AndrewMultilingualNeural}, female: {name: en-US-AvaMultilingualNeural}}
+  uk:       {male: {name: en-GB-RyanNeural}, female: {name: en-GB-SoniaNeural}}
+  korean:   {male: {name: ko-KR-HyunsuMultilingualNeural}, female: {name: ko-KR-SunHiNeural}}  # Korean-accented English
+eleven_accents: {indian: indian, american: american, uk: british, korean: korean}  # ElevenLabs library accent filter
 
 voices:                          # extra voices: sigma narrator + the two K-drama characters
-  sigma:     {name: en-US-GuyNeural,      rate: "-6%", pitch: "-14Hz"}
-  dub_male:  {name: en-US-ChristopherNeural, rate: "-4%", pitch: "-8Hz"}   # English dub (default for K-drama)
-  dub_female: {name: en-US-AriaNeural,       rate: "+2%", pitch: "+2Hz"}
+  sigma:     {name: en-IN-PrabhatNeural,  rate: "-6%", pitch: "-12Hz"}
+  dub_male:  {name: en-IN-PrabhatNeural,  rate: "-2%", pitch: "-4Hz"}   # English dub (default for K-drama)
+  dub_female: {name: en-IN-NeerjaNeural,  rate: "+2%", pitch: "+0Hz"}
   ko_male:   {name: ko-KR-InJoonNeural,   rate: "+0%", pitch: "-6Hz"}      # only if a script sets "language": "ko"
   ko_female: {name: ko-KR-SunHiNeural,    rate: "+4%", pitch: "+0Hz"}
 

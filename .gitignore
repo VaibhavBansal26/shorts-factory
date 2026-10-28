@@ -12,4 +12,3 @@ assets/music/sigma/
 build/
 dist/
 *.spec
-desktop-icon.icns

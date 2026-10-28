@@ -32,9 +32,26 @@ def seed():
     """First run: copy the editable defaults (config, logo, series bible) into the data folder."""
     if not (HOME / "config.yaml").exists():
         shutil.copy2(CODE / "config.yaml", HOME / "config.yaml")
+    else:  # existing install: pull in new voice defaults when the bundled config is newer
+        import yaml
+        mine, new = yaml.safe_load((HOME / "config.yaml").read_text()), yaml.safe_load((CODE / "config.yaml").read_text())
+        if (mine.get("config_version") or 1) < new.get("config_version", 1):
+            shutil.copy2(HOME / "config.yaml", HOME / "config.yaml.bak")
+            for k in ("voice", "voices", "elevenlabs", "accents", "eleven_accents"):
+                mine[k] = new[k]
+            mine["config_version"] = new["config_version"]
+            (HOME / "config.yaml").write_text(yaml.safe_dump(mine, sort_keys=False, allow_unicode=True))
     (HOME / "assets").mkdir(exist_ok=True)
+    bundled = CODE / "assets" / "music" / "main"
+    if bundled.exists():  # the channel's default EDM bed, copied once
+        dest = HOME / "assets" / "music" / "main"
+        dest.mkdir(parents=True, exist_ok=True)
+        for f in bundled.glob("*.mp3"):
+            if not (dest / f.name).exists():
+                shutil.copy2(f, dest / f.name)
     if not (HOME / "assets" / "logo.png").exists() and (CODE / "assets" / "logo.png").exists():
         shutil.copy2(CODE / "assets" / "logo.png", HOME / "assets" / "logo.png")
+    (HOME / "assets" / "memes").mkdir(parents=True, exist_ok=True)  # your own meme pack (images) goes here
     (HOME / "series").mkdir(exist_ok=True)
     for f in (CODE / "series").glob("*.json"):
         if not (HOME / "series" / f.name).exists():

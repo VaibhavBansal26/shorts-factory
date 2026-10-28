@@ -9,15 +9,17 @@ from googleapiclient.http import MediaFileUpload
 
 from .config import ROOT
 
-SCOPES = ["https://www.googleapis.com/auth/youtube.upload"]
+SCOPES = ["https://www.googleapis.com/auth/youtube.upload", "https://www.googleapis.com/auth/youtube.readonly"]
+UPLOAD_ONLY = ["https://www.googleapis.com/auth/youtube.upload"]  # the first channel was connected with just this
 CLIENT_SECRET = ROOT / "client_secret.json"
 TOKEN = ROOT / "token.json"
 
 
-def _service():
+def _service(token: Path | None = None):
+    token = Path(token) if token else TOKEN
     creds = None
-    if TOKEN.exists():
-        creds = Credentials.from_authorized_user_file(TOKEN, SCOPES)
+    if token.exists():
+        creds = Credentials.from_authorized_user_file(token)  # keeps whatever scopes it was granted
     if not creds or not creds.valid:
         if creds and creds.expired and creds.refresh_token:
             creds.refresh(Request())
@@ -28,13 +30,18 @@ def _service():
                     "(YouTube Data API v3 enabled) and save it next to config.yaml. See README."
                 )
             creds = InstalledAppFlow.from_client_secrets_file(str(CLIENT_SECRET), SCOPES).run_local_server(port=0)
-        TOKEN.write_text(creds.to_json())
+        token.write_text(creds.to_json())
     return build("youtube", "v3", credentials=creds)
 
 
-def authorize():
-    _service()
-    print("YouTube authorised; token saved to token.json")
+def authorize(token: Path | None = None) -> str:
+    """Sign in (opens Google's page) and save the token. Returns the channel title when the grant allows reading it."""
+    svc = _service(token)
+    try:
+        items = svc.channels().list(part="snippet", mine=True).execute().get("items", [])
+        return items[0]["snippet"]["title"] if items else ""
+    except Exception:  # the first channel's token may only allow uploads
+        return ""
 
 
 def build_metadata(script: dict, cfg: dict) -> dict:
@@ -76,13 +83,13 @@ def build_metadata(script: dict, cfg: dict) -> dict:
     }
 
 
-def upload(video: Path, script: dict, cfg: dict, privacy: str | None = None) -> str:
+def upload(video: Path, script: dict, cfg: dict, privacy: str | None = None, token: Path | None = None) -> str:
     from . import seo
     seo.ensure(cfg, script)  # videos made before this feature get their metadata written now
     body = build_metadata(script, cfg)
     if privacy:
         body["status"]["privacyStatus"] = privacy
-    req = _service().videos().insert(
+    req = _service(token).videos().insert(
         part="snippet,status", body=body, media_body=MediaFileUpload(str(video), chunksize=-1, resumable=True)
     )
     resp = None

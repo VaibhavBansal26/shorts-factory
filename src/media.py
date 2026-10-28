@@ -49,11 +49,21 @@ def meme_templates() -> list[dict]:
         return json.loads(f.read_text())
     try:
         r = requests.get("https://api.imgflip.com/get_memes", timeout=20)
-        memes = [m for m in r.json()["data"]["memes"] if m.get("box_count") == 2][:60]
+        memes = [m for m in r.json()["data"]["memes"] if m.get("box_count") == 2]
         f.write_text(json.dumps(memes))
-        return memes
     except Exception:
-        return json.loads(f.read_text()) if f.exists() else []
+        memes = json.loads(f.read_text()) if f.exists() else []
+    return local_memes() + memes
+
+
+def local_memes() -> list[dict]:
+    """Your own meme pack: drop images into assets/memes/ (e.g. an Indian-film reaction still you have the rights to).
+    The file name is the template name Claude sees, e.g. 'confused-uncle.jpg' -> 'confused uncle'."""
+    d = ROOT / "assets" / "memes"
+    if not d.exists():
+        return []
+    return [{"id": "local-" + p.stem, "name": p.stem.replace("-", " ").replace("_", " "), "url": str(p), "path": str(p),
+             "box_count": 2} for p in sorted(d.iterdir()) if p.suffix.lower() in (".png", ".jpg", ".jpeg", ".webp")]
 
 
 def _match_meme(name: str) -> dict | None:
@@ -61,6 +71,10 @@ def _match_meme(name: str) -> dict | None:
     names = {m["name"].lower(): m for m in memes}
     hit = get_close_matches(name.lower(), names, n=1, cutoff=0.55)
     return names[hit[0]] if hit else None
+
+
+def meme_base(m: dict) -> Path:
+    return Path(m["path"]) if m.get("path") else _download(m["url"], CACHE / "memes" / f"{m['id']}{Path(m['url']).suffix}")
 
 
 def _download(url: str, dest: Path) -> Path:
@@ -187,8 +201,10 @@ def menu() -> str:
                          f"(tags: {', '.join(i.get('tags', []))})")
     memes = meme_templates()
     if memes:
-        lines.append("MEME TEMPLATES (use meme_template with top_text/bottom_text): "
-                     + "; ".join(m["name"] for m in memes[:40]))
+        lines.append("MEME TEMPLATES (photo style: meme_template with top_text/bottom_text): "
+                     + "; ".join(m["name"] for m in memes[:70]))
+    from . import memes as _m
+    lines.append(_m.HELP)
     lines.append("PUBLIC-DOMAIN ARCHIVE FOOTAGE (vintage films, always available): use type 'archive' with a short "
                  "archive_query like 'vintage computer', '1950s office', 'factory assembly line', 'retro science'. Great "
                  "as ironic b-roll for tech jokes; consider 1-2 scenes (about 15 seconds total).")
@@ -205,6 +221,19 @@ def _extract_frames(src: Path, start: float, dur: float, fps: int, out_dir: Path
     subprocess.run([FFMPEG, "-y", "-loglevel", "error", "-ss", str(start), "-t", f"{dur:.2f}", "-i", str(src),
                     "-an", "-vf", vf, "-q:v", "4", str(out_dir / "%04d.jpg")], check=True)
     return sorted(out_dir.glob("*.jpg"))
+
+
+def make_meme(v: dict, out: Path, photo_font, cfg: dict) -> Path | None:
+    """A meme visual -> PNG: a hand-drawn style (boy/girl, chat, ...) or a photo template with our own text."""
+    from . import memes
+    ui_font = next((p for p in cfg["video"]["fonts"] if Path(p).exists()), None)
+    p = memes.render(v, out, photo_font, ui_font)
+    if p:
+        return p
+    m = _match_meme(v.get("meme_template", ""))
+    if not m:
+        return None
+    return draw_meme(meme_base(m), v.get("top_text", ""), v.get("bottom_text", ""), out, photo_font)
 
 
 def prepare(cfg: dict, script: dict, timeline: dict, workdir: Path) -> dict[int, dict]:
@@ -228,12 +257,9 @@ def prepare(cfg: dict, script: dict, timeline: dict, workdir: Path) -> dict[int,
         dur = min(MAX_CLIP_SECONDS, span["end"] - span["start"] + 0.5)
         try:
             if kind == "meme":
-                m = _match_meme(v.get("meme_template", ""))
-                if not m:
+                p = make_meme(v, workdir / f"meme{idx}.png", font, cfg)
+                if not p:
                     continue
-                base = _download(m["url"], CACHE / "memes" / f"{m['id']}{Path(m['url']).suffix}")
-                p = draw_meme(base, v.get("top_text", ""), v.get("bottom_text", ""),
-                              workdir / f"meme{idx}.png", font)
                 out[idx] = {"kind": "image", "path": p}
             elif kind == "library":
                 e = lib.get(v.get("library_id"))

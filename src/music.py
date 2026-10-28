@@ -48,13 +48,10 @@ def pick(cfg, fmt: str, choice: str | None = None) -> Path | None:
         if p.exists():
             return p
     wanted = set(FORMATS[fmt].get("moods", []))
-    lib = tracks(cfg)
-    if "sigma" in wanted and not any(mood == "sigma" for mood, _ in lib):
-        from . import sigma_bgm
-        sigma_bgm.ensure(cfg)  # original synthesized tracks, generated once
-        lib = tracks(cfg)
+    lib = [(m, p) for m, p in tracks(cfg) if p.name != "main_full.mp3"]
     if not lib:
         return None
-    matches = [p for mood, p in lib if mood in wanted] or [p for mood, p in lib if mood == "any"] \
+    main = [p for mood, p in lib if mood == "main"]  # the channel's own EDM bed is the default for every format
+    matches = main or [p for mood, p in lib if mood in wanted] or [p for mood, p in lib if mood == "any"] \
         or [p for _, p in lib]
     return random.choice(matches)

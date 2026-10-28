@@ -11,6 +11,7 @@ from pathlib import Path
 import anthropic
 
 from . import media, pipeline
+from . import memes as memes_mod
 from .ff import FFMPEG, duration
 from .config import ROOT
 
@@ -21,12 +22,17 @@ You are shown frames sampled from the clip with their timestamps. The dub turns 
 AI and software engineering (topic given by the user) between two voices (male/female), or one narrator.
 
 Rules:
+- Voice casting: FIRST fill "cast" with each distinct on-screen person (what they look like, and whether they appear male
+  or female, which is only used to choose a matching dub voice). Then, for every clip beat, set "voice" to the gender of the
+  person who is speaking or most prominent in THAT segment, so the dub matches who is on screen. If two people talk to each
+  other, alternate between them in line with who is shown. If only one person appears, use that person's voice for every
+  clip beat. Meme and outro beats are voiced by the narrator. If the owner's hint says who is who, follow it.
 - Describe and react to what is VISIBLE (actions, setting, mood). Never identify real people from their faces, never guess
   names or the source show or film.
 - Break the clip into 3-6 consecutive segments (2-8 seconds each, increasing, non-overlapping, inside the clip length). The
   line for a segment must be speakable in that time: at most 2.3 words per second of segment.
-- Insert 1-3 meme beats between segments (not first, not last). Each is 2.5-4 seconds: a meme template from the list, short
-  top/bottom text (max 8 words each, funny and tied to the AI point just made), and a quip (max 8 words) spoken by narrator.
+- Insert 1-3 meme beats between segments (not first, not last). Each is 2.5-4 seconds: a meme (any style from MEME STYLES; vary them: relationship, boy-girl, chat, expectation vs reality, Indian/Hinglish humour, photo templates), short
+  top/bottom text or meme_lines (max 8 words each, funny and tied to the AI point just made), and a quip (max 8 words) spoken by narrator.
 - End with one outro beat: narrator, a real takeaway plus a question for viewers (max 18 words).
 - Total final video must stay under 48 seconds. Teach one true idea about AI/engineering; humour never targets real people.
 - Spoken style: short sentences, no emojis, no hashtags."""
@@ -40,6 +46,9 @@ TOOL = {
             "title": {"type": "string", "description": "YouTube title <= 70 chars"},
             "description": {"type": "string"},
             "tags": {"type": "array", "items": {"type": "string"}, "maxItems": 8},
+            "cast": {"type": "array", "items": {"type": "object", "properties": {
+                "look": {"type": "string"}, "appears": {"type": "string", "enum": ["male", "female"]}},
+                "required": ["look", "appears"]}},
             "beats": {
                 "type": "array",
                 "items": {
@@ -51,15 +60,26 @@ TOOL = {
                         "line": {"type": "string", "description": "exactly what is spoken"},
                         "headline": {"type": "string", "description": "short on-screen label, <= 6 words"},
                         "meme_template": {"type": "string"},
+                        "meme_style": {"type": "string", "enum": ["template", "boy_girl", "chat", "expectation", "drake", "nobody"]},
+                        "meme_lines": {"type": "array", "items": {"type": "string"}},
                         "top_text": {"type": "string"}, "bottom_text": {"type": "string"},
                     },
                     "required": ["kind", "voice", "line"],
                 },
             },
         },
-        "required": ["title", "description", "beats"],
+        "required": ["title", "description", "cast", "beats"],
     },
 }
+
+
+def _system(domain: str) -> str:
+    if domain == "AI and software engineering":
+        return SYSTEM
+    return (SYSTEM.replace("AI and software engineering", domain).replace("about AI/engineering", f"about {domain}")
+            .replace("the AI point just made", "the point just made")
+            + f"\n- Topic area is {domain}: keep facts accurate and general, no invented statistics, and for health or "
+              "nutrition stay educational (not medical advice).")
 
 
 def probe(path: Path) -> float:
@@ -78,14 +98,15 @@ def sample_frames(path: Path, dur: float, workdir: Path, n: int = 6) -> list[tup
     return frames
 
 
-def plan(cfg: dict, clip: Path, dur: float, hint: str, voices: str, memes: int, topic: str, workdir: Path) -> dict:
+def plan(cfg: dict, clip: Path, dur: float, hint: str, voices: str, memes: int, topic: str, workdir: Path,
+         domain: str = "AI and software engineering") -> dict:
     content = []
     for t, jpg in sample_frames(clip, dur, workdir):
         content.append({"type": "text", "text": f"Frame at {t:.1f}s:"})
         content.append({"type": "image", "source": {"type": "base64", "media_type": "image/jpeg",
                                                     "data": base64.b64encode(jpg).decode()}})
-    names = "; ".join(m["name"] for m in media.meme_templates()[:40])
-    voice_rule = ("Use TWO voices alternating (male, female) for clip beats." if voices == "two"
+    names = "; ".join(m["name"] for m in media.meme_templates()[:70]) + "\n" + memes_mod.HELP
+    voice_rule = ("Use TWO voices (male and female), each matched to the person speaking on screen in that segment." if voices == "two"
                   else "Use ONE voice: set voice 'narrator' on every beat.")
     content.append({"type": "text", "text": (
         f"Clip length: {dur:.1f}s. Topic of the conversation: {topic}.\n"
@@ -95,7 +116,7 @@ def plan(cfg: dict, clip: Path, dur: float, hint: str, voices: str, memes: int, 
     feedback = ""
     for _ in range(3):
         resp = client.messages.create(
-            model=cfg["llm"]["model"], max_tokens=2500, system=SYSTEM, tools=[TOOL],
+            model=cfg["llm"]["model"], max_tokens=2500, system=_system(domain), tools=[TOOL],
             tool_choice={"type": "auto"},
             messages=[{"role": "user", "content": content + ([{"type": "text", "text": feedback}] if feedback else [])}])
         block = next((b for b in resp.content if b.type == "tool_use"), None)
@@ -127,6 +148,7 @@ def build_script(cfg: dict, plan_: dict, clip: Path, dur: float, voices: str, mu
         elif b["kind"] == "meme":
             scenes.append({"narration": b["line"], "layout": "big_text", "headline": b.get("headline") or "Meanwhile…",
                            "visual": {"type": "meme", "meme_template": b.get("meme_template", ""),
+                                      "meme_style": b.get("meme_style", "template"), "meme_lines": b.get("meme_lines", []),
                                       "top_text": b.get("top_text", ""), "bottom_text": b.get("bottom_text", "")}})
         else:
             scenes.append({"narration": b["line"], "layout": "question",
@@ -137,13 +159,14 @@ def build_script(cfg: dict, plan_: dict, clip: Path, dur: float, voices: str, mu
 
 
 def make(cfg: dict, clip: Path, hint: str = "", voices: str = "two", memes: int = 2, music: str = "auto",
-         topic: str = "AI agents, hallucinations and prompting, explained like a friendly argument"):
+         topic: str = "AI agents, hallucinations and prompting, explained like a friendly argument",
+         domain: str = "AI and software engineering"):
     clip = Path(clip).resolve()
     dur = min(probe(clip), MAX_CLIP)
     work = ROOT / "data" / "remix_tmp"
     work.mkdir(parents=True, exist_ok=True)
     print(f"\n▶ Remix of {clip.name} ({dur:.0f}s used)")
-    p = plan(cfg, clip, dur, hint, voices, memes, topic, work)
+    p = plan(cfg, clip, dur, hint, voices, memes, topic, work, domain)
     script = build_script(cfg, p, clip, dur, voices, music, clip.name)
     folder, video = pipeline.produce(cfg, script)
     return folder, script, video

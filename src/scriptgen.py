@@ -74,6 +74,8 @@ TOOL = {
                             "properties": {
                                 "type": {"type": "string", "enum": ["none", "meme", "library", "stock", "archive"]},
                                 "meme_template": {"type": "string"},
+                                "meme_style": {"type": "string", "enum": ["template", "boy_girl", "chat", "expectation", "drake", "nobody"]},
+                                "meme_lines": {"type": "array", "items": {"type": "string"}},
                                 "top_text": {"type": "string"},
                                 "bottom_text": {"type": "string"},
                                 "library_id": {"type": "string"},
@@ -113,7 +115,7 @@ def _prompt(item: Item, fmt: str, article_text: str, feedback: str = "") -> str:
     )
 
 
-def generate(cfg: dict, item: Item, fmt: str, article_text: str, series_ctx: str = "") -> dict:
+def generate(cfg: dict, item: Item, fmt: str, article_text: str, series_ctx: str = "", system: str | None = None) -> dict:
     client = anthropic.Anthropic()
     feedback, script = "", None
     base = f"\n{series_ctx}\n" if series_ctx else ""
@@ -121,7 +123,7 @@ def generate(cfg: dict, item: Item, fmt: str, article_text: str, series_ctx: str
         resp = client.messages.create(
             model=cfg["llm"]["model"],
             max_tokens=2500,
-            system=SYSTEM,
+            system=system or SYSTEM,
             tools=[TOOL],
             tool_choice={"type": "auto"},  # newer models reject forced tool choice
             messages=[{"role": "user", "content": _prompt(item, fmt, article_text, base + feedback)}],

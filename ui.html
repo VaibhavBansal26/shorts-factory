@@ -162,20 +162,27 @@ pre{background:var(--bg2);border:1px solid var(--line);border-radius:10px;paddin
 .job pre{max-height:150px;margin-top:8px;font-size:11px}
 .toast{position:fixed;left:50%;top:20px;transform:translateX(-50%);background:var(--panel2);border:1px solid var(--line2);padding:10px 18px;border-radius:12px;z-index:90;box-shadow:var(--shadow)}
 .toast.bad{border-color:var(--bad)}
+.toast{display:flex;gap:12px;align-items:center}.xbtn{background:none;border:0;color:var(--muted,#8a94a6);font-size:16px;line-height:1;cursor:pointer;padding:2px 4px;border-radius:6px}.xbtn:hover{color:var(--text,#fff)}
 
 @media(max-width:1000px){
   .two{grid-template-columns:1fr}main{padding:18px 16px 96px}
   body{flex-direction:column}
   aside{width:100%;height:auto;position:sticky;top:0;flex-direction:row;align-items:center;gap:10px;padding:8px 12px;border-right:0;border-bottom:1px solid var(--line)}
-  .brand{padding:0}.brand div:last-child,.side-foot,.navlabel{display:none}
+  .brand{padding:0}.brand div:last-child,.side-foot,.navlabel,.pickers{display:none}
   nav{flex-direction:row;overflow-x:auto;gap:4px}nav button{padding:8px 10px;white-space:nowrap}nav .count{display:none}
   #dock{left:12px;right:12px;width:auto}.mbox{grid-template-columns:1fr}
 }
+.pickers{display:grid;gap:4px;margin:2px 0 14px}.pickers label{font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--dim)}.pickers select{padding:7px 10px;font-size:13px}
+.cats{display:flex;flex-wrap:wrap;gap:8px}.cats button{background:var(--bg2);border:1px solid var(--line2);border-radius:999px;padding:7px 13px;cursor:pointer;color:var(--mute)}.cats button.on{background:var(--accent);border-color:var(--accent);color:#04101e;font-weight:600}
+.idea{padding:9px 12px;border:1px solid var(--line);border-radius:12px;margin-bottom:8px;cursor:pointer;background:var(--bg2)}.idea:hover{border-color:var(--accent)}.idea b{display:block;font-size:13.5px}.idea span{color:var(--mute);font-size:12.5px}
+.chrow{display:flex;gap:10px;align-items:center;padding:10px 0;border-bottom:1px solid var(--line);flex-wrap:wrap}.chrow:last-child{border:0}.chrow .grow{min-width:140px}.chrow img{width:34px;height:34px;border-radius:9px;background:#fff1;object-fit:cover}
 </style>
 </head>
 <body>
 <aside>
   <div class="brand"><div class="mark">SF</div><div><b>Shorts Factory</b><small id="chan">—</small></div></div>
+  <div class="pickers"><label for="chSel">Channel</label><select id="chSel"></select>
+    <label for="voiceSel" style="margin-top:6px">Voice</label><select id="voiceSel"><option value="indian">Indian English</option><option value="american">American English</option><option value="uk">British English</option><option value="korean">Korean (English)</option></select></div>
   <nav id="nav"></nav>
   <div class="side-foot">
     <div class="setup-card" onclick="go('setup')"><small>Setup</small><div class="bar"><i id="setupBar" style="width:0"></i></div><small id="setupTxt"></small></div>
@@ -188,7 +195,7 @@ pre{background:var(--bg2);border:1px solid var(--line);border-radius:10px;paddin
 <section class="page on" id="p-home">
   <div class="hero">
     <div><h1 id="greet">Welcome back</h1><p class="sub" style="margin:0" id="heroSub">Here’s what’s worth making next.</p></div>
-    <div class="row"><button class="btn p" onclick="go('create')">+ New short</button><button class="btn" onclick="go('remix')">Remix a clip</button></div>
+    <div class="row"><button class="btn p" onclick="go('create')">+ New short</button><button class="btn" onclick="go('studio')">Studio: record &amp; build</button><button class="btn" onclick="go('remix')">Remix a clip</button></div>
   </div>
   <div class="stats" id="stats"></div>
   <div class="sec"><div><h2>Today’s picks</h2><span class="sub" style="margin:0;font-size:12.5px" id="pickMeta"></span></div>
@@ -222,6 +229,69 @@ pre{background:var(--bg2);border:1px solid var(--line);border-radius:10px;paddin
     </div>
   </div>
 </section>
+
+<!-- MISC -->
+<section class="page" id="p-misc">
+  <h1>Misc reels</h1>
+  <p class="sub">Entertainment, cooking, nutrition, general knowledge and more. Make a faceless reel from a topic, or drop in your own video and get it dubbed with memes and music. It uses the channel and voice picked in the sidebar.</p>
+  <div class="two" style="margin-top:0">
+    <div class="card">
+      <label class="l">Category</label><div class="cats" id="mCats"></div>
+      <label class="l" style="margin-top:14px">Topic</label>
+      <div class="row"><div class="grow"><input id="mTopic" placeholder="e.g. why protein at breakfast keeps you full"></div><div><button class="btn" id="mIdeas">Get ideas</button></div></div>
+      <div id="mIdeaList" style="margin-top:10px"></div>
+      <label class="l" style="margin-top:12px">Make it</label>
+      <div class="seg" id="mMode"><button class="on" data-v="faceless">Faceless</button><button data-v="clip">With my video</button></div>
+      <div id="mClipBox" style="display:none;margin-top:12px">
+        <div class="drop" id="dropMisc">Drop a video here, or click to choose<input type="file" id="fileMisc" accept="video/*" hidden></div>
+        <video id="miscPreview" controls style="display:none;width:100%;max-height:280px;margin-top:12px;border-radius:12px;background:#000"></video>
+        <label class="l" style="margin-top:10px">What is in the video? (optional)</label><input id="mHint" placeholder="e.g. someone chopping onions">
+        <label style="display:flex;gap:10px;align-items:flex-start;margin-top:12px;color:var(--mute);font-size:12.5px"><input type="checkbox" id="mRights" style="width:auto;margin-top:3px">I own this video or have the rights to use it.</label>
+      </div>
+    </div>
+    <div class="card">
+      <h2 style="margin-bottom:12px">Options</h2>
+      <p class="sub" style="margin:0 0 10px" id="mFor"></p>
+      <div class="row"><div class="grow"><label class="l">Music</label><select id="mMusic"><option value="auto">Auto (EDM)</option><option value="none">No music</option></select></div>
+        <div class="grow"><label class="l">Memes (video mode)</label><select id="mMemes"><option>0</option><option>1</option><option selected>2</option><option>3</option></select></div></div>
+      <p class="sub" style="margin:12px 0 0;font-size:12px">Faceless reels use memes, text cards and any stock footage or library clips you've added. A free Pexels key in Setup adds stock video. Nutrition, fitness and money reels are written as general information, not advice.</p>
+      <p style="margin:16px 0 0"><button class="btn p" id="mGo">Make reel</button></p>
+    </div>
+  </div>
+</section>
+
+<!-- STUDIO -->
+<section class="page" id="p-studio">
+  <h1>Studio</h1>
+  <p class="sub">1. Claude writes a 30-second script. 2. Record yourself reading it (30-40s, vertical or landscape). 3. Upload it and get an explainer reel: your face, animated graphics, captions and EDM music. Your own voice is kept and pauses are trimmed.</p>
+  <div class="two" style="margin-top:0">
+    <div class="card">
+      <h2 style="margin-bottom:10px">1 · Script</h2>
+      <div class="row"><div class="grow"><input id="stTopic" placeholder="Topic (optional), e.g. why RAG answers go wrong"></div><div><button class="btn p" id="stWrite">Write script</button></div></div>
+      <div id="stScript" style="margin-top:14px"><div class="emptybox">Your script will appear here. You can edit every line.</div></div>
+    </div>
+    <div class="card">
+      <h2 style="margin-bottom:10px">2 · Record and upload</h2>
+      <p class="sub" style="margin:0 0 10px">Read the script as written, in good light, facing the camera. Tip: use the teleprompter so you can keep eye contact.</p>
+      <button class="btn" id="stPrompt" disabled>Open teleprompter</button>
+      <div class="drop" id="dropStudio" style="margin-top:12px">Drop your recording here, or click to choose<input type="file" id="fileStudio" accept="video/*" hidden></div>
+      <video id="studioPreview" controls style="display:none;width:100%;max-height:300px;margin-top:12px;border-radius:12px;background:#000"></video>
+      <div class="row" style="margin-top:12px"><div class="grow"><label class="l">Where is your face in the frame?</label>
+        <select id="stFace"><option value="center" selected>Centre</option><option value="left">Left</option><option value="right">Right</option></select></div>
+        <div class="grow"><label class="l">Music</label><select id="stMusic"><option value="auto">Auto (EDM)</option><option value="none">No music</option></select></div></div>
+      <div class="row" style="margin-top:12px"><div class="grow"><label class="l">Background</label>
+        <select id="stBg"><option value="none">Keep mine</option><option value="studio" selected>Studio (dark, soft lights)</option><option value="clean">Clean light wall</option><option value="blur">Blur my room</option></select></div>
+        <div class="grow"><label class="l">Lighting</label><select id="stPolish"><option value="true" selected>Auto-polish (exposure, contrast, colour)</option><option value="false">As recorded</option></select></div></div>
+      <p class="sub" style="margin:8px 0 0;font-size:12px">Background and lighting are improved on your device. Clothes can't be changed reliably in video, so wear a solid mid-tone colour (blue, green, maroon) and avoid white, tiny patterns and the backdrop's navy.</p>
+      <p style="margin:16px 0 0"><button class="btn p" id="stBuild" disabled>Build my reel</button></p>
+    </div>
+  </div>
+</section>
+<div id="prompter" style="display:none;position:fixed;inset:0;z-index:80;background:#000;color:#fff">
+  <div id="prScroll" style="position:absolute;inset:0;overflow:hidden"><div id="prText" style="padding:45vh 9vw 60vh;font-size:44px;line-height:1.45;font-weight:600;text-align:center"></div></div>
+  <div style="position:absolute;top:14px;right:16px;display:flex;gap:8px;align-items:center;background:#000a;padding:8px 12px;border-radius:12px">
+    <button class="btn sm" id="prGo">Start</button><label class="l" style="margin:0">Speed</label><input type="range" id="prSpeed" min="20" max="120" value="55" style="width:120px"><button class="btn sm" id="prClose">Close</button></div>
+</div>
 
 <!-- REMIX -->
 <section class="page" id="p-remix">
@@ -331,7 +401,7 @@ function askConfirm(msg){return new Promise(res=>{const o=document.createElement
   o.innerHTML=`<div class="card" style="max-width:380px"><p style="margin:0 0 16px">${esc(msg)}</p><div class="row" style="justify-content:flex-end"><button class="btn" data-a="0">Cancel</button><button class="btn p" data-a="1">Continue</button></div></div>`;
   o.onclick=e=>{const b=e.target.closest('[data-a]');if(b){o.remove();res(b.dataset.a==='1')}};document.body.append(o)})}
 document.addEventListener('click',e=>{const a=e.target.closest('a[target=_blank]');if(a&&window.pywebview){e.preventDefault();window.pywebview.api.open(a.href)}});
-function toast(m,bad){const t=document.createElement('div');t.className='toast'+(bad?' bad':'');t.textContent=m;document.body.append(t);setTimeout(()=>t.remove(),3400)}
+function toast(m,bad){const t=document.createElement('div');t.className='toast'+(bad?' bad':'');const sp=document.createElement('span');sp.textContent=m;const x=document.createElement('button');x.className='xbtn';x.textContent='✕';x.setAttribute('aria-label','Close');x.onclick=()=>t.remove();t.append(sp,x);document.body.append(t);setTimeout(()=>t.remove(),bad?8000:3400)}
 const ago=ts=>{if(!ts)return'';const m=Math.round((Date.now()/1000-ts)/60);return m<2?'just now':m<60?m+' min ago':m<1440?Math.round(m/60)+' h ago':Math.round(m/1440)+' d ago'};
 
 /* theme */
@@ -342,22 +412,24 @@ $('#themeBtn').onclick=()=>setTheme(document.documentElement.dataset.theme==='da
 const ICON={
  home:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 11l8-7 8 7v8a1 1 0 01-1 1h-4v-6H9v6H5a1 1 0 01-1-1z"/></svg>',
  create:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3l2.2 5.3L20 9l-4.4 3.8L17 19l-5-3-5 3 1.4-6.2L4 9l5.8-.7z"/></svg>',
+ studio:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="6" width="13" height="12" rx="3"/><path d="M16 10l5-3v10l-5-3z"/></svg>',
+ misc:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="4" y="4" width="7" height="7" rx="2"/><rect x="13" y="4" width="7" height="7" rx="2"/><rect x="4" y="13" width="7" height="7" rx="2"/><rect x="13" y="13" width="7" height="7" rx="2"/></svg>',
  remix:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 7h12l-3-3M20 17H8l3 3"/></svg>',
  library:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="4" width="18" height="16" rx="3"/><path d="M10 9l5 3-5 3z"/></svg>',
  assets:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M9 18V6l10-2v12"/><circle cx="7" cy="18" r="2.5"/><circle cx="17" cy="16" r="2.5"/></svg>',
  schedules:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>',
  setup:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="3"/><path d="M19 12a7 7 0 00-.1-1.2l2-1.5-2-3.4-2.3 1a7 7 0 00-2-1.2L14.3 3h-4l-.3 2.7a7 7 0 00-2 1.2l-2.3-1-2 3.4 2 1.5A7 7 0 005 12c0 .4 0 .8.1 1.2l-2 1.5 2 3.4 2.3-1a7 7 0 002 1.2l.3 2.7h4l.3-2.7a7 7 0 002-1.2l2.3 1 2-3.4-2-1.5c.1-.4.1-.8.1-1.2z"/></svg>'};
-const PAGES=[['home','Home'],['create','Create'],['remix','Remix'],['library','Library'],null,['assets','Music & clips'],['schedules','Schedules'],['setup','Setup']];
+const PAGES=[['home','Home'],['create','Create'],['studio','Studio'],['misc','Misc'],['remix','Remix'],['library','Library'],null,['assets','Music & clips'],['schedules','Schedules'],['setup','Setup']];
 let S={},VIDS=[],fmtSel='',filter='all',openJob=null,sugg={};
 $('#nav').innerHTML=PAGES.map(p=>p?`<button data-p="${p[0]}">${ICON[p[0]]}<span>${p[1]}</span>${p[0]==='library'?'<span class="count" id="vcount">0</span>':''}</button>`:'<div class="navlabel">Manage</div>').join('');
 function go(id){$$('.page').forEach(p=>p.classList.toggle('on',p.id==='p-'+id));$$('#nav button').forEach(b=>b.classList.toggle('on',b.dataset.p===id));
   try{history.replaceState(null,'','#'+id)}catch(e){}
-  ({home:loadHome,create:loadCands,remix:loadRemix,library:loadVideos,assets:loadAssets,schedules:loadSchedules,setup:renderSetup})[id]?.()}
+  ({home:loadHome,create:loadCands,studio:loadStudio,misc:loadMisc,remix:loadRemix,library:loadVideos,assets:loadAssets,schedules:loadSchedules,setup:renderSetup})[id]?.()}
 $('#nav').onclick=e=>{const b=e.target.closest('button');if(b)go(b.dataset.p)};
 
 /* status */
 async function loadStatus(){
-  S=await api('/api/status');$('#chan').textContent=S.channel;renderFormats();
+  S=await api('/api/status');$('#chan').textContent=S.channel;renderFormats();renderPickers();
   const checks=[S.anthropic_key,S.youtube_authorised,S.music_tracks>0,S.channel!=='YOUR CHANNEL NAME'];
   const done=checks.filter(Boolean).length;
   $('#setupBar').style.width=done/checks.length*100+'%';$('#setupTxt').textContent=`${done} of ${checks.length} ready`;
@@ -414,14 +486,15 @@ document.addEventListener('click',async e=>{const b=e.target.closest('[data-url]
   try{await post('/api/generate',{url:b.dataset.url,format:fmtSel});toast('Making it…');pollJobs()}catch(x){toast(x.message,1)}});
 
 /* jobs */
+const DISMISSED=new Set();
 async function pollJobs(){
-  const jobs=(await api('/api/jobs')).slice(0,4);
-  $('#dock').innerHTML=jobs.map(j=>`<div class="job ${j.status}" data-j="${j.id}"><div class="h"><b>${esc(j.title)}</b><span style="color:var(--${j.status==='done'?'ok':j.status==='failed'?'bad':'warn'})">${j.status}</span></div><div class="prog"><i></i></div>${openJob===j.id?`<pre>${esc(j.log||'…')}</pre>`:''}</div>`).join('');
+  const jobs=(await api('/api/jobs')).filter(j=>!DISMISSED.has(j.id)).slice(0,4);
+  $('#dock').innerHTML=jobs.map(j=>`<div class="job ${j.status}" data-j="${j.id}"><div class="h"><b>${esc(j.title)}</b><span style="color:var(--${j.status==='done'?'ok':j.status==='failed'?'bad':'warn'})">${j.status}</span>${j.status==='running'||j.status==='queued'?'':`<button class="xbtn" data-x="${j.id}" aria-label="Dismiss">✕</button>`}</div><div class="prog"><i></i></div>${openJob===j.id?`<pre>${esc(j.log||'…')}</pre>`:''}</div>`).join('');
   const active=jobs.some(j=>j.status==='running'||j.status==='queued');
   if(active)setTimeout(pollJobs,1500);else if(jobs.length){loadVideos();loadStatus()}
   const pre=$('#dock pre');if(pre)pre.scrollTop=1e9;
 }
-$('#dock').onclick=e=>{const j=e.target.closest('.job');if(j){openJob=openJob===j.dataset.j?null:j.dataset.j;pollJobs()}};
+$('#dock').onclick=e=>{const x=e.target.closest('[data-x]');if(x){DISMISSED.add(x.dataset.x);pollJobs();return}const j=e.target.closest('.job');if(j){openJob=openJob===j.dataset.j?null:j.dataset.j;pollJobs()}};
 
 /* remix */
 let rxFile=null,rxVoices='two';
@@ -438,13 +511,69 @@ $('#rxGo').onclick=async()=>{if(!rxFile)return toast('Choose a clip first',1);
   const fd=new FormData();fd.append('file',rxFile);fd.append('hint',$('#rxHint').value);fd.append('topic',$('#rxTopic').value);fd.append('voices',rxVoices);fd.append('memes',$('#rxMemes').value);fd.append('music',$('#rxMusic').value);fd.append('rights',$('#rxRights').checked);
   try{await api('/api/remix',{method:'POST',body:fd});toast('Creating remix…');pollJobs()}catch(e){toast(e.message,1)}};
 
+/* misc */
+let mCat='general_knowledge',mMode='faceless',mFile=null;
+async function loadMisc(){
+  const cats=await api('/api/misc/categories');
+  $('#mCats').innerHTML=cats.map(c=>`<button data-c="${c.id}" class="${c.id===mCat?'on':''}">${esc(c.label.split(' (')[0])}</button>`).join('');
+  const m=await api('/api/music');$('#mMusic').innerHTML='<option value="auto">Auto (EDM)</option><option value="none">No music</option>'+m.map(t=>`<option value="${esc(t.name)}">${esc(t.mood)} · ${esc(t.name)}</option>`).join('');
+  miscFor();
+}
+function miscFor(){const ch=(S.channels||[]).find(c=>c.id===S.active_channel);$('#mFor').textContent=`Making for: ${ch?ch.name:S.channel} · voice: ${$('#voiceSel').selectedOptions[0].text}`}
+$('#mCats').onclick=e=>{const b=e.target.closest('button');if(b){mCat=b.dataset.c;$$('#mCats button').forEach(x=>x.classList.toggle('on',x===b));$('#mIdeaList').innerHTML=''}};
+$('#mIdeas').onclick=async()=>{const b=$('#mIdeas');b.disabled=true;b.textContent='Thinking…';
+  try{const r=await post('/api/misc/ideas',{category:mCat});$('#mIdeaList').innerHTML=r.map(i=>`<div class="idea" data-t="${esc(i.topic)}"><b>${esc(i.topic)}</b><span>“${esc(i.hook)}”</span></div>`).join('')}catch(e){toast(e.message,1)}
+  b.disabled=false;b.textContent='Get ideas'};
+$('#mIdeaList').onclick=e=>{const i=e.target.closest('.idea');if(i)$('#mTopic').value=i.dataset.t};
+$('#mMode').onclick=e=>{const b=e.target.closest('button');if(b){mMode=b.dataset.v;$$('#mMode button').forEach(x=>x.classList.toggle('on',x===b));$('#mClipBox').style.display=mMode==='clip'?'block':'none'}};
+dropzone($('#dropMisc'),$('#fileMisc'),f=>{mFile=f;$('#dropMisc').textContent=f.name;const v=$('#miscPreview');v.src=URL.createObjectURL(f);v.style.display='block'});
+$('#mGo').onclick=async()=>{
+  const fd=new FormData();fd.append('category',mCat);fd.append('topic',$('#mTopic').value);fd.append('music',$('#mMusic').value);
+  if(mMode==='clip'){if(!mFile)return toast('Choose a video first',1);fd.append('file',mFile);fd.append('hint',$('#mHint').value);fd.append('memes',$('#mMemes').value);fd.append('rights',$('#mRights').checked)}
+  try{await api('/api/misc/make',{method:'POST',body:fd});toast('Making your reel…');pollJobs()}catch(e){toast(e.message,1)}};
+
+/* channel + voice pickers */
+function renderPickers(){
+  $('#chSel').innerHTML=(S.channels||[]).map(c=>`<option value="${esc(c.id)}">${esc(c.name)}</option>`).join('');$('#chSel').value=S.active_channel;
+  $('#voiceSel').value=S.accent;
+}
+$('#chSel').onchange=async()=>{await post('/api/channels/active',{id:$('#chSel').value});await loadStatus();toast('New reels will be made for '+S.channel);miscFor()};
+$('#voiceSel').onchange=async()=>{await post('/api/voice',{accent:$('#voiceSel').value});toast('Voice: '+$('#voiceSel').selectedOptions[0].text);miscFor()};
+
+/* studio */
+let ST=null,stFile=null;
+function stRender(){
+  const b=ST.beats;const words=b.reduce((n,x)=>n+x.say.trim().split(/\s+/).filter(Boolean).length,0);
+  $('#stScript').innerHTML=`<label class="l">Title</label><input id="stTitle" value="${esc(ST.title)}">
+   <p class="sub" style="margin:8px 0"><b>${words}</b> words ≈ <b>${Math.round(words/2.5)}s</b> spoken. Aim for 80-100 words.</p>`+
+   b.map((x,i)=>`<div class="scene" style="align-items:flex-start"><i>${i+1}</i><div style="flex:1"><textarea data-b="${i}" rows="3" style="width:100%">${esc(x.say)}</textarea><em>${x.visual.type==='face'?'🎥 face on camera':'🖼 '+esc(x.visual.type)+(x.visual.title?' · '+esc(x.visual.title):'')}</em></div></div>`).join('')+
+   `<div class="row" style="margin-top:8px"><button class="btn sm" id="stCopy">Copy script</button><button class="btn sm" id="stAgain">Write another</button></div>`;
+  $('#stPrompt').disabled=false;stCheck();
+  $('#stScript').oninput=e=>{const t=e.target;if(t.dataset.b!==undefined)ST.beats[+t.dataset.b].say=t.value;if(t.id==='stTitle')ST.title=t.value};
+  $('#stCopy').onclick=()=>{navigator.clipboard?.writeText(ST.beats.map(x=>x.say).join('\n\n'));toast('Script copied')};
+  $('#stAgain').onclick=()=>$('#stWrite').click();
+}
+function stCheck(){$('#stBuild').disabled=!(ST&&stFile)}
+async function loadStudio(){const m=await api('/api/music');$('#stMusic').innerHTML='<option value="auto">Auto (EDM)</option><option value="none">No music</option>'+m.map(t=>`<option value="${esc(t.name)}">${esc(t.mood)} · ${esc(t.name)}</option>`).join('')}
+$('#stWrite').onclick=async()=>{const b=$('#stWrite');b.disabled=true;b.textContent='Writing…';
+  try{ST=await post('/api/studio/script',{topic:$('#stTopic').value,avoid:ST?ST.title:''});stRender();if(ST.mock)toast('No Claude key yet, showing an example script')}catch(e){toast(e.message,1)}
+  b.disabled=false;b.textContent='Write script'};
+dropzone($('#dropStudio'),$('#fileStudio'),f=>{stFile=f;$('#dropStudio').textContent=f.name;const v=$('#studioPreview');v.src=URL.createObjectURL(f);v.style.display='block';stCheck()});
+$('#stBuild').onclick=async()=>{const fd=new FormData();fd.append('file',stFile);fd.append('script',JSON.stringify(ST));fd.append('face',$('#stFace').value);fd.append('music',$('#stMusic').value);fd.append('bg',$('#stBg').value);fd.append('polish',$('#stPolish').value);
+  try{await api('/api/studio/build',{method:'POST',body:fd});toast('Building your reel…');pollJobs()}catch(e){toast(e.message,1)}};
+let prTimer=null;
+$('#stPrompt').onclick=()=>{$('#prText').innerHTML=ST.beats.map(x=>`<p style="margin:0 0 .9em">${esc(x.say)}</p>`).join('');$('#prScroll').scrollTop=0;$('#prompter').style.display='block'};
+$('#prGo').onclick=()=>{if(prTimer){clearInterval(prTimer);prTimer=null;$('#prGo').textContent='Start';return}
+  $('#prGo').textContent='Pause';prTimer=setInterval(()=>{$('#prScroll').scrollTop+=$('#prSpeed').value/30},33)};
+$('#prClose').onclick=()=>{clearInterval(prTimer);prTimer=null;$('#prGo').textContent='Start';$('#prompter').style.display='none'};
+
 /* library */
 function cardHtml(v){return `<div class="vcard" style="--c:${v.accent}">
   <div class="thumb" data-open="${v.folder}"><img loading="lazy" src="/thumb/${v.folder}.jpg" alt=""><span class="badge">${esc(v.label)}</span>${v.video_id?'<span class="chip ok live"><i class="dot"></i>Live</span>':''}
   <div class="play"><i><svg width="20" height="20" viewBox="0 0 24 24"><path d="M8 5v14l11-7z" fill="#08101c"/></svg></i></div></div>
   <h3>${esc(v.title)}</h3>
   <div class="vmeta"><span>${v.scenes.length} scenes</span>${v.video_id?'':'<span class="chip">Draft</span>'}</div>
-  <div class="vact"><button class="btn sm" data-open="${v.folder}">${v.video_id?'Details':'Open'}</button>${v.video_id?`<a class="btn sm" target="_blank" href="https://youtube.com/shorts/${v.video_id}">YouTube ↗</a>`:`<button class="btn sm p" data-open="${v.folder}">Deploy</button>`}</div></div>`}
+  <div class="vact"><button class="btn sm" data-open="${v.folder}">${v.video_id?'Details':'Open'}</button><button class="btn sm" data-dl="${v.folder}" title="Download the video">Download</button>${v.video_id?`<a class="btn sm" target="_blank" href="https://youtube.com/shorts/${v.video_id}">YouTube ↗</a>`:`<button class="btn sm p" data-open="${v.folder}">Deploy</button>`}</div></div>`}
 async function loadVideos(){
   VIDS=await api('/api/videos');$('#vcount').textContent=VIDS.length;
   const fm=[...new Map(VIDS.map(v=>[v.format,v.label])).entries()];
@@ -453,7 +582,13 @@ async function loadVideos(){
   $('#vgrid').innerHTML=list.length?list.map(cardHtml).join(''):'<div class="emptybox" style="grid-column:1/-1">Nothing here yet. Head to Create and generate your first short.</div>';
 }
 $('#filters').onclick=e=>{const b=e.target.closest('button');if(b){filter=b.dataset.f;loadVideos()}};
-document.addEventListener('click',e=>{const o=e.target.closest('[data-open]');if(o)openModal(o.dataset.open)});
+document.addEventListener('click',async e=>{
+  const d=e.target.closest('[data-dl]');
+  if(d){e.stopPropagation();
+    if(S.desktop){try{const r=await post('/api/save',{folder:d.dataset.dl});toast('Saved to Downloads')}catch(x){toast(x.message,1)}}
+    else{const a=document.createElement('a');a.href=`/download/${d.dataset.dl}.mp4`;document.body.append(a);a.click();a.remove()}
+    return}
+  const o=e.target.closest('[data-open]');if(o)openModal(o.dataset.open)});
 
 let priv='private';
 function openModal(folder){
@@ -461,7 +596,7 @@ function openModal(folder){
   const ICO={meme:'🖼',library:'🎞',stock:'📹',archive:'🎬',upload:'🎞',none:''};
   $('#mbox').innerHTML=`<div><video id="player" controls playsinline preload="auto" poster="/thumb/${v.folder}.jpg" src="/output/${v.folder}/video.mp4"></video>
    <p class="sub" id="playerMsg" style="margin:8px 0 0;font-size:12px"></p>
-   <div class="row" style="margin-top:6px;gap:8px"><a class="btn sm" href="/output/${v.folder}/video.mp4" download="${esc(v.folder)}.mp4">Download</a>
+   <div class="row" style="margin-top:6px;gap:8px"><button class="btn sm" data-dl="${v.folder}">Download</button>
    ${S.desktop?`<button class="btn sm" id="openPlayer">Open in player</button><button class="btn sm" id="reveal">Show in Finder</button>`:''}</div></div>
    <div style="min-width:0"><div class="row" style="justify-content:space-between;align-items:center"><span class="chip" style="color:${v.accent}">${esc(v.label)}</span><button class="btn sm" id="mx">Close</button></div>
    <h1 style="font-size:20px;margin:10px 0 4px">${esc(v.title)}</h1>
@@ -474,10 +609,14 @@ function openModal(folder){
    <label class="l" style="margin-top:8px">Description</label><textarea id="seoDesc" style="min-height:120px;font-family:inherit;font-size:13px" placeholder="Press “Write with AI” and I’ll write it in your voice, tuned for search.">${esc((v.seo&&v.seo.description)||'')}</textarea>
    <label class="l" style="margin-top:8px">Hashtags</label><input id="seoTags" value="${esc(((v.seo&&v.seo.hashtags)||[]).join(' '))}" placeholder="#AIEngineering #LLM #RAG">
    <p class="sub" style="font-size:11.5px;margin:6px 0 12px">The source link, the “AI-generated voice” note and #Shorts are added automatically. If left empty, I write these for you on Deploy.</p>
+   <label class="l">Post to channel</label>
+   <select id="pubCh" style="margin-bottom:10px">${(S.channels||[]).map(c=>`<option value="${esc(c.id)}" ${c.id===(v.channel_id||'main')?'selected':''}>${esc(c.name)}${c.connected?'':' (not connected)'}</option>`).join('')}</select>
    <label class="l">Deploy to YouTube as</label>
    <div class="row"><div class="seg" id="pseg">${['private','unlisted','public'].map(p=>`<button data-v="${p}" class="${p===priv?'on':''}">${p}</button>`).join('')}</div>
    <button class="btn p" id="deploy">Deploy</button><button class="btn d" id="del">Delete</button></div>
-   ${S.youtube_authorised?'':'<p class="sub" style="margin:10px 0 0;font-size:12px;color:var(--warn)">YouTube isn’t connected yet. See Setup.</p>'}`}</div>`;
+   <p class="sub" id="chWarn" style="margin:10px 0 0;font-size:12px;color:var(--warn)"></p>`}</div>`;
+  const chk=()=>{const c=(S.channels||[]).find(x=>x.id===$('#pubCh')?.value);const w=$('#chWarn');if(w)w.textContent=c&&!c.connected?`${c.name} isn’t connected to YouTube yet. Connect it in Setup.`:''};
+  $('#pubCh')?.addEventListener('change',chk);chk();
   $('#modal').classList.add('on');
   $('#player').addEventListener('error',()=>{$('#playerMsg').textContent='This player could not stream the file here. Use Open in player or Download.'});
   $('#mx').onclick=closeModal;
@@ -487,7 +626,7 @@ function openModal(folder){
     b.disabled=false;b.textContent='✨ Write with AI'});
   $('#openPlayer')?.addEventListener('click',()=>post('/api/open',{folder}));$('#reveal')?.addEventListener('click',()=>post('/api/open',{folder,reveal:true}));
   $('#pseg')?.addEventListener('click',e=>{const b=e.target.closest('button');if(b){priv=b.dataset.v;$$('#pseg button').forEach(x=>x.classList.toggle('on',x===b))}});
-  $('#deploy')?.addEventListener('click',async()=>{if(!await askConfirm(`Upload to YouTube as ${priv}?`))return;try{await post('/api/publish',{folder,privacy:priv,meta:{title:$('#seoTitle').value,description:$('#seoDesc').value,hashtags:$('#seoTags').value}});closeModal();toast('Uploading…');pollJobs()}catch(e){toast(e.message,1)}});
+  $('#deploy')?.addEventListener('click',async()=>{if(!await askConfirm(`Upload to YouTube as ${priv}?`))return;try{await post('/api/publish',{folder,channel:$('#pubCh').value,privacy:priv,meta:{title:$('#seoTitle').value,description:$('#seoDesc').value,hashtags:$('#seoTags').value}});closeModal();toast('Uploading…');pollJobs()}catch(e){toast(e.message,1)}});
   $('#del')?.addEventListener('click',async()=>{if(await askConfirm('Delete this video?')){await api('/api/videos/'+folder,{method:'DELETE'});closeModal();loadVideos()}});
 }
 function closeModal(){const p=$('#player');if(p)p.pause();$('#modal').classList.remove('on');$('#mbox').innerHTML=''}
@@ -531,18 +670,35 @@ $('#sTable').onclick=async e=>{const t=e.target.closest('[data-tog]'),r=e.target
 function renderSetup(){
   const st=(ok,n,t,body)=>`<div class="step ${ok?'done':''}"><div class="n">${ok?'✓':n}</div><div style="flex:1;min-width:0"><h3>${t} ${ok?'<span class="chip ok">ready</span>':''}</h3>${body}</div></div>`;
   $('#steps').innerHTML=
-   st(S.channel!=='YOUR CHANNEL NAME',1,'Channel identity',`<p>Shown beside your logo on every video.</p>
-     <div class="row"><div class="grow"><label class="l">Channel name</label><input id="cName" value="${esc(S.channel)}"></div><div class="grow"><label class="l">Handle</label><input id="cHandle" value="${esc(S.handle)}"></div>
+   st(S.main_name!=='YOUR CHANNEL NAME',1,'Main channel identity',`<p>Shown beside your logo on videos made for your main channel.</p>
+     <div class="row"><div class="grow"><label class="l">Channel name</label><input id="cName" value="${esc(S.main_name)}"></div><div class="grow"><label class="l">Handle</label><input id="cHandle" value="${esc(S.main_handle)}"></div>
      <div><button class="btn p" id="saveCh">Save</button></div></div>`)+
    st(false,2,'Your logo',`<p>Square PNG with a transparent background works best.</p><div class="row" style="align-items:center"><img src="/logo.png?${Date.now()}" width="56" height="56" style="border-radius:12px;background:#fff1"><div class="drop grow" id="dropLogo" style="padding:14px">Drop a PNG to replace it<input type="file" id="fileLogo" accept="image/*" hidden></div></div>`)+
    st(S.anthropic_key,3,'Claude API key',`<p>Claude writes the scripts and your daily ideas. Without it the app uses hand-written example scripts.</p>
      <div class="row"><div class="grow"><input id="keyIn" type="password" placeholder="${S.anthropic_key?'Key saved. Paste a new one to replace it':'sk-ant-…'}"></div><div><button class="btn p" id="saveKey">Save key</button></div></div>`)+
-   st(S.youtube_authorised,4,'Connect YouTube',`<p>Two parts: your Google Cloud client file, then a one-time sign-in on Google’s own page. This app never sees your password.</p>
+   st(S.channels[0].connected,4,'Connect YouTube (main channel)',`<p>Two parts: your Google Cloud client file, then a one-time sign-in on Google’s own page. This app never sees your password.</p>
      <div class="row" style="align-items:center"><div class="drop grow" id="dropCS" style="padding:12px">${S.client_secret?'client_secret.json is in place. Drop another to replace it':'Drop your client_secret.json here'}<input type="file" id="fileCS" accept=".json" hidden></div>
-     <div><button class="btn p" id="ytConnect" ${S.client_secret?'':'disabled'}>${S.youtube_authorised?'Reconnect':'Connect YouTube'}</button></div></div>
+     <div><button class="btn p" id="ytConnect" ${S.client_secret?'':'disabled'}>${S.channels[0].connected?'Reconnect':'Connect YouTube'}</button></div></div>
      <pre>How to get the file: console.cloud.google.com → new project → enable “YouTube Data API v3” → OAuth consent screen (External, add yourself as a test user) → Credentials → OAuth client ID → Desktop app → Download JSON</pre>`)+
-   st(S.music_tracks>0,5,'Background music',`<p>${S.music_tracks} track(s). The sigma BGM is generated automatically on first use.</p><button class="btn" onclick="go('assets')">Manage music</button>`)+
-   st(S.pexels_key,6,'Stock video (optional)',`<p>A free Pexels key lets scenes use portrait b-roll.</p><pre>echo 'PEXELS_API_KEY=…' &gt;&gt; .env</pre>`);
+   st(S.channels.length>1,5,'More channels',`<p>Add other channels (cooking, facts, anything). Each has its own name, handle, logo and Google sign-in. Pick the channel in the sidebar before making a reel, and choose it again when you deploy.</p>
+     ${S.channels.slice(1).map(c=>`<div class="chrow"><img src="/api/channels/${esc(c.id)}/logo.png?${Date.now()}" alt=""><div class="grow"><b>${esc(c.name)}</b><div class="sub" style="margin:0">${esc(c.handle)} · ${c.connected?'connected':'not connected'}</div></div>
+       <button class="btn sm" data-conn="${esc(c.id)}">${c.connected?'Reconnect':'Connect'}</button><label class="btn sm" style="cursor:pointer">Logo<input type="file" accept="image/*" data-logo="${esc(c.id)}" hidden></label><button class="btn sm d" data-rm="${esc(c.id)}">Remove</button></div>`).join('')}
+     <div class="row" style="margin-top:12px"><div class="grow"><input id="nchName" placeholder="Channel name"></div><div class="grow"><input id="nchHandle" placeholder="@handle"></div><div><button class="btn p" id="addCh">Add channel</button></div></div>
+     <p class="sub" style="font-size:12px;margin:8px 0 0">In Google Cloud, add that channel's Google account as a test user too, and pick the right channel on Google's sign-in screen.</p>`)+
+   st(true,6,'Voices',`<p>Pick the accent in the sidebar (Indian, American, British or Korean-accented English). Free Microsoft voices are used unless you add an ElevenLabs key below. The Korean female voice is the weakest of the set.</p>
+     <label class="l">When a video has no speaker, use a</label><select id="narr" style="max-width:220px"><option value="male">Male narrator</option><option value="female">Female narrator</option></select>`)+
+   st(S.eleven_key,7,'ElevenLabs voices (optional)',`<p>More natural AI voices for the chosen accent. Library voices need a paid ElevenLabs plan through the API; otherwise the free voices are used.</p>
+     <div class="row"><div class="grow"><input id="elKey" type="password" placeholder="${S.eleven_key?'Key saved. Paste a new one to replace it':'ElevenLabs API key'}"></div><div><button class="btn p" id="saveEl">Save key</button></div></div>`)+
+   st(S.music_tracks>0,8,'Background music',`<p>${S.music_tracks} track(s). Your EDM tracks are used by default.</p><button class="btn" onclick="go('assets')">Manage music</button>`)+
+   st(S.pexels_key,9,'Stock video (optional)',`<p>A free Pexels key (pexels.com/api) lets faceless reels use portrait b-roll.</p>
+     <div class="row"><div class="grow"><input id="pxKey" type="password" placeholder="${S.pexels_key?'Key saved. Paste a new one to replace it':'Pexels API key'}"></div><div><button class="btn p" id="savePx">Save key</button></div></div>`);
+  $('#saveEl').onclick=async()=>{if(!$('#elKey').value.trim())return;await post('/api/secrets',{eleven_key:$('#elKey').value});toast('ElevenLabs key saved');loadStatus().then(renderSetup)};
+  $('#savePx').onclick=async()=>{if(!$('#pxKey').value.trim())return;await post('/api/secrets',{pexels_key:$('#pxKey').value});toast('Pexels key saved');loadStatus().then(renderSetup)};
+  $('#narr').value=S.narrator;$('#narr').onchange=()=>post('/api/voice',{narrator:$('#narr').value}).then(()=>toast('Saved'));
+  $('#addCh').onclick=async()=>{try{await post('/api/channels',{name:$('#nchName').value,handle:$('#nchHandle').value});toast('Channel added');await loadStatus();renderSetup()}catch(e){toast(e.message,1)}};
+  $$('[data-conn]').forEach(b=>b.onclick=async()=>{try{await post('/api/youtube/connect',{channel:b.dataset.conn});toast('Finish signing in in the browser window that opened');pollJobs()}catch(e){toast(e.message,1)}});
+  $$('[data-rm]').forEach(b=>b.onclick=async()=>{if(!await askConfirm('Remove this channel from the app? (Nothing is deleted on YouTube.)'))return;await api('/api/channels/'+b.dataset.rm,{method:'DELETE'});await loadStatus();renderSetup()});
+  $$('[data-logo]').forEach(i=>i.onchange=async()=>{const fd=new FormData();fd.append('file',i.files[0]);await api('/api/channels/'+i.dataset.logo+'/logo',{method:'POST',body:fd});toast('Logo updated');renderSetup()});
   $('#saveKey').onclick=async()=>{if(!$('#keyIn').value.trim())return;await post('/api/secrets',{anthropic_key:$('#keyIn').value});toast('Key saved');loadStatus().then(renderSetup)};
   dropzone($('#dropCS'),$('#fileCS'),async f=>{const fd=new FormData();fd.append('file',f);try{await api('/api/youtube/client-secret',{method:'POST',body:fd});toast('Client file saved');loadStatus().then(renderSetup)}catch(e){toast(e.message,1)}});
   $('#ytConnect').onclick=async()=>{try{await post('/api/youtube/connect',{});toast('Finish signing in in the browser window that opened');pollJobs()}catch(e){toast(e.message,1)}};

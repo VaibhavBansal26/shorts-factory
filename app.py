@@ -18,7 +18,7 @@ from pathlib import Path
 from flask import Flask, Response, jsonify, request, send_from_directory
 from werkzeug.utils import secure_filename
 
-from src import config, db, formats, media, music, pipeline, suggest
+from src import channels, config, db, formats, media, music, pipeline, prefs, suggest
 from src.config import CODE, ROOT
 
 cfg = config.load()
@@ -72,8 +72,8 @@ def have_key() -> bool:
     return bool(os.getenv("ANTHROPIC_API_KEY"))
 
 
-def yt_ready() -> bool:
-    return (ROOT / "token.json").exists()
+def yt_ready(cid: str | None = None) -> bool:
+    return channels.token_path(cid or "main").exists()
 
 
 def list_videos():
@@ -86,7 +86,8 @@ def list_videos():
         s = json.loads(sj.read_text())
         vid_id = db.video_id_for(con, str(d))
         vids.append({
-            "folder": d.name, "title": s["title"], "format": s["format"],
+            "folder": d.name, "title": s["title"], "format": s["format"], "channel_id": s.get("channel_id", "main"),
+            "channel": channels.get(cfg, s.get("channel_id", "main"))["name"],
             "label": formats.FORMATS[s["format"]]["label"], "source": s["source"],
             "has_video": (d / "video.mp4").exists(), "video_id": vid_id,
             "accent": "#%02x%02x%02x" % formats.FORMATS[s["format"]]["accent"], "seo": s.get("seo"),
@@ -128,15 +129,17 @@ def healthz():
 # ---------- API ----------
 @app.get("/api/status")
 def status():
-    return jsonify(anthropic_key=have_key(), youtube_authorised=yt_ready(),
-                   pexels_key=bool(os.getenv("PEXELS_API_KEY")),
+    return jsonify(anthropic_key=have_key(), youtube_authorised=yt_ready(prefs.load()["channel"]),
+                   pexels_key=bool(os.getenv("PEXELS_API_KEY")), eleven_key=bool(os.getenv("ELEVENLABS_API_KEY")),
                    music_tracks=len(music.tracks(cfg)), library_clips=len(media.load_library()),
                    formats=[{"id": k, "label": v["label"], "blurb": v.get("blurb", ""), "theme": v.get("theme", "default"),
                              "accent": "#%02x%02x%02x" % v["accent"]} for k, v in formats.FORMATS.items()
                             if not v.get("needs_upload")],
                    logo=cfg["channel"]["logo"], handle=cfg["channel"]["handle"],
                    client_secret=(ROOT / "client_secret.json").exists(), desktop=os.getenv("SF_DESKTOP") == "1",
-                   channel=cfg["channel"]["name"], privacy=cfg["youtube"]["privacy"])
+                   channel=channels.apply(cfg)["channel"]["name"], main_name=cfg["channel"]["name"], main_handle=cfg["channel"]["handle"], privacy=cfg["youtube"]["privacy"],
+                   channels=channels.all_channels(cfg), active_channel=prefs.load()["channel"],
+                   accent=prefs.load()["accent"], narrator=prefs.load()["narrator"])
 
 
 @app.get("/api/videos")
@@ -165,6 +168,7 @@ def candidates():
 @app.post("/api/generate")
 def generate():
     b = request.json
+    jc = channels.apply(cfg)
     mock = bool(b.get("mock")) or not have_key()
     n = max(1, min(int(b.get("n", 1)), 10))
     fmt = b.get("format") or None
@@ -179,15 +183,16 @@ def generate():
             return jsonify(error="item expired, refresh the list"), 404
         f = formats.pick_format(cfg, fmt)
         return jsonify(job=start_job(f"{f}: {item.title[:50]}",
-                                     lambda: pipeline.make_from_item(cfg, item, f, mock)[0].name))
+                                     lambda: pipeline.make_from_item(jc, item, f, mock)[0].name))
     jid = start_job(f"Generate {n} ({fmt or 'auto'}{', canned script' if mock else ''})",
-                    lambda: pipeline.run(cfg, n, fmt, False, None, mock, src))
+                    lambda: pipeline.run(jc, n, fmt, False, None, mock, src))
     return jsonify(job=jid)
 
 
 @app.post("/api/remix")
 def remix_upload():
     from src import remix
+    jc = channels.apply(cfg)
     f = request.files.get("file")
     form = request.form
     if not f:
@@ -201,7 +206,84 @@ def remix_upload():
     args = dict(hint=form.get("hint", ""), voices=form.get("voices", "two"),
                 memes=max(0, min(int(form.get("memes", 2) or 2), 3)), music=form.get("music", "auto"),
                 topic=form.get("topic") or "AI agents, hallucinations and prompting, explained like a friendly argument")
-    return jsonify(job=start_job(f"Remix {f.filename}", lambda: remix.make(cfg, dest, **args)[0].name))
+    return jsonify(job=start_job(f"Remix {f.filename}", lambda: remix.make(jc, dest, **args)[0].name))
+
+
+@app.post("/api/studio/script")
+def studio_script():
+    from src import studio
+    b = request.json or {}
+    try:
+        return jsonify({**studio.write_script(cfg, b.get("topic", ""), b.get("avoid", "")), "mock": not have_key()})
+    except Exception as e:
+        return jsonify(error=f"Could not write the script: {e}"), 500
+
+
+@app.post("/api/studio/build")
+def studio_build():
+    from src import studio
+    jc = channels.apply(cfg)
+    f, form = request.files.get("file"), request.form
+    if not f:
+        return jsonify(error="choose your recording"), 400
+    try:
+        script = json.loads(form.get("script", ""))
+        assert script["beats"]
+    except Exception:
+        return jsonify(error="write a script first"), 400
+    up = ROOT / "data" / "uploads"
+    up.mkdir(parents=True, exist_ok=True)
+    dest = up / f"{uuid.uuid4().hex[:6]}_{secure_filename(f.filename)}"
+    f.save(dest)
+    fx = {"left": 0.15, "center": 0.5, "right": 0.85}.get(form.get("face", "center"), 0.5)
+    return jsonify(job=start_job(f"Studio: {script.get('title', 'reel')[:40]}",
+                                 lambda: studio.make(jc, script, dest, form.get("music", "auto"), fx,
+                                                     form.get("bg", "none") if form.get("bg") in ("none", "blur", "studio", "clean") else "none",
+                                                     form.get("polish") == "true")[0].name))
+
+
+@app.get("/api/misc/categories")
+def misc_categories():
+    from src import misc
+    return jsonify([{"id": k, "label": v} for k, v in misc.CATEGORIES.items()])
+
+
+@app.post("/api/misc/ideas")
+def misc_ideas():
+    from src import misc
+    if not have_key():
+        return jsonify(error="Add your Claude API key in Setup to get topic ideas"), 400
+    b = request.json or {}
+    try:
+        return jsonify(misc.ideas(cfg, b.get("category", "general_knowledge"), b.get("avoid", "")))
+    except Exception as e:
+        return jsonify(error=f"Could not get ideas: {e}"), 500
+
+
+@app.post("/api/misc/make")
+def misc_make():
+    """Faceless (Claude writes it) or, when a video is attached, a dub of your clip in this topic area."""
+    from src import misc
+    jc = channels.apply(cfg)
+    form = request.form if request.files or request.form else (request.json or {})
+    category, topic = form.get("category", "general_knowledge"), (form.get("topic") or "").strip()
+    f = request.files.get("file")
+    if not have_key():
+        return jsonify(error="Misc reels need your Claude API key. Add it in Setup."), 400
+    if not f and not topic:
+        return jsonify(error="Type a topic or pick one of the ideas"), 400
+    if f:
+        if form.get("rights") != "true":
+            return jsonify(error="Please confirm you own this clip or have the rights to use it."), 400
+        up = ROOT / "data" / "uploads"
+        up.mkdir(parents=True, exist_ok=True)
+        dest = up / f"{uuid.uuid4().hex[:6]}_{secure_filename(f.filename)}"
+        f.save(dest)
+        args = dict(hint=form.get("hint", ""), voices=form.get("voices", "two"),
+                    memes=max(0, min(int(form.get("memes", 2) or 2), 3)), music=form.get("music", "auto"))
+        return jsonify(job=start_job(f"Misc clip: {topic[:40] or f.filename}",
+                                     lambda: misc.make_with_clip(jc, dest, category, topic, **args)[0].name))
+    return jsonify(job=start_job(f"Misc: {topic[:50]}", lambda: misc.make_faceless(jc, category, topic)[0].name))
 
 
 @app.post("/api/render-script")
@@ -212,7 +294,7 @@ def render_script():
             return jsonify(error=f"missing '{k}'"), 400
     if script["format"] not in formats.FORMATS:
         return jsonify(error="unknown format"), 400
-    return jsonify(job=start_job(f"Render '{script['title']}'", lambda: pipeline.render_script(cfg, script)[0].name))
+    return jsonify(job=start_job(f"Render '{script['title']}'", lambda: pipeline.render_script(channels.apply(cfg), script)[0].name))
 
 
 @app.post("/api/seo")
@@ -251,13 +333,18 @@ def publish():
         sj.write_text(json.dumps(script, indent=2))
     if not (folder / "video.mp4").exists():
         return jsonify(error="no video"), 404
-    if not yt_ready():
-        return jsonify(error="YouTube not authorised yet. Run: python main.py auth"), 400
+    script0 = json.loads((folder / "script.json").read_text())
+    cid = b.get("channel") or script0.get("channel_id") or "main"
+    if not yt_ready(cid):
+        return jsonify(error=f"“{channels.get(cfg, cid)['name']}” isn't connected to YouTube yet. Connect it in Setup."), 400
 
     def go():
         from src import youtube
         script = json.loads((folder / "script.json").read_text())
-        vid = youtube.upload(folder / "video.mp4", script, cfg, b.get("privacy") or None)
+        script["channel_id"] = cid  # remember where it was posted
+        (folder / "script.json").write_text(json.dumps(script, indent=2))
+        vid = youtube.upload(folder / "video.mp4", script, channels.apply(cfg, cid), b.get("privacy") or None,
+                             channels.token_path(cid))
         db.set_video_id(db.connect(), str(folder), vid)
         return vid
 
@@ -293,6 +380,39 @@ def open_local():
     f = OUT / secure_filename(request.json["folder"]) / "video.mp4"
     subprocess.run(["open", "-R", str(f)] if request.json.get("reveal") else ["open", str(f)])
     return jsonify(ok=True)
+
+
+@app.get("/download/<folder>.mp4")
+def download(folder):
+    """Web: serve the video as an attachment named after its title."""
+    d = OUT / secure_filename(folder)
+    try:
+        name = secure_filename(json.loads((d / "script.json").read_text())["title"]) or folder
+    except Exception:
+        name = folder
+    return send_from_directory(d, "video.mp4", as_attachment=True, download_name=f"{name}.mp4")
+
+
+@app.post("/api/save")
+def save_local():
+    """Desktop: the native window ignores download links, so copy the file into ~/Downloads and reveal it."""
+    if os.getenv("SF_DESKTOP") != "1":
+        return jsonify(error="Only available in the desktop app"), 400
+    import subprocess
+    folder = secure_filename(request.json["folder"])
+    try:
+        name = secure_filename(json.loads((OUT / folder / "script.json").read_text())["title"]) or folder
+    except Exception:
+        name = folder
+    dest_dir = Path.home() / "Downloads"
+    dest = dest_dir / f"{name}.mp4"
+    n = 1
+    while dest.exists():
+        n += 1
+        dest = dest_dir / f"{name}-{n}.mp4"
+    shutil.copy2(OUT / folder / "video.mp4", dest)
+    subprocess.run(["open", "-R", str(dest)])
+    return jsonify(ok=True, path=str(dest))
 
 
 @app.get("/api/suggestions")
@@ -379,7 +499,8 @@ def _set_env_file(key: str, value: str):
 @app.post("/api/secrets")
 def secrets():
     b = request.json or {}
-    for field, env in (("anthropic_key", "ANTHROPIC_API_KEY"), ("pexels_key", "PEXELS_API_KEY")):
+    for field, env in (("anthropic_key", "ANTHROPIC_API_KEY"), ("pexels_key", "PEXELS_API_KEY"),
+                       ("eleven_key", "ELEVENLABS_API_KEY")):
         if b.get(field, "").strip():
             _set_env_file(env, b[field])
     return jsonify(ok=True)
@@ -403,11 +524,85 @@ def yt_connect():
     """Opens Google's sign-in page in the browser on this computer (desktop app / local use only)."""
     from src import youtube
 
-    def go():
-        youtube.authorize()
-        return "connected"
+    cid = (request.json or {}).get("channel") or "main"
 
-    return jsonify(job=start_job("Connect YouTube (finish in the browser window)", go))
+    def go():
+        title = youtube.authorize(channels.token_path(cid))
+        ch = channels.get(cfg, cid)
+        if title and cid != "main" and not ch.get("name"):
+            channels.update(cid, name=title)
+        return f"connected {title}".strip()
+
+    return jsonify(job=start_job(f"Connect YouTube: {channels.get(cfg, cid)['name']} (finish in the browser window)", go))
+
+
+@app.get("/api/voice")
+def voice_get():
+    return jsonify(prefs.load())
+
+
+@app.post("/api/voice")
+def voice_set():
+    return jsonify(prefs.save(**{k: v for k, v in (request.json or {}).items() if k in ("accent", "narrator")}))
+
+
+@app.get("/api/channels")
+def channels_list():
+    return jsonify(channels=channels.all_channels(cfg), active=prefs.load()["channel"])
+
+
+@app.post("/api/channels")
+def channels_add():
+    b = request.json or {}
+    if not (b.get("name") or "").strip():
+        return jsonify(error="Give the channel a name"), 400
+    return jsonify(channels.add(b["name"], b.get("handle", ""), b.get("about", "")))
+
+
+@app.post("/api/channels/active")
+def channels_active():
+    cid = (request.json or {}).get("id", "main")
+    if cid not in [c["id"] for c in channels.all_channels(cfg)]:
+        return jsonify(error="unknown channel"), 404
+    return jsonify(prefs.save(channel=cid))
+
+
+@app.post("/api/channels/<cid>")
+def channels_update(cid):
+    b = request.json or {}
+    if cid == "main":
+        return jsonify(error="Edit the main channel under Channel identity"), 400
+    channels.update(cid, name=b.get("name"), handle=b.get("handle"), about=b.get("about"))
+    return jsonify(ok=True)
+
+
+@app.delete("/api/channels/<cid>")
+def channels_delete(cid):
+    if cid == "main":
+        return jsonify(error="The main channel can't be removed"), 400
+    channels.remove(cid)
+    if prefs.load()["channel"] == cid:
+        prefs.save(channel="main")
+    return jsonify(ok=True)
+
+
+@app.post("/api/channels/<cid>/logo")
+def channels_logo(cid):
+    f = request.files["file"]
+    rel = f"assets/logos/{secure_filename(cid)}.png"
+    dest = ROOT / rel
+    dest.parent.mkdir(parents=True, exist_ok=True)
+    f.save(dest)
+    if cid != "main":
+        channels.update(cid, logo=rel)
+    return jsonify(ok=True)
+
+
+@app.get("/api/channels/<cid>/logo.png")
+def channels_logo_file(cid):
+    ch = channels.get(cfg, cid)
+    p = ROOT / (ch.get("logo") or cfg["channel"]["logo"])
+    return send_from_directory(p.parent, p.name)
 
 
 @app.post("/api/logo")

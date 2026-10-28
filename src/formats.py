@@ -126,7 +126,7 @@ FORMATS = {
         "words": (55, 85),
         "guide": (
             "A funny-but-useful short. Open with a relatable engineering pain as a meme scene "
-            "(visual.type='meme', pick the template whose joke actually fits, keep top/bottom text under 8 words each), "
+            "(visual.type='meme'; vary the style across videos: photo template, boy_girl, chat, expectation, drake or nobody, with relationship and Indian/Hinglish humour welcome; keep text under 8 words per line), "
             "then explain the real concept or fix from the source in 2-3 plain sentences, and close with a second "
             "meme or a one-line takeaway. Humour must land on the technical idea, never on a person or company."
         ),
@@ -183,12 +183,36 @@ FORMATS = {
             "technical takeaway in one sentence plus a question to the viewer."
         ),
     },
+    "misc": {
+        "blurb": "General-interest short: entertainment, cooking, nutrition, general knowledge and more.",
+        "theme": "default",
+        "needs_upload": True,
+        "label": "MISC",
+        "moods": ["upbeat", "any"],
+        "accent": (251, 146, 60),
+        "words": (60, 100),
+        "guide": (
+            "A fast, curious, accurate short on the given topic. Hook in the first sentence, 3-4 concrete points or steps, "
+            "one 'did you know' style payoff, and a closing question for viewers. Use a meme or visual scene only where it "
+            "genuinely helps (media menu), and keep humour light."
+        ),
+    },
+    "studio": {
+        "blurb": "Claude writes a 30s script, you record it, and Shorts Factory builds the explainer reel around you.",
+        "theme": "default",
+        "needs_upload": True,
+        "label": "STUDIO",
+        "moods": ["any"],
+        "accent": (96, 165, 250),
+        "words": (60, 120),
+        "guide": "Built from your own recording (see src/studio.py).",
+    },
     "remix": {
         "blurb": "Upload your own clip. It gets an English AI-discussion dub, memes in between and your music.",
         "theme": "default",
         "needs_upload": True,
         "label": "REMIX",
-        "moods": ["funny", "upbeat", "sigma", "any"],
+        "moods": ["edm"],
         "accent": (96, 165, 250),
         "words": (30, 110),
         "guide": "Built from an uploaded clip (see src/remix.py).",

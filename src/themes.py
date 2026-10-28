@@ -9,8 +9,8 @@ from PIL import Image, ImageDraw, ImageEnhance, ImageFilter
 
 THEMES = {
     "default": {"bg": ((10, 14, 28), (4, 6, 14)), "vignette": 0.0, "music_gain": 1.0},
-    "sigma": {"bg": ((26, 26, 28), (0, 0, 0)), "vignette": 0.85, "music_gain": 2.4},
-    "drama": {"bg": ((54, 18, 52), (10, 8, 32)), "vignette": 0.6, "music_gain": 2.0},
+    "sigma": {"bg": ((26, 26, 28), (0, 0, 0)), "vignette": 0.85, "music_gain": 1.0},
+    "drama": {"bg": ((54, 18, 52), (10, 8, 32)), "vignette": 0.6, "music_gain": 1.0},
 }
 
 SKIN = (238, 202, 172)

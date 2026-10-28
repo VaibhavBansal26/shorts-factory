@@ -21,6 +21,7 @@ def produce(cfg: dict, script: dict):
     lo, hi = cfg["video"]["min_seconds"], cfg["video"]["max_seconds"]
     if script.get("format") == "remix":
         hi = cfg["video"].get("max_seconds_remix", 50)
+    script.setdefault("channel_id", cfg["channel"].get("id", "main"))
     folder = ROOT / "output" / f"{date.today()}_{slug(script['title'])}"
     folder.mkdir(parents=True, exist_ok=True)
     (folder / "script.json").write_text(json.dumps(script, indent=2))

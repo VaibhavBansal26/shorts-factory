@@ -21,7 +21,12 @@ def duration(path) -> float:
     """Media duration in seconds (parsed from ffmpeg's banner, so no ffprobe is needed)."""
     err = subprocess.run([FFMPEG, "-hide_banner", "-i", str(path)], capture_output=True, text=True).stderr
     m = re.search(r"Duration:\s*(\d+):(\d+):(\d+(?:\.\d+)?)", err)
-    if not m:
-        raise RuntimeError(f"Could not read duration of {path}")
+    if not m:  # browser-recorded webm has no duration header: decode once and read the last timestamp
+        err = subprocess.run([FFMPEG, "-hide_banner", "-i", str(path), "-f", "null", "-"],
+                             capture_output=True, text=True).stderr
+        times = re.findall(r"time=(\d+):(\d+):(\d+(?:\.\d+)?)", err)
+        if not times:
+            raise RuntimeError(f"Could not read duration of {path}")
+        m = re.match(r"(\d+):(\d+):(\d+(?:\.\d+)?)", ":".join(times[-1]))
     h, mi, s = m.groups()
     return int(h) * 3600 + int(mi) * 60 + float(s)

@@ -105,7 +105,9 @@ Auto-deploy needs YouTube authorised first. There is no cron job; if you close t
 
 ## Desktop app (macOS)
 
-**Download:** the latest `Shorts-Factory.dmg` is on the [Releases page](https://github.com/VaibhavBansal26/shorts-factory/releases/latest) (private repo, sign in to GitHub to download). Open it and drag the app to Applications.
+**Download:** the [Releases page](https://github.com/VaibhavBansal26/shorts-factory/releases/latest) has `Shorts-Factory-AppleSilicon.dmg` (M1 and later) and `Shorts-Factory-Intel.dmg` (Intel Macs). Private repo: sign in to GitHub to download. Open the DMG and drag the app to Applications. Both are built by the *Build macOS apps* GitHub Action (Actions tab, enter the release tag).
+
+The app isn't signed, so on first open macOS blocks it. Run `xattr -dr com.apple.quarantine "/Applications/Shorts Factory.app"` once, or use System Settings, Privacy & Security, Open Anyway.
 
 ```bash
 ./build_desktop.sh        # creates dist/Shorts Factory.app (and you can drag it to Applications)

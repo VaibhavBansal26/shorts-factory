@@ -42,7 +42,12 @@ jobs:
       - name: Make the DMG
         run: |
           mkdir stage && cp -R "dist/Shorts Factory.app" stage/ && ln -s /Applications stage/Applications
-          hdiutil create -volname "Shorts Factory" -srcfolder stage -ov -format UDZO "Shorts-Factory-${{ matrix.arch }}.dmg"
+          sudo mdutil -a -i off || true   # indexing keeps the volume busy on CI runners
+          for i in 1 2 3 4 5 6; do
+            hdiutil create -volname "Shorts Factory" -srcfolder stage -ov -format UDZO "Shorts-Factory-${{ matrix.arch }}.dmg" && break
+            echo "hdiutil busy, retry $i"; sleep 10
+          done
+          test -f "Shorts-Factory-${{ matrix.arch }}.dmg"
           shasum -a 256 "Shorts-Factory-${{ matrix.arch }}.dmg"
       - uses: actions/upload-artifact@v4
         with:

@@ -182,7 +182,8 @@ pre{background:var(--bg2);border:1px solid var(--line);border-radius:10px;paddin
 <aside>
   <div class="brand"><div class="mark">SF</div><div><b>Shorts Factory</b><small id="chan">—</small></div></div>
   <div class="pickers"><label for="chSel">Channel</label><select id="chSel"></select>
-    <label for="voiceSel" style="margin-top:6px">Voice</label><select id="voiceSel"><option value="indian">Indian English</option><option value="american">American English</option><option value="uk">British English</option><option value="korean">Korean (English)</option></select></div>
+    <label for="voiceSel" style="margin-top:6px">Voice</label><select id="voiceSel"><option value="indian">Indian English</option><option value="american">American English</option><option value="uk">British English</option><option value="korean">Korean (English)</option></select>
+    <label for="narrSel" style="margin-top:6px">Speaker</label><select id="narrSel"><option value="male">Male voice</option><option value="female">Female voice</option></select></div>
   <nav id="nav"></nav>
   <div class="side-foot">
     <div class="setup-card" onclick="go('setup')"><small>Setup</small><div class="bar"><i id="setupBar" style="width:0"></i></div><small id="setupTxt"></small></div>
@@ -535,9 +536,10 @@ $('#mGo').onclick=async()=>{
 /* channel + voice pickers */
 function renderPickers(){
   $('#chSel').innerHTML=(S.channels||[]).map(c=>`<option value="${esc(c.id)}">${esc(c.name)}</option>`).join('');$('#chSel').value=S.active_channel;
-  $('#voiceSel').value=S.accent;
+  $('#voiceSel').value=S.accent;$('#narrSel').value=S.narrator;
 }
 $('#chSel').onchange=async()=>{await post('/api/channels/active',{id:$('#chSel').value});await loadStatus();toast('New reels will be made for '+S.channel);miscFor()};
+$('#narrSel').onchange=async()=>{await post('/api/voice',{narrator:$('#narrSel').value});toast('Speaker: '+$('#narrSel').selectedOptions[0].text)};
 $('#voiceSel').onchange=async()=>{await post('/api/voice',{accent:$('#voiceSel').value});toast('Voice: '+$('#voiceSel').selectedOptions[0].text);miscFor()};
 
 /* studio */
@@ -686,7 +688,7 @@ function renderSetup(){
      <div class="row" style="margin-top:12px"><div class="grow"><input id="nchName" placeholder="Channel name"></div><div class="grow"><input id="nchHandle" placeholder="@handle"></div><div><button class="btn p" id="addCh">Add channel</button></div></div>
      <p class="sub" style="font-size:12px;margin:8px 0 0">In Google Cloud, add that channel's Google account as a test user too, and pick the right channel on Google's sign-in screen.</p>`)+
    st(true,6,'Voices',`<p>Pick the accent in the sidebar (Indian, American, British or Korean-accented English). Free Microsoft voices are used unless you add an ElevenLabs key below. The Korean female voice is the weakest of the set.</p>
-     <label class="l">When a video has no speaker, use a</label><select id="narr" style="max-width:220px"><option value="male">Male narrator</option><option value="female">Female narrator</option></select>`)+
+     <label class="l">Default speaker (same as the sidebar)</label><select id="narr" style="max-width:220px"><option value="male">Male narrator</option><option value="female">Female narrator</option></select>`)+
    st(S.eleven_key,7,'ElevenLabs voices (optional)',`<p>More natural AI voices for the chosen accent. Library voices need a paid ElevenLabs plan through the API; otherwise the free voices are used.</p>
      <div class="row"><div class="grow"><input id="elKey" type="password" placeholder="${S.eleven_key?'Key saved. Paste a new one to replace it':'ElevenLabs API key'}"></div><div><button class="btn p" id="saveEl">Save key</button></div></div>`)+
    st(S.music_tracks>0,8,'Background music',`<p>${S.music_tracks} track(s). Your EDM tracks are used by default.</p><button class="btn" onclick="go('assets')">Manage music</button>`)+
@@ -694,7 +696,7 @@ function renderSetup(){
      <div class="row"><div class="grow"><input id="pxKey" type="password" placeholder="${S.pexels_key?'Key saved. Paste a new one to replace it':'Pexels API key'}"></div><div><button class="btn p" id="savePx">Save key</button></div></div>`);
   $('#saveEl').onclick=async()=>{if(!$('#elKey').value.trim())return;await post('/api/secrets',{eleven_key:$('#elKey').value});toast('ElevenLabs key saved');loadStatus().then(renderSetup)};
   $('#savePx').onclick=async()=>{if(!$('#pxKey').value.trim())return;await post('/api/secrets',{pexels_key:$('#pxKey').value});toast('Pexels key saved');loadStatus().then(renderSetup)};
-  $('#narr').value=S.narrator;$('#narr').onchange=()=>post('/api/voice',{narrator:$('#narr').value}).then(()=>toast('Saved'));
+  $('#narr').value=S.narrator;$('#narr').onchange=()=>post('/api/voice',{narrator:$('#narr').value}).then(()=>loadStatus()).then(()=>toast('Saved'));
   $('#addCh').onclick=async()=>{try{await post('/api/channels',{name:$('#nchName').value,handle:$('#nchHandle').value});toast('Channel added');await loadStatus();renderSetup()}catch(e){toast(e.message,1)}};
   $$('[data-conn]').forEach(b=>b.onclick=async()=>{try{await post('/api/youtube/connect',{channel:b.dataset.conn});toast('Finish signing in in the browser window that opened');pollJobs()}catch(e){toast(e.message,1)}});
   $$('[data-rm]').forEach(b=>b.onclick=async()=>{if(!await askConfirm('Remove this channel from the app? (Nothing is deleted on YouTube.)'))return;await api('/api/channels/'+b.dataset.rm,{method:'DELETE'});await loadStatus();renderSetup()});

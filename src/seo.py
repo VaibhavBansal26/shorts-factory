@@ -69,7 +69,10 @@ def generate(cfg: dict, script: dict) -> dict:
         f"Channel: {ch['name']} ({ch['handle']}). About: {ch.get('about', 'AI and software engineering explained in under 45 seconds')}\n"
         f"Video format: {script['format']}. Working title: {script['title']}\n"
         f"Source it was inspired by: {src.get('title', '')} ({src.get('name', '')})\n"
-        f"What the video says (script):\n{story}\n\nCall submit_metadata.")
+        f"What the video says (script):\n{story}\n\n"
+        + {"hi": "Write the title and description in Hindi (Devanagari); keep hashtags short and searchable (English or Hindi).\n",
+           "hinglish": "Write the title and description in Hinglish (Hindi in Roman letters), the way Indian viewers type.\n"
+           }.get(script.get("language"), "") + "Call submit_metadata.")
     client = anthropic.Anthropic()
     resp = client.messages.create(model=cfg["llm"]["model"], max_tokens=1500, system=SYSTEM, tools=[TOOL],
                                   tool_choice={"type": "auto"}, messages=[{"role": "user", "content": prompt}])

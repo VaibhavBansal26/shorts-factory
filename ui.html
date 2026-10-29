@@ -282,6 +282,8 @@ window.addEventListener('unhandledrejection',function(ev){show(String(ev.reason&
     <div class="card">
       <h2 style="margin-bottom:12px">Options</h2>
       <p class="sub" style="margin:0 0 10px" id="mFor"></p>
+      <div class="row" style="margin-bottom:10px"><div class="grow"><label class="l">Language</label><select id="mLang"></select></div>
+        <div class="grow"><label class="l">Content for</label><select id="mAud"></select></div></div>
       <div class="row"><div class="grow"><label class="l">Music</label><select id="mMusic"><option value="auto">Auto (EDM)</option><option value="none">No music</option></select></div>
         <div class="grow"><label class="l">Memes (video mode)</label><select id="mMemes"><option>0</option><option>1</option><option selected>2</option><option>3</option></select></div></div>
       <p class="sub" style="margin:12px 0 0;font-size:12px">Faceless reels use memes, text cards and any stock footage or library clips you've added. A free Pexels key in Setup adds stock video. Nutrition, fitness and money reels are written as general information, not advice.</p>
@@ -550,19 +552,22 @@ let mCat='general_knowledge',mMode='faceless',mFile=null;
 async function loadMisc(){
   const cats=await api('/api/misc/categories');
   $('#mCats').innerHTML=cats.map(c=>`<button data-c="${c.id}" class="${c.id===mCat?'on':''}">${esc(c.label.split(' (')[0])}</button>`).join('');
+  const o=await api('/api/misc/options');
+  if(!$('#mLang').options.length){$('#mLang').innerHTML=o.languages.map(x=>`<option value="${x.id}">${esc(x.label)}</option>`).join('');$('#mAud').innerHTML=o.audiences.map(x=>`<option value="${x.id}">${esc(x.label)}</option>`).join('');
+    try{$('#mLang').value=localStorage.getItem('mLang')||'en';$('#mAud').value=localStorage.getItem('mAud')||'global'}catch(e){}}
   const m=await api('/api/music');$('#mMusic').innerHTML='<option value="auto">Auto (EDM)</option><option value="none">No music</option>'+m.map(t=>`<option value="${esc(t.name)}">${esc(t.mood)} · ${esc(t.name)}</option>`).join('');
   miscFor();
 }
 function miscFor(){const ch=(S.channels||[]).find(c=>c.id===S.active_channel);$('#mFor').textContent=`Making for: ${ch?ch.name:S.channel} · voice: ${$('#voiceSel').selectedOptions[0].text}`}
 $('#mCats').onclick=e=>{const b=e.target.closest('button');if(b){mCat=b.dataset.c;$$('#mCats button').forEach(x=>x.classList.toggle('on',x===b));$('#mIdeaList').innerHTML=''}};
 $('#mIdeas').onclick=async()=>{const b=$('#mIdeas');b.disabled=true;b.textContent='Thinking…';
-  try{const r=await post('/api/misc/ideas',{category:mCat});$('#mIdeaList').innerHTML=r.map(i=>`<div class="idea" data-t="${esc(i.topic)}"><b>${esc(i.topic)}</b><span>“${esc(i.hook)}”</span></div>`).join('')}catch(e){toast(e.message,1)}
+  try{const r=await post('/api/misc/ideas',{category:mCat,language:$('#mLang').value,audience:$('#mAud').value});$('#mIdeaList').innerHTML=r.map(i=>`<div class="idea" data-t="${esc(i.topic)}"><b>${esc(i.topic)}</b><span>“${esc(i.hook)}”</span></div>`).join('')}catch(e){toast(e.message,1)}
   b.disabled=false;b.textContent='Get ideas'};
 $('#mIdeaList').onclick=e=>{const i=e.target.closest('.idea');if(i)$('#mTopic').value=i.dataset.t};
 $('#mMode').onclick=e=>{const b=e.target.closest('button');if(b){mMode=b.dataset.v;$$('#mMode button').forEach(x=>x.classList.toggle('on',x===b));$('#mClipBox').style.display=mMode==='clip'?'block':'none'}};
 dropzone($('#dropMisc'),$('#fileMisc'),f=>{mFile=f;$('#dropMisc').textContent=f.name;const v=$('#miscPreview');v.src=URL.createObjectURL(f);v.style.display='block'});
 $('#mGo').onclick=async()=>{
-  const fd=new FormData();fd.append('category',mCat);fd.append('topic',$('#mTopic').value);fd.append('music',$('#mMusic').value);
+  const fd=new FormData();fd.append('category',mCat);fd.append('topic',$('#mTopic').value);fd.append('music',$('#mMusic').value);fd.append('language',$('#mLang').value);fd.append('audience',$('#mAud').value);try{localStorage.setItem('mLang',$('#mLang').value);localStorage.setItem('mAud',$('#mAud').value)}catch(e){}
   if(mMode==='clip'){if(!mFile)return toast('Choose a video first',1);fd.append('file',mFile);fd.append('hint',$('#mHint').value);fd.append('memes',$('#mMemes').value);fd.append('rights',$('#mRights').checked)}
   try{await api('/api/misc/make',{method:'POST',body:fd});toast('Making your reel…');pollJobs()}catch(e){toast(e.message,1)}};
 

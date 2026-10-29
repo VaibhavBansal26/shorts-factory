@@ -4,7 +4,7 @@ import re
 import time
 from datetime import date
 
-from . import db, media, music, scriptgen, seo, sources, tts
+from . import db, fonts, media, music, scriptgen, seo, sources, tts
 from .config import ROOT
 from .formats import pick_format
 from .render import Renderer
@@ -13,11 +13,16 @@ RATES = [None, "+14%", "+22%"]  # progressively faster narration if a script run
 
 
 def slug(s: str) -> str:
-    return re.sub(r"[^a-z0-9]+", "-", s.lower()).strip("-")[:40]
+    out = re.sub(r"[^a-z0-9]+", "-", s.lower()).strip("-")[:40]
+    if len(out) < 4:  # Hindi and other non-Latin titles: fall back to a short hash so folders never collide
+        import hashlib
+        out = (out + "-" if out else "reel-") + hashlib.sha1(s.encode()).hexdigest()[:8]
+    return out
 
 
 def produce(cfg: dict, script: dict):
     """voiceover + visuals + music + render for a finished script dict. Returns (folder, video_path)."""
+    cfg = fonts.for_script(cfg, script)
     lo, hi = cfg["video"]["min_seconds"], cfg["video"]["max_seconds"]
     if script.get("format") == "remix":
         hi = cfg["video"].get("max_seconds_remix", 50)

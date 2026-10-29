@@ -266,6 +266,13 @@ def misc_categories():
     return jsonify([{"id": k, "label": v} for k, v in misc.CATEGORIES.items()])
 
 
+@app.get("/api/misc/options")
+def misc_options():
+    from src import misc
+    return jsonify(languages=[{"id": k, "label": v} for k, v in misc.LANGUAGES.items()],
+                   audiences=[{"id": k, "label": v} for k, v in misc.AUDIENCES.items()])
+
+
 @app.post("/api/misc/ideas")
 def misc_ideas():
     from src import misc
@@ -273,7 +280,8 @@ def misc_ideas():
         return jsonify(error="Add your Claude API key in Setup to get topic ideas"), 400
     b = request.json or {}
     try:
-        return jsonify(misc.ideas(cfg, b.get("category", "general_knowledge"), b.get("avoid", "")))
+        return jsonify(misc.ideas(cfg, b.get("category", "general_knowledge"), b.get("avoid", ""),
+                                  b.get("language", "en"), b.get("audience", "global")))
     except Exception as e:
         return jsonify(error=f"Could not get ideas: {e}"), 500
 
@@ -285,6 +293,8 @@ def misc_make():
     jc = channels.apply(cfg)
     form = request.form if request.files or request.form else (request.json or {})
     category, topic = form.get("category", "general_knowledge"), (form.get("topic") or "").strip()
+    language = form.get("language", "en") if form.get("language") in misc.LANGUAGES else "en"
+    audience = form.get("audience", "global") if form.get("audience") in misc.AUDIENCES else "global"
     f = request.files.get("file")
     if not have_key():
         return jsonify(error="Misc reels need your Claude API key. Add it in Setup."), 400
@@ -298,10 +308,11 @@ def misc_make():
         dest = up / f"{uuid.uuid4().hex[:6]}_{secure_filename(f.filename)}"
         f.save(dest)
         args = dict(hint=form.get("hint", ""), voices=form.get("voices", "two"),
-                    memes=max(0, min(int(form.get("memes", 2) or 2), 3)), music=form.get("music", "auto"))
+                    memes=max(0, min(int(form.get("memes", 2) or 2), 3)), music=form.get("music", "auto"),
+                    language=language, audience=audience)
         return jsonify(job=start_job(f"Misc clip: {topic[:40] or f.filename}",
                                      lambda: misc.make_with_clip(jc, dest, category, topic, **args)[0].name))
-    return jsonify(job=start_job(f"Misc: {topic[:50]}", lambda: misc.make_faceless(jc, category, topic)[0].name))
+    return jsonify(job=start_job(f"Misc: {topic[:50]}", lambda: misc.make_faceless(jc, category, topic, language, audience)[0].name))
 
 
 @app.post("/api/render-script")

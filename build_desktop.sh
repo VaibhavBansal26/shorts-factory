@@ -8,7 +8,7 @@ if $PY -c "import mediapipe" 2>/dev/null; then MP="--collect-all mediapipe --add
 $PY -m PyInstaller --noconfirm --clean --windowed --name "Shorts Factory" --icon desktop-icon.icns \
   --osx-bundle-identifier com.vaibhavbansal.shortsfactory \
   --add-data "ui.html:." --add-data "config.yaml:." --add-data "examples:examples" --add-data "series:series" \
-  --add-data "assets/logo.png:assets" --add-data "assets/music/main:assets/music/main" \
+  --add-data "assets/logo.png:assets" --add-data "assets/fonts:assets/fonts" --add-data "assets/music/main:assets/music/main" \
   --collect-all imageio_ffmpeg  --collect-all webview --collect-all googleapiclient --collect-all google_auth_oauthlib \
   --collect-submodules edge_tts --collect-submodules anthropic \
   --hidden-import src.series --hidden-import src.remix --hidden-import src.sigma_bgm --hidden-import src.studio --hidden-import src.enhance --hidden-import src.edm_bgm --hidden-import src.misc --hidden-import src.channels --hidden-import src.prefs --hidden-import src.memes \

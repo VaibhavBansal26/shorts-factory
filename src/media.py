@@ -239,8 +239,8 @@ def make_meme(v: dict, out: Path, photo_font, cfg: dict) -> Path | None:
 def prepare(cfg: dict, script: dict, timeline: dict, workdir: Path) -> dict[int, dict]:
     """Resolve each scene's `visual` into frames/an image. Returns {scene_index: media}. Never raises."""
     fps = cfg["video"]["fps"]
-    font = next((p for p in ["/System/Library/Fonts/Supplemental/Impact.ttf", *cfg["video"]["fonts"]]
-                 if Path(p).exists()), None)
+    first = [] if script.get("language") == "hi" else ["/System/Library/Fonts/Supplemental/Impact.ttf"]
+    font = next((p for p in [*first, *cfg["video"]["fonts"]] if Path(p).exists()), None)
     lib = {i["id"]: i for i in load_library()}
     out = {}
     # footage guardrail: third-party clips stay a small, interspersed part of every video

@@ -33,9 +33,30 @@ RULES = {
 }
 
 
-def system_for(category: str) -> str:
+LANGUAGES = {"en": "English", "hi": "Hindi (हिन्दी)", "hinglish": "Hinglish (Hindi in English letters)"}
+
+AUDIENCES = {"global": "Global (everyone)", "india": "India (made for Indian viewers)"}
+
+LANG_RULES = {
+    "en": "",
+    "hi": "- LANGUAGE: write every `narration` and `headline` in natural spoken Hindi in Devanagari script, the way people talk "
+          "(simple everyday words, common English words like phone, app or doctor are fine written in Devanagari). Write numbers as "
+          "Hindi words or digits a Hindi voice reads correctly. No transliteration in Roman letters.\n"
+          "- Keep `title`, `description` and `tags` in Hindi too, and put English or Hindi hashtags in tags.",
+    "hinglish": "- LANGUAGE: write `narration` and `headline` in Hinglish: Hindi in English (Roman) letters, mixed with common English "
+                "words, exactly how Indian creators speak (e.g. \"Yeh trick sabko pata honi chahiye\"). Keep spelling simple and consistent.",
+}
+
+INDIA_RULES = ("- AUDIENCE: viewers in India. Use Indian context: rupees (₹), lakh/crore, Indian examples, brands, foods, festivals, "
+               "cities, exams, cricket and Bollywood references where they fit, and Indian conditions (climate, prices, regulations). "
+               "Do not invent statistics; if a figure is not well known, stay general. No politics, religion or caste angles.")
+
+
+def system_for(category: str, language: str = "en", audience: str = "global") -> str:
     label = CATEGORIES.get(category, category)
+    extra = "\n".join(x for x in (LANG_RULES.get(language, ""), INDIA_RULES if audience == "india" else "") if x)
     return f"""You write scripts for a faceless YouTube Shorts channel in the niche: {label}. Audience: curious general viewers.
+{extra}
 
 Rules:
 - Be accurate. Never invent numbers, quotes, studies or facts; if unsure, stay general or leave it out.
@@ -55,24 +76,29 @@ IDEAS_TOOL = {
 }
 
 
-def ideas(cfg: dict, category: str, avoid: str = "") -> list[dict]:
+def ideas(cfg: dict, category: str, avoid: str = "", language: str = "en", audience: str = "global") -> list[dict]:
     label = CATEGORIES.get(category, category)
+    where = " for viewers in India (Indian context, examples and foods/places/brands)" if audience == "india" else ""
+    lang = {"hi": " Write each topic and hook in Hindi (Devanagari).",
+            "hinglish": " Write each topic and hook in Hinglish (Hindi in Roman letters)."}.get(language, "")
     resp = anthropic.Anthropic().messages.create(
         model=cfg["llm"]["model"], max_tokens=1500, tools=[IDEAS_TOOL], tool_choice={"type": "auto"},
         system="You suggest specific, interesting, accurate topics for 30-second YouTube Shorts.",
-        messages=[{"role": "user", "content": f"Give 6 fresh topic ideas for the niche: {label}. Each topic is specific "
-                   f"(not a broad subject) with a scroll-stopping hook line.{' Avoid: ' + avoid if avoid else ''}"}])
+        messages=[{"role": "user", "content": f"Give 6 fresh topic ideas for the niche: {label}{where}. Each topic is specific "
+                   f"(not a broad subject) with a scroll-stopping hook line.{lang}{' Avoid: ' + avoid if avoid else ''}"}])
     block = next((b for b in resp.content if b.type == "tool_use"), None)
     return block.input["ideas"] if block else []
 
 
-def make_faceless(cfg: dict, category: str, topic: str):
+def make_faceless(cfg: dict, category: str, topic: str, language: str = "en", audience: str = "global"):
     """Write the script with Claude and render it. Returns (folder, script, video)."""
     label = CATEGORIES.get(category, category)
     item = Item(url=f"misc:{category}:{topic[:80]}:{int(time.time())}", title=topic, summary=topic, source=f"Misc · {label}",
                 kind="blog", published=time.time())
     print(f"\n▶ [misc · {category}] {topic}")
-    script = scriptgen.generate(cfg, item, "misc", f"Topic: {topic}\nNiche: {label}", system=system_for(category))
+    script = scriptgen.generate(cfg, item, "misc", f"Topic: {topic}\nNiche: {label}",
+                               system=system_for(category, language, audience))
+    script["language"] = language if language in ("hi", "hinglish") else "en"
     script["source"] = {"name": f"Misc · {label}", "title": topic, "url": ""}
     folder, video = pipeline.produce(cfg, script)
     db.mark_used(db.connect(), item.url, topic, "misc", str(folder))
@@ -80,8 +106,10 @@ def make_faceless(cfg: dict, category: str, topic: str):
 
 
 def make_with_clip(cfg: dict, clip, category: str, topic: str, hint: str = "", voices: str = "two", memes: int = 2,
-                   music: str = "auto"):
+                   music: str = "auto", language: str = "en", audience: str = "global"):
     from . import remix
     label = CATEGORIES.get(category, category)
+    extra = "\n".join(x for x in (LANG_RULES.get(language, ""), INDIA_RULES if audience == "india" else "") if x)
     return remix.make(cfg, clip, hint=hint, voices=voices, memes=memes, music=music,
-                      topic=topic or f"an interesting fact about {label.lower()}", domain=label)
+                      topic=topic or f"an interesting fact about {label.lower()}", domain=label, extra=extra,
+                      language=language if language in ("hi", "hinglish") else "en")

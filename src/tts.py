@@ -102,6 +102,10 @@ def _synth_eleven(text: str, voice_id: str):
     return base64.b64decode(j["audio_base64"]), words
 
 
+HINDI_VOICES = {"male": {"name": "hi-IN-MadhurNeural", "rate": "+4%", "pitch": "+0Hz"},
+                "female": {"name": "hi-IN-SwaraNeural", "rate": "+4%", "pitch": "+0Hz"}}
+
+
 def gender_for(script: dict, scene: dict) -> str:
     chars = {c["id"]: c for c in script.get("characters", [])}
     if scene.get("speaker") in chars:
@@ -121,7 +125,9 @@ def voice_for(script: dict, cfg: dict, scene: dict, rate_override: str | None):
     spec = {"name": base["name"], "rate": base.get("rate", "+0%"), "pitch": "+0Hz"}
     gender = gender_for(script, scene)
     chars = {c["id"]: c for c in script.get("characters", [])}
-    if script.get("language") == "ko":  # scripts that explicitly want Korean speech
+    if script.get("language") == "hi":  # Hindi script: Microsoft's Hindi neural voices
+        spec.update(cfg.get("voices", {}).get(f"hi_{gender}") or HINDI_VOICES[gender])
+    elif script.get("language") == "ko":  # scripts that explicitly want Korean speech
         spec.update(cfg["voices"][f"ko_{gender}"])
     else:
         spec.update((cfg.get("accents") or {}).get(accent_of(script), {}).get(gender, {}))
@@ -149,7 +155,7 @@ def synthesize(script: dict, cfg: dict, workdir: Path, rate: str | None = None) 
         mp3, wav = workdir / f"scene{i}.mp3", workdir / f"scene{i}.wav"
         name, srate, pitch = voice_for(script, cfg, sc, rate)
         audio, words = None, []
-        if eleven_key() and not _eleven_broken:
+        if eleven_key() and not _eleven_broken and script.get("language") != "hi":  # the library voices are English-accent
             try:
                 vid = eleven_voice_id(cfg, accent_of(script), gender_for(script, sc))
                 if vid:

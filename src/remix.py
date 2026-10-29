@@ -73,13 +73,13 @@ TOOL = {
 }
 
 
-def _system(domain: str) -> str:
-    if domain == "AI and software engineering":
+def _system(domain: str, extra: str = "") -> str:
+    if domain == "AI and software engineering" and not extra:
         return SYSTEM
     return (SYSTEM.replace("AI and software engineering", domain).replace("about AI/engineering", f"about {domain}")
             .replace("the AI point just made", "the point just made")
             + f"\n- Topic area is {domain}: keep facts accurate and general, no invented statistics, and for health or "
-              "nutrition stay educational (not medical advice).")
+              "nutrition stay educational (not medical advice)." + (f"\n{extra}" if extra else ""))
 
 
 def probe(path: Path) -> float:
@@ -99,7 +99,7 @@ def sample_frames(path: Path, dur: float, workdir: Path, n: int = 6) -> list[tup
 
 
 def plan(cfg: dict, clip: Path, dur: float, hint: str, voices: str, memes: int, topic: str, workdir: Path,
-         domain: str = "AI and software engineering") -> dict:
+         domain: str = "AI and software engineering", extra: str = "") -> dict:
     content = []
     for t, jpg in sample_frames(clip, dur, workdir):
         content.append({"type": "text", "text": f"Frame at {t:.1f}s:"})
@@ -116,7 +116,7 @@ def plan(cfg: dict, clip: Path, dur: float, hint: str, voices: str, memes: int, 
     feedback = ""
     for _ in range(3):
         resp = client.messages.create(
-            model=cfg["llm"]["model"], max_tokens=2500, system=_system(domain), tools=[TOOL],
+            model=cfg["llm"]["model"], max_tokens=2500, system=_system(domain, extra), tools=[TOOL],
             tool_choice={"type": "auto"},
             messages=[{"role": "user", "content": content + ([{"type": "text", "text": feedback}] if feedback else [])}])
         block = next((b for b in resp.content if b.type == "tool_use"), None)
@@ -160,13 +160,14 @@ def build_script(cfg: dict, plan_: dict, clip: Path, dur: float, voices: str, mu
 
 def make(cfg: dict, clip: Path, hint: str = "", voices: str = "two", memes: int = 2, music: str = "auto",
          topic: str = "AI agents, hallucinations and prompting, explained like a friendly argument",
-         domain: str = "AI and software engineering"):
+         domain: str = "AI and software engineering", extra: str = "", language: str = "en"):
     clip = Path(clip).resolve()
     dur = min(probe(clip), MAX_CLIP)
     work = ROOT / "data" / "remix_tmp"
     work.mkdir(parents=True, exist_ok=True)
     print(f"\n▶ Remix of {clip.name} ({dur:.0f}s used)")
-    p = plan(cfg, clip, dur, hint, voices, memes, topic, work, domain)
+    p = plan(cfg, clip, dur, hint, voices, memes, topic, work, domain, extra)
     script = build_script(cfg, p, clip, dur, voices, music, clip.name)
+    script["language"] = language
     folder, video = pipeline.produce(cfg, script)
     return folder, script, video

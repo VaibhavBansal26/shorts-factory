@@ -1,5 +1,6 @@
 """Render a vertical 1080x1920 video frame-by-frame with Pillow and pipe it to ffmpeg."""
 import math
+import os
 import random
 import subprocess
 from functools import lru_cache
@@ -400,7 +401,9 @@ class Renderer:
                     "-map", "0:v", "-map", "[a]"]
         else:
             cmd += ["-map", "0:v", "-map", "1:a"]
-        cmd += ["-c:v", "libx264", "-preset", "medium", "-crf", "20", "-pix_fmt", "yuv420p",
+        # small servers (the free web plan has 512 MB) run out of memory with x264's default lookahead and threads
+        lean = ["-threads", "2", "-x264-params", "rc-lookahead=8:ref=2:sync-lookahead=0"] if os.getenv("SF_DESKTOP") != "1" else []
+        cmd += ["-c:v", "libx264", "-preset", "veryfast" if lean else "medium", "-crf", "20", "-pix_fmt", "yuv420p", *lean,
                 "-c:a", "aac", "-b:a", "160k", "-t", f"{total:.2f}", "-movflags", "+faststart", str(out)]
         p = subprocess.Popen(cmd, stdin=subprocess.PIPE)
         try:

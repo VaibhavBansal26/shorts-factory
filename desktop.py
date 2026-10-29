@@ -25,6 +25,17 @@ if getattr(sys, "frozen", False):
     log = open(HOME / "app.log", "a", buffering=1)  # a windowed app has no console
     sys.stdout = sys.stderr = log
 
+if sys.platform == "win32":  # a windowed app: stop ffmpeg and friends from flashing console windows
+    import subprocess
+    _popen = subprocess.Popen
+
+    class _QuietPopen(_popen):
+        def __init__(self, *a, **kw):
+            kw["creationflags"] = kw.get("creationflags", 0) | 0x08000000  # CREATE_NO_WINDOW
+            super().__init__(*a, **kw)
+
+    subprocess.Popen = _QuietPopen
+
 from src.config import CODE  # noqa: E402  (must come after SF_HOME is set)
 
 
@@ -64,8 +75,8 @@ class Api:
         webbrowser.open(url)
 
     def reveal_data(self):
-        import subprocess
-        subprocess.run(["open", str(HOME)] if sys.platform == "darwin" else ["xdg-open", str(HOME)])
+        from src.osopen import open_path
+        open_path(HOME)
 
 
 def main():

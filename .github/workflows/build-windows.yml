@@ -1,0 +1,81 @@
+name: Build Windows app
+
+# Builds the Windows installer (Shorts-Factory-Windows-Setup.exe) and a portable zip, and attaches them to a release.
+# Run it from the Actions tab (enter the release tag, e.g. v1.0.0) or push a tag.
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Release tag to attach the files to
+        required: true
+        default: v1.0.0
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install dependencies
+        shell: pwsh
+        run: |
+          python -m venv .venv
+          .venv\Scripts\python -m pip install --upgrade pip
+          .venv\Scripts\pip install -r requirements.txt pyinstaller
+          .venv\Scripts\pip install mediapipe
+          if ($LASTEXITCODE -ne 0) { Write-Host "mediapipe unavailable"; $global:LASTEXITCODE = 0 }
+      - name: Build the app
+        shell: pwsh
+        run: ./build_desktop.ps1
+      - name: Smoke test (starts the app and asks it for its status)
+        shell: pwsh
+        run: |
+          $p = Start-Process -FilePath "dist\Shorts Factory\Shorts Factory.exe" -PassThru
+          $portFile = Join-Path $env:APPDATA "Shorts Factory\port.txt"
+          $ok = $false
+          for ($i = 0; $i -lt 60; $i++) {
+            Start-Sleep -Seconds 2
+            if (Test-Path $portFile) {
+              $port = (Get-Content $portFile).Trim()
+              try {
+                $r = Invoke-WebRequest -UseBasicParsing "http://127.0.0.1:$port/api/status" -TimeoutSec 5
+                Write-Host "status $($r.StatusCode): $($r.Content.Substring(0, [Math]::Min(120, $r.Content.Length)))"
+                $ok = $true; break
+              } catch { }
+            }
+          }
+          Get-Process -Name "Shorts Factory" -ErrorAction SilentlyContinue | Stop-Process -Force
+          $log = Join-Path $env:APPDATA "Shorts Factory\app.log"
+          if (Test-Path $log) { Write-Host "---- app.log ----"; Get-Content $log -Tail 40 }
+          if (-not $ok) { throw "The app did not answer within 2 minutes" }
+      - name: Make the installer and zip
+        shell: pwsh
+        env:
+          APP_VERSION: ${{ github.event.inputs.tag || github.ref_name }}
+        run: |
+          $env:APP_VERSION = $env:APP_VERSION.TrimStart("v")
+          choco install innosetup -y --no-progress
+          & "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" installer\windows.iss
+          if ($LASTEXITCODE -ne 0) { throw "Inno Setup failed" }
+          Compress-Archive -Path "dist\Shorts Factory" -DestinationPath "Shorts-Factory-Windows-Portable.zip"
+          Get-FileHash Shorts-Factory-Windows-Setup.exe -Algorithm SHA256
+          Get-Item Shorts-Factory-Windows-Setup.exe, Shorts-Factory-Windows-Portable.zip | Select-Object Name, Length
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Shorts-Factory-Windows
+          path: |
+            Shorts-Factory-Windows-Setup.exe
+            Shorts-Factory-Windows-Portable.zip
+      - name: Attach to the release
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.event.inputs.tag || github.ref_name }}
+        run: gh release upload $env:TAG Shorts-Factory-Windows-Setup.exe Shorts-Factory-Windows-Portable.zip --clobber --repo "${{ github.repository }}"

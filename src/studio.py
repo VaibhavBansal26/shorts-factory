@@ -274,7 +274,7 @@ class Studio:
             if v["type"] != "meme":
                 continue
             try:
-                font = next((p for p in ["/System/Library/Fonts/Supplemental/Impact.ttf", *self.cfg["video"]["fonts"]]
+                font = next((p for p in ["/System/Library/Fonts/Supplemental/Impact.ttf", "C:/Windows/Fonts/impact.ttf", *self.cfg["video"]["fonts"]]
                              if Path(p).exists()), None)
                 p = media.make_meme(v, self.folder / f"meme{i}.png", font, self.cfg)
                 self.memes[i] = Image.open(p).convert("RGB")

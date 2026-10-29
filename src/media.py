@@ -239,7 +239,7 @@ def make_meme(v: dict, out: Path, photo_font, cfg: dict) -> Path | None:
 def prepare(cfg: dict, script: dict, timeline: dict, workdir: Path) -> dict[int, dict]:
     """Resolve each scene's `visual` into frames/an image. Returns {scene_index: media}. Never raises."""
     fps = cfg["video"]["fps"]
-    first = [] if script.get("language") == "hi" else ["/System/Library/Fonts/Supplemental/Impact.ttf"]
+    first = [] if script.get("language") == "hi" else ["/System/Library/Fonts/Supplemental/Impact.ttf", "C:/Windows/Fonts/impact.ttf"]
     font = next((p for p in [*first, *cfg["video"]["fonts"]] if Path(p).exists()), None)
     lib = {i["id"]: i for i in load_library()}
     out = {}

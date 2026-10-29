@@ -405,9 +405,9 @@ def open_local():
     """Desktop only: open a video in the default player or reveal it in Finder."""
     if os.getenv("SF_DESKTOP") != "1":
         return jsonify(error="Only available in the desktop app"), 400
-    import subprocess
+    from src.osopen import open_path
     f = OUT / secure_filename(request.json["folder"]) / "video.mp4"
-    subprocess.run(["open", "-R", str(f)] if request.json.get("reveal") else ["open", str(f)])
+    open_path(f, bool(request.json.get("reveal")))
     return jsonify(ok=True)
 
 
@@ -440,7 +440,8 @@ def save_local():
         n += 1
         dest = dest_dir / f"{name}-{n}.mp4"
     shutil.copy2(OUT / folder / "video.mp4", dest)
-    subprocess.run(["open", "-R", str(dest)])
+    from src.osopen import open_path
+    open_path(dest, True)
     return jsonify(ok=True, path=str(dest))
 
 

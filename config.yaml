@@ -19,9 +19,12 @@ video:
     - /System/Library/Fonts/Supplemental/Arial Black.ttf
     - /System/Library/Fonts/Supplemental/Arial Bold.ttf
     - /usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf
+    - C:/Windows/Fonts/ariblk.ttf
+    - C:/Windows/Fonts/arialbd.ttf
   fonts_ko:                      # for Hangul text on screen (episode tags)
     - /System/Library/Fonts/AppleSDGothicNeo.ttc
     - /usr/share/fonts/truetype/noto/NotoSansCJK-Bold.ttc
+    - C:/Windows/Fonts/malgunbd.ttf
   archive_cap_seconds: 15        # public-domain archive.org footage per video
   footage_cap_seconds: 12        # max seconds of third-party clips in any one video
   footage_cap_ratio: 0.35        # ...and never more than this share of the video

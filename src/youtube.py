@@ -45,6 +45,42 @@ def authorize(token: Path | None = None) -> str:
         return ""
 
 
+_PENDING: dict = {}  # channel id -> in-progress sign-in (web version, where Google can't call back to a local port)
+_REDIRECT = "http://localhost:8765/"
+
+
+def web_start(cid: str) -> str:
+    """Web version: return Google's sign-in URL. Google then sends the browser to a localhost address that
+    won't load; the user pastes that address back (web_finish) so the server can complete the sign-in."""
+    if not CLIENT_SECRET.exists():
+        raise RuntimeError("Upload client_secret.json in Setup first.")
+    flow = InstalledAppFlow.from_client_secrets_file(str(CLIENT_SECRET), SCOPES, redirect_uri=_REDIRECT)
+    url, _ = flow.authorization_url(access_type="offline", prompt="consent")
+    _PENDING[cid] = flow
+    return url
+
+
+def web_finish(cid: str, pasted: str, token: Path) -> str:
+    import os
+    flow = _PENDING.get(cid)
+    if not flow:
+        raise RuntimeError("Start the sign-in again (the server restarted or the link expired).")
+    pasted = pasted.strip()
+    if "code=" not in pasted:
+        raise RuntimeError("That isn't the address Google sent you to. It should start with http://localhost:8765/?state=")
+    os.environ.setdefault("OAUTHLIB_INSECURE_TRANSPORT", "1")  # the redirect is plain http://localhost
+    os.environ["OAUTHLIB_RELAX_TOKEN_SCOPE"] = "1"
+    flow.fetch_token(authorization_response=pasted)
+    Path(token).write_text(flow.credentials.to_json())
+    _PENDING.pop(cid, None)
+    svc = build("youtube", "v3", credentials=flow.credentials)
+    try:
+        items = svc.channels().list(part="snippet", mine=True).execute().get("items", [])
+        return items[0]["snippet"]["title"] if items else ""
+    except Exception:
+        return ""
+
+
 def build_metadata(script: dict, cfg: dict) -> dict:
     yt = cfg["youtube"]
     src = script.get("source", {})

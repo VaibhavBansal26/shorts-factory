@@ -183,6 +183,18 @@ pre{background:var(--bg2);border:1px solid var(--line);border-radius:10px;paddin
 <body>
 <div id="bootErr"></div>
 <script>
+async function connectYT(cid){
+  if(S.desktop){try{await post('/api/youtube/connect',{channel:cid});toast('Finish signing in in the browser window that opened');pollJobs()}catch(e){toast(e.message,1)}return}
+  try{
+    const {url}=await post('/api/youtube/web_start',{channel:cid});
+    window.open(url,'_blank');
+    const pasted=prompt('1) Sign in to Google in the tab that just opened and allow access.\n2) The final page will say it can’t be reached (localhost). That is expected.\n3) Copy that page’s full address from the address bar and paste it here:');
+    if(!pasted)return;
+    const r=await post('/api/youtube/web_finish',{channel:cid,url:pasted});
+    toast('Connected'+(r.title?' '+r.title:''));await loadStatus();renderSetup()
+  }catch(e){toast(e.message,1)}
+}
+
 (function(){var b=function(){return document.getElementById('bootErr')};
 function show(m){var e=b();if(!e)return;e.style.display='block';e.textContent='Something went wrong in the app window:\n'+m+'\n\nPlease send this text to the developer.'}
 window.addEventListener('error',function(ev){show((ev.message||'error')+(ev.lineno?' (line '+ev.lineno+')':''))});
@@ -712,12 +724,12 @@ function renderSetup(){
   $('#savePx').onclick=async()=>{if(!$('#pxKey').value.trim())return;await post('/api/secrets',{pexels_key:$('#pxKey').value});toast('Pexels key saved');loadStatus().then(renderSetup)};
   $('#narr').value=S.narrator;$('#narr').onchange=()=>post('/api/voice',{narrator:$('#narr').value}).then(()=>loadStatus()).then(()=>toast('Saved'));
   $('#addCh').onclick=async()=>{try{await post('/api/channels',{name:$('#nchName').value,handle:$('#nchHandle').value});toast('Channel added');await loadStatus();renderSetup()}catch(e){toast(e.message,1)}};
-  $$('[data-conn]').forEach(b=>b.onclick=async()=>{try{await post('/api/youtube/connect',{channel:b.dataset.conn});toast('Finish signing in in the browser window that opened');pollJobs()}catch(e){toast(e.message,1)}});
+  $$('[data-conn]').forEach(b=>b.onclick=()=>connectYT(b.dataset.conn));
   $$('[data-rm]').forEach(b=>b.onclick=async()=>{if(!await askConfirm('Remove this channel from the app? (Nothing is deleted on YouTube.)'))return;await api('/api/channels/'+b.dataset.rm,{method:'DELETE'});await loadStatus();renderSetup()});
   $$('[data-logo]').forEach(i=>i.onchange=async()=>{const fd=new FormData();fd.append('file',i.files[0]);await api('/api/channels/'+i.dataset.logo+'/logo',{method:'POST',body:fd});toast('Logo updated');renderSetup()});
   $('#saveKey').onclick=async()=>{if(!$('#keyIn').value.trim())return;await post('/api/secrets',{anthropic_key:$('#keyIn').value});toast('Key saved');loadStatus().then(renderSetup)};
   dropzone($('#dropCS'),$('#fileCS'),async f=>{const fd=new FormData();fd.append('file',f);try{await api('/api/youtube/client-secret',{method:'POST',body:fd});toast('Client file saved');loadStatus().then(renderSetup)}catch(e){toast(e.message,1)}});
-  $('#ytConnect').onclick=async()=>{try{await post('/api/youtube/connect',{});toast('Finish signing in in the browser window that opened');pollJobs()}catch(e){toast(e.message,1)}};
+  $('#ytConnect').onclick=()=>connectYT('main');
   $('#saveCh').onclick=async()=>{await post('/api/settings',{name:$('#cName').value,handle:$('#cHandle').value});toast('Saved');loadStatus().then(renderSetup)};
   dropzone($('#dropLogo'),$('#fileLogo'),async f=>{const fd=new FormData();fd.append('file',f);await api('/api/logo',{method:'POST',body:fd});toast('Logo updated');renderSetup()});
 }

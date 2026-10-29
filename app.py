@@ -556,6 +556,31 @@ def yt_connect():
                                  exclusive=False, key=f"connect:{cid}"))
 
 
+@app.post("/api/youtube/web_start")
+def yt_web_start():
+    from src import youtube
+    cid = (request.json or {}).get("channel") or "main"
+    try:
+        return jsonify(url=youtube.web_start(cid))
+    except Exception as e:
+        return jsonify(error=str(e)), 400
+
+
+@app.post("/api/youtube/web_finish")
+def yt_web_finish():
+    from src import youtube
+    d = request.json or {}
+    cid = d.get("channel") or "main"
+    try:
+        title = youtube.web_finish(cid, d.get("url", ""), channels.token_path(cid))
+    except Exception as e:
+        return jsonify(error=f"Sign-in failed: {e}"), 400
+    ch = channels.get(cfg, cid)
+    if title and cid != "main" and not ch.get("name"):
+        channels.update(cid, name=title)
+    return jsonify(ok=True, title=title)
+
+
 @app.get("/api/voice")
 def voice_get():
     return jsonify(prefs.load())

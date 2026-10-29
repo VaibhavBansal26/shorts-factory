@@ -107,6 +107,8 @@ Auto-deploy needs YouTube authorised first. There is no cron job; if you close t
 
 **Download:** the [Releases page](https://github.com/VaibhavBansal26/shorts-factory/releases/latest) has `Shorts-Factory-AppleSilicon.dmg` (M1 and later) and `Shorts-Factory-Intel.dmg` (Intel Macs). Private repo: sign in to GitHub to download. Open the DMG and drag the app to Applications. Both are built by the *Build macOS apps* GitHub Action (Actions tab, enter the release tag).
 
+**Windows:** the same release has `Shorts-Factory-Windows-Setup.exe` (installer, no admin rights needed) and `Shorts-Factory-Windows-Portable.zip` (unzip and run `Shorts Factory.exe`). Built by the *Build Windows app* GitHub Action. Windows 10 or 11, 64-bit. The app isn't code-signed, so SmartScreen shows "Windows protected your PC": click **More info → Run anyway**. Your data lives in `%APPDATA%\Shorts Factory`. The window uses Microsoft Edge WebView2 (already on Windows 11 and updated Windows 10); if it's missing, the app opens in your browser instead.
+
 The app isn't signed, so on first open macOS blocks it. Run `xattr -dr com.apple.quarantine "/Applications/Shorts Factory.app"` once, or use System Settings, Privacy & Security, Open Anyway.
 
 ```bash

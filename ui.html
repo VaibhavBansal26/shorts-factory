@@ -187,11 +187,18 @@ async function connectYT(cid){
   if(S.desktop){try{await post('/api/youtube/connect',{channel:cid});toast('Finish signing in in the browser window that opened');pollJobs()}catch(e){toast(e.message,1)}return}
   try{
     const {url}=await post('/api/youtube/web_start',{channel:cid});
-    window.open(url,'_blank');
-    const pasted=prompt('1) Sign in to Google in the tab that just opened and allow access.\n2) The final page will say it can’t be reached (localhost). That is expected.\n3) Copy that page’s full address from the address bar and paste it here:');
-    if(!pasted)return;
-    const r=await post('/api/youtube/web_finish',{channel:cid,url:pasted});
-    toast('Connected'+(r.title?' '+r.title:''));await loadStatus();renderSetup()
+    let box=$('#ytWeb');if(box)box.remove();
+    box=document.createElement('div');box.id='ytWeb';
+    box.style.cssText='position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);width:min(560px,92vw);z-index:200;background:var(--panel);border:1px solid var(--line2);border-radius:18px;padding:22px;box-shadow:0 30px 80px #000a';
+    box.innerHTML=`<h3 style="margin:0 0 10px">Connect YouTube</h3>
+      <p style="margin:0 0 8px"><b>1.</b> <a class="btn sm" href="${esc(url)}" target="_blank" rel="noopener">Open Google sign-in</a> and allow access.</p>
+      <p style="margin:0 0 8px"><b>2.</b> The last page says it can’t be reached (localhost). That is expected. Copy its full address from the address bar.</p>
+      <p style="margin:0 0 8px"><b>3.</b> Paste it here:</p>
+      <textarea id="ytPaste" rows="3" style="width:100%;box-sizing:border-box" placeholder="http://localhost:8765/?state=...&code=..."></textarea>
+      <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:12px"><button class="btn sm" id="ytCancel">Cancel</button><button class="btn sm p" id="ytDone">Finish</button></div>`;
+    document.body.appendChild(box);
+    $('#ytCancel').onclick=()=>box.remove();
+    $('#ytDone').onclick=async()=>{try{const r=await post('/api/youtube/web_finish',{channel:cid,url:$('#ytPaste').value});box.remove();toast('Connected'+(r.title?' '+r.title:''));await loadStatus();renderSetup()}catch(e){toast(e.message,1)}}
   }catch(e){toast(e.message,1)}
 }
 

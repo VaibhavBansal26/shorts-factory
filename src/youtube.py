@@ -1,6 +1,7 @@
 """Upload to YouTube via the Data API v3 (OAuth, resumable upload)."""
 from pathlib import Path
 
+from google.auth.exceptions import RefreshError
 from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
 from google_auth_oauthlib.flow import InstalledAppFlow
@@ -22,7 +23,11 @@ def _service(token: Path | None = None):
         creds = Credentials.from_authorized_user_file(token)  # keeps whatever scopes it was granted
     if not creds or not creds.valid:
         if creds and creds.expired and creds.refresh_token:
-            creds.refresh(Request())
+            try:
+                creds.refresh(Request())
+            except RefreshError:  # Google revoked it (or a Testing-mode app hit its 7-day limit): drop it so Setup shows "Connect"
+                token.unlink(missing_ok=True)
+                raise RuntimeError("Your YouTube sign-in expired. Open Setup and reconnect this channel, then deploy again.")
         else:
             if not CLIENT_SECRET.exists():
                 raise SystemExit(

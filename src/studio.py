@@ -14,7 +14,7 @@ from pathlib import Path
 import anthropic
 from PIL import Image, ImageDraw, ImageFilter, ImageFont
 
-from . import media, music, seo
+from . import icons, media, music, seo
 from . import memes as memes_mod
 from .config import ROOT, resolve
 from .ff import FFMPEG, duration
@@ -38,7 +38,9 @@ Rules:
 - Plain, conversational English the owner can say naturally. Short sentences. No jargon without a quick explanation.
 - Teach one true, specific idea about AI / software engineering. No invented statistics or quotes; numbers in visuals must be
   illustrative round figures and framed as an example. No emojis, no hashtags in spoken text.
-- Visual types for middle beats: nodes (a central AI box with 3-4 labelled inputs in items), meter (a bar that fills: value,
+- Prefer "icons" whenever the speaker names concrete things (tools, files, money, time, bugs, a person...): items = the
+  1-4 things in the order they are SAID (1-3 words each), icons = one icon per item. Each one pops up the moment it is spoken.
+- Visual types for middle beats: icons (see above), nodes (a central AI box with 3-4 labelled inputs in items), meter (a bar that fills: value,
   max, unit, optional label), card (a titled card with 2-4 short lines in items), steps (3-4 short steps in items),
   compare (items = [left text, right text], title = heading), stat (big = a short number/phrase, label under it),
   meme (a meme visual; at most one or two per video; vary the style: relationship / boy-girl, chat, expectation vs reality, Indian or Hinglish humour, or a photo template).
@@ -56,8 +58,9 @@ TOOL = {
             "beats": {"type": "array", "items": {"type": "object", "properties": {
                 "say": {"type": "string", "description": "exactly what the owner says in this beat"},
                 "visual": {"type": "object", "properties": {
-                    "type": {"type": "string", "enum": ["face", "nodes", "meter", "card", "steps", "compare", "stat", "meme"]},
+                    "type": {"type": "string", "enum": ["face", "icons", "nodes", "meter", "card", "steps", "compare", "stat", "meme"]},
                     "title": {"type": "string"}, "items": {"type": "array", "items": {"type": "string"}},
+                    "icons": {"type": "array", "items": {"type": "string", "enum": icons.NAMES}},
                     "value": {"type": "number"}, "max": {"type": "number"}, "unit": {"type": "string"},
                     "label": {"type": "string"}, "big": {"type": "string"},
                     "meme_template": {"type": "string"}, "top_text": {"type": "string"}, "bottom_text": {"type": "string"},
@@ -362,7 +365,35 @@ class Studio:
         rt = self.reveals(idx, items) if items else []
         if title and kind not in ("stat", "meme"):
             self.text_block(d, title, W // 2, 330, 900, 130, fill=WHITE, start=64)
-        if kind == "nodes":
+        if kind == "icons" and items:
+            n = min(len(items), 4)
+            names = list(v.get("icons") or [])
+            size = {1: 400, 2: 330, 3: 270, 4: 270}[n]
+            if n == 4:
+                cells = [(W // 2 + dx * 280, 560 + dy * 330) for dy in (0, 1) for dx in (-1, 1)]
+            else:
+                gap = W // n
+                cells = [(gap // 2 + i * gap, 640) for i in range(n)]
+            for i in range(n):
+                p = (lt - rt[i]) / 0.5
+                if p <= 0:
+                    continue
+                q = ease(p) * (1 + 0.14 * math.sin(min(p, 1) * math.pi))  # overshoot pop
+                ic = icons.draw(names[i] if i < len(names) else "star", size, ac)
+                sz = max(8, int(size * q))
+                ic = ic.resize((sz, sz), Image.LANCZOS)
+                cx, cy = cells[i]
+                bob = int(8 * math.sin(lt * 2.4 + i * 1.7))
+                if p < 1.4:  # ring that expands as it lands
+                    r = int(size * (0.5 + 0.35 * min(1, p)))
+                    d.ellipse((cx - r, cy + bob - r, cx + r, cy + bob + r), outline=(*ac, int(180 * max(0, 1 - p / 1.4))), width=5)
+                img.alpha_composite(ic, (cx - sz // 2, cy + bob - sz // 2))
+                size_l, lines = self.fit(items[i], size + 60, 120, 46, 28)
+                yy = cy + size // 2 + 26
+                for ln in lines:
+                    d.text((cx, yy), ln, font=self.font(size_l), fill=(*WHITE, int(255 * min(1, p))), anchor="mt", stroke_width=3, stroke_fill=(0, 0, 0))
+                    yy += int(size_l * 1.2)
+        elif kind == "nodes":
             cx, cy = W // 2, 640
             slots = [(250, 480), (830, 480), (250, 820), (830, 820)]
             for i, txt in enumerate(items[:4]):

@@ -217,6 +217,16 @@ FORMATS = {
         "words": (30, 110),
         "guide": "Built from an uploaded clip (see src/remix.py).",
     },
+    "mage": {
+        "blurb": "Faceless system-design explainer: a voice and animated diagrams (see src/mage.py).",
+        "theme": "default",
+        "needs_upload": True,
+        "label": "MAGE",
+        "moods": ["edm"],
+        "accent": (250, 204, 21),
+        "words": (60, 200),
+        "guide": "Built from a storyboard (see src/mage.py).",
+    },
 }
 
 

@@ -22,7 +22,7 @@ $pyiArgs = @(
   "--collect-submodules", "edge_tts", "--collect-submodules", "anthropic",
   "--hidden-import", "src.series", "--hidden-import", "src.remix", "--hidden-import", "src.sigma_bgm", "--hidden-import", "src.studio",
   "--hidden-import", "src.enhance", "--hidden-import", "src.edm_bgm", "--hidden-import", "src.misc", "--hidden-import", "src.channels",
-  "--hidden-import", "src.prefs", "--hidden-import", "src.memes"
+  "--hidden-import", "src.prefs", "--hidden-import", "src.memes", "--hidden-import", "src.mage", "--hidden-import", "src.icons"
 ) + $mp + @("desktop.py")
 & $py -m PyInstaller @pyiArgs
 if ($LASTEXITCODE -ne 0) { throw "PyInstaller failed" }

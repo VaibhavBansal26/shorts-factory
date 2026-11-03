@@ -227,6 +227,36 @@ def remix_upload():
     return jsonify(job=start_job(f"Remix {f.filename}", lambda: remix.make(jc, dest, **args)[0].name))
 
 
+@app.post("/api/mage/script")
+def mage_script():
+    from src import mage
+    b = request.json or {}
+    topic = (b.get("topic") or "").strip()
+    if not topic and have_key():
+        return jsonify(error="type a topic, e.g. how WhatsApp delivers messages"), 400
+    try:
+        sec = max(30, min(90, int(b.get("seconds", 60))))
+        lang = b.get("language") if b.get("language") in ("hinglish", "en") else "hinglish"
+        return jsonify({**mage.write_script(cfg, topic, lang, sec), "mock": not have_key()})
+    except Exception as e:
+        return jsonify(error=f"Could not write the storyboard: {e}"), 500
+
+
+@app.post("/api/mage/build")
+def mage_build():
+    from src import mage
+    jc = channels.apply(cfg)
+    b = request.json or {}
+    try:
+        script = b["script"]
+        assert script["scenes"]
+    except Exception:
+        return jsonify(error="write the storyboard first"), 400
+    lang = b.get("language") if b.get("language") in ("hinglish", "en") else "hinglish"
+    return jsonify(job=start_job(f"Mage: {script.get('title', 'reel')[:40]}",
+                                 lambda: mage.make(jc, script, b.get("music", "auto"), lang)[0].name))
+
+
 @app.post("/api/studio/script")
 def studio_script():
     from src import studio

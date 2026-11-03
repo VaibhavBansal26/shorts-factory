@@ -260,6 +260,28 @@ window.addEventListener('unhandledrejection',function(ev){show(String(ev.reason&
   </div>
 </section>
 
+<!-- MAGE -->
+<section class="page" id="p-mage">
+  <h1>Mage</h1>
+  <p class="sub">Faceless system-design explainers: a voice walks through the idea while animated diagrams build on screen (steps, data flowing between boxes, grids, heat maps, phone mock-ups). Type a topic, edit the storyboard, build.</p>
+  <div class="two" style="margin-top:0">
+    <div class="card">
+      <h2 style="margin-bottom:10px">1 · Storyboard</h2>
+      <div class="row"><div class="grow"><input id="mgTopic" placeholder="Topic, e.g. how WhatsApp delivers messages"></div></div>
+      <div class="row" style="margin-top:10px"><div class="grow"><label class="l">Language</label><select id="mgLang"><option value="hinglish" selected>Hinglish (Hindi in English letters)</option><option value="en">English</option></select></div>
+        <div class="grow"><label class="l">Length</label><select id="mgLen"><option value="45">About 45 seconds</option><option value="60" selected>About 60 seconds</option><option value="90">About 90 seconds</option></select></div>
+        <div><label class="l">&nbsp;</label><button class="btn p" id="mgWrite">Write storyboard</button></div></div>
+      <div id="mgScript" style="margin-top:14px"><div class="emptybox">Your storyboard will appear here. You can edit every line the voice says.</div></div>
+    </div>
+    <div class="card">
+      <h2 style="margin-bottom:10px">2 · Build</h2>
+      <label class="l">Music</label><select id="mgMusic"><option value="auto">Auto (EDM)</option><option value="none">No music</option></select>
+      <p class="sub" style="margin:10px 0 0;font-size:12px">The voice and every frame are made on your device. Uses the channel selected in the sidebar for the handle shown in the header.</p>
+      <p style="margin:16px 0 0"><button class="btn p" id="mgBuild" disabled>Build my reel</button></p>
+    </div>
+  </div>
+</section>
+
 <!-- MISC -->
 <section class="page" id="p-misc">
   <h1>Misc reels</h1>
@@ -444,6 +466,7 @@ $('#themeBtn').onclick=()=>setTheme(document.documentElement.dataset.theme==='da
 const ICON={
  home:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 11l8-7 8 7v8a1 1 0 01-1 1h-4v-6H9v6H5a1 1 0 01-1-1z"/></svg>',
  create:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3l2.2 5.3L20 9l-4.4 3.8L17 19l-5-3-5 3 1.4-6.2L4 9l5.8-.7z"/></svg>',
+ mage:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="4" width="7" height="6" rx="1.5"/><rect x="14" y="14" width="7" height="6" rx="1.5"/><path d="M10 7h4a3 3 0 013 3v4"/></svg>',
  studio:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="6" width="13" height="12" rx="3"/><path d="M16 10l5-3v10l-5-3z"/></svg>',
  misc:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="4" y="4" width="7" height="7" rx="2"/><rect x="13" y="4" width="7" height="7" rx="2"/><rect x="4" y="13" width="7" height="7" rx="2"/><rect x="13" y="13" width="7" height="7" rx="2"/></svg>',
  remix:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 7h12l-3-3M20 17H8l3 3"/></svg>',
@@ -451,12 +474,12 @@ const ICON={
  assets:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M9 18V6l10-2v12"/><circle cx="7" cy="18" r="2.5"/><circle cx="17" cy="16" r="2.5"/></svg>',
  schedules:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>',
  setup:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="3"/><path d="M19 12a7 7 0 00-.1-1.2l2-1.5-2-3.4-2.3 1a7 7 0 00-2-1.2L14.3 3h-4l-.3 2.7a7 7 0 00-2 1.2l-2.3-1-2 3.4 2 1.5A7 7 0 005 12c0 .4 0 .8.1 1.2l-2 1.5 2 3.4 2.3-1a7 7 0 002 1.2l.3 2.7h4l.3-2.7a7 7 0 002-1.2l2.3 1 2-3.4-2-1.5c.1-.4.1-.8.1-1.2z"/></svg>'};
-const PAGES=[['home','Home'],['create','Create'],['studio','Studio'],['misc','Misc'],['remix','Remix'],['library','Library'],null,['assets','Music & clips'],['schedules','Schedules'],['setup','Setup']];
+const PAGES=[['home','Home'],['create','Create'],['studio','Studio'],['mage','Mage'],['misc','Misc'],['remix','Remix'],['library','Library'],null,['assets','Music & clips'],['schedules','Schedules'],['setup','Setup']];
 let S={},VIDS=[],fmtSel='',filter='all',openJob=null,sugg={};
 $('#nav').innerHTML=PAGES.map(p=>p?`<button data-p="${p[0]}">${ICON[p[0]]}<span>${p[1]}</span>${p[0]==='library'?'<span class="count" id="vcount">0</span>':''}</button>`:'<div class="navlabel">Manage</div>').join('');
 function go(id){$$('.page').forEach(p=>p.classList.toggle('on',p.id==='p-'+id));$$('#nav button').forEach(b=>b.classList.toggle('on',b.dataset.p===id));
   try{history.replaceState(null,'','#'+id)}catch(e){}
-  ({home:loadHome,create:loadCands,studio:loadStudio,misc:loadMisc,remix:loadRemix,library:loadVideos,assets:loadAssets,schedules:loadSchedules,setup:renderSetup})[id]?.()}
+  ({home:loadHome,create:loadCands,studio:loadStudio,mage:loadMage,misc:loadMisc,remix:loadRemix,library:loadVideos,assets:loadAssets,schedules:loadSchedules,setup:renderSetup})[id]?.()}
 $('#nav').onclick=e=>{const b=e.target.closest('button');if(b)go(b.dataset.p)};
 
 /* status */
@@ -594,6 +617,19 @@ function stRender(){
   $('#stAgain').onclick=()=>$('#stWrite').click();
 }
 function stCheck(){$('#stBuild').disabled=!(ST&&stFile)}
+let MG=null;
+const MGTYPE={title:'Title and question',steps:'Steps',flow:'Data flow',grid:'Grid',hex:'Hex cells',phone:'Phone screen',counter:'Counter',cta:'Follow card'};
+async function loadMage(){const m=await api('/api/music');$('#mgMusic').innerHTML='<option value="auto">Auto (EDM)</option><option value="none">No music</option>'+m.map(t=>`<option value="${esc(t.name)}">${esc(t.mood)} · ${esc(t.name)}</option>`).join('')}
+function mgRender(){const sc=MG.scenes;const words=sc.reduce((n,x)=>n+x.say.trim().split(/\s+/).filter(Boolean).length,0);
+  $('#mgScript').innerHTML=`<label class="l">Title</label><input id="mgTitle" value="${esc(MG.title)}">
+   <p class="sub" style="margin:8px 0"><b>${words}</b> words ≈ <b>${Math.round(words/2.1)}s</b> spoken.</p>`+
+   sc.map((x,i)=>`<div class="scene" style="align-items:flex-start"><i>${i+1}</i><div style="flex:1"><textarea data-m="${i}" rows="3" style="width:100%">${esc(x.say)}</textarea><em>🖼 ${esc(MGTYPE[x.type]||x.type)}${x.label?' · '+esc(x.label):''}</em></div></div>`).join('');
+  $('#mgBuild').disabled=false}
+$('#mgWrite').onclick=async()=>{const b=$('#mgWrite');b.disabled=true;b.textContent='Writing…';
+  try{MG=await post('/api/mage/script',{topic:$('#mgTopic').value,language:$('#mgLang').value,seconds:+$('#mgLen').value});mgRender();if(MG.mock)toast('No Claude key yet, showing an example storyboard')}catch(e){toast(e.message,1)}
+  b.disabled=false;b.textContent='Write storyboard'};
+$('#mgBuild').onclick=async()=>{MG.title=$('#mgTitle').value||MG.title;$$('#mgScript textarea').forEach(t=>{MG.scenes[+t.dataset.m].say=t.value});
+  try{await post('/api/mage/build',{script:MG,language:$('#mgLang').value,music:$('#mgMusic').value});toast('Building your reel…');pollJobs()}catch(e){toast(e.message,1)}};
 async function loadStudio(){const m=await api('/api/music');$('#stMusic').innerHTML='<option value="auto">Auto (EDM)</option><option value="none">No music</option>'+m.map(t=>`<option value="${esc(t.name)}">${esc(t.mood)} · ${esc(t.name)}</option>`).join('')}
 $('#stWrite').onclick=async()=>{const b=$('#stWrite');b.disabled=true;b.textContent='Writing…';
   try{ST=await post('/api/studio/script',{topic:$('#stTopic').value,avoid:ST?ST.title:''});stRender();if(ST.mock)toast('No Claude key yet, showing an example script')}catch(e){toast(e.message,1)}

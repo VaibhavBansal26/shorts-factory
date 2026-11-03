@@ -628,6 +628,67 @@ def yt_web_finish():
     return jsonify(ok=True, title=title)
 
 
+ELEVEN_API = "https://api.elevenlabs.io/v1"
+
+
+def _voice_row(v: dict) -> dict:
+    lab = v.get("labels") or {}
+    return {"id": v.get("voice_id") or v.get("public_owner_id", ""), "name": v.get("name", ""),
+            "gender": v.get("gender") or lab.get("gender", ""), "accent": v.get("accent") or lab.get("accent", ""),
+            "age": v.get("age") or lab.get("age", ""), "use": v.get("use_case") or lab.get("use_case", ""),
+            "descriptive": v.get("descriptive") or lab.get("descriptive", ""), "preview": v.get("preview_url", ""),
+            "category": v.get("category", ""), "mine": bool(v.get("category") and v.get("category") != "shared")}
+
+
+@app.get("/api/eleven/voices")
+def eleven_voices():
+    """Voices to choose from: the ones in your ElevenLabs account, or search the public library."""
+    import requests
+    key = os.getenv("ELEVENLABS_API_KEY", "").strip()
+    if not key:
+        return jsonify(error="add your ElevenLabs key first"), 400
+    q = request.args
+    try:
+        if q.get("scope") == "library":
+            params = {"page_size": 30, "language": q.get("language") or "en", "sort": "usage_character_count_7d"}
+            for k in ("gender", "accent", "search", "use_cases"):
+                if q.get(k):
+                    params[k] = q[k]
+            r = requests.get(f"{ELEVEN_API}/shared-voices", headers={"xi-api-key": key}, params=params, timeout=30)
+            r.raise_for_status()
+            rows = [_voice_row(v) for v in r.json().get("voices", [])]
+        else:
+            r = requests.get(f"{ELEVEN_API}/voices", headers={"xi-api-key": key}, timeout=30)
+            r.raise_for_status()
+            rows = [_voice_row(v) for v in r.json().get("voices", [])]
+            s = (q.get("search") or "").lower()
+            if s:
+                rows = [v for v in rows if s in (v["name"] + " " + v["accent"] + " " + v["descriptive"]).lower()]
+            if q.get("gender"):
+                rows = [v for v in rows if v["gender"] == q["gender"]]
+        return jsonify(voices=rows, chosen={g: prefs.load().get(f"eleven_{g}", "") for g in ("male", "female")})
+    except Exception as e:
+        return jsonify(error=f"ElevenLabs said: {str(e)[:160]}"), 502
+
+
+@app.get("/api/eleven/check")
+def eleven_check():
+    """Look up a pasted voice id so the user can see its name and hear it before choosing."""
+    import requests
+    key = os.getenv("ELEVENLABS_API_KEY", "").strip()
+    vid = (request.args.get("id") or "").strip()
+    if not key or not vid.replace("_", "").replace("-", "").isalnum() or len(vid) > 40:
+        return jsonify(error="check the voice id"), 400
+    try:
+        r = requests.get(f"{ELEVEN_API}/voices/{vid}", headers={"xi-api-key": key}, timeout=20)
+        if r.status_code == 404:
+            return jsonify(error="no voice with that id in your account (add it to My Voices on ElevenLabs first, or pick it from the library list)"), 404
+        r.raise_for_status()
+        return jsonify(voice=_voice_row(r.json()))
+    except Exception as e:
+        return jsonify(error=f"ElevenLabs said: {str(e)[:160]}"), 502
+
+
 @app.get("/api/voice")
 def voice_get():
     return jsonify(prefs.load())
@@ -635,7 +696,7 @@ def voice_get():
 
 @app.post("/api/voice")
 def voice_set():
-    return jsonify(prefs.save(**{k: v for k, v in (request.json or {}).items() if k in ("accent", "narrator")}))
+    return jsonify(prefs.save(**{k: v for k, v in (request.json or {}).items() if k in ("accent", "narrator", "eleven_male", "eleven_female")}))
 
 
 @app.get("/api/channels")

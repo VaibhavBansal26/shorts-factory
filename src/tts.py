@@ -55,6 +55,9 @@ def eleven_voice_id(cfg: dict, accent: str, gender: str) -> str:
     """ElevenLabs voice id for an accent + gender: the configured one, else the most-used matching English voice from the
     ElevenLabs voice library (looked up once and cached). Empty string when none exists."""
     from .config import ROOT
+    chosen = prefs.load().get(f"eleven_{gender}")  # picked in Setup > ElevenLabs voices
+    if chosen:
+        return chosen
     fixed = ((cfg.get("elevenlabs") or {}).get("voices") or {}).get(f"{accent}_{gender}") or \
         (((cfg.get("elevenlabs") or {}).get("voices") or {}).get(gender) if accent == "indian" else "")
     if fixed:

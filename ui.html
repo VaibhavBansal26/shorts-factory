@@ -767,11 +767,40 @@ function renderSetup(){
    st(true,6,'Voices',`<p>Pick the accent in the sidebar (Indian, American, British or Korean-accented English). Free Microsoft voices are used unless you add an ElevenLabs key below. The Korean female voice is the weakest of the set.</p>
      <label class="l">Default speaker (same as the sidebar)</label><select id="narr" style="max-width:220px"><option value="male">Male narrator</option><option value="female">Female narrator</option></select>`)+
    st(S.eleven_key,7,'ElevenLabs voices (optional)',`<p>More natural AI voices for the chosen accent. Library voices need a paid ElevenLabs plan through the API; otherwise the free voices are used.</p>
-     <div class="row"><div class="grow"><input id="elKey" type="password" placeholder="${S.eleven_key?'Key saved. Paste a new one to replace it':'ElevenLabs API key'}"></div><div><button class="btn p" id="saveEl">Save key</button></div></div>`)+
+     <div class="row"><div class="grow"><input id="elKey" type="password" placeholder="${S.eleven_key?'Key saved. Paste a new one to replace it':'ElevenLabs API key'}"></div><div><button class="btn p" id="saveEl">Save key</button></div></div>
+     ${S.eleven_key?`<h3 style="margin:18px 0 6px;font-size:14px">Choose the exact voice</h3>
+     <p class="sub" style="font-size:12px;margin:0 0 8px">Chosen now: male <b id="elM">automatic</b> · female <b id="elF">automatic</b> <button class="btn sm" id="elReset">Back to automatic</button></p>
+     <div class="row"><div class="grow"><label class="l">Where</label><select id="elScope"><option value="mine">My voices</option><option value="library">ElevenLabs library</option></select></div>
+       <div class="grow"><label class="l">Search</label><input id="elQ" placeholder="name, accent or style"></div>
+       <div class="grow"><label class="l">Gender</label><select id="elG"><option value="">Any</option><option value="male">Male</option><option value="female">Female</option></select></div>
+       <div class="grow" id="elAccWrap" style="display:none"><label class="l">Accent</label><select id="elAcc"><option value="">Any</option><option value="indian">Indian</option><option value="american">American</option><option value="british">British</option><option value="australian">Australian</option></select></div>
+       <div><label class="l">&nbsp;</label><button class="btn p" id="elFind">Find voices</button></div></div>
+     <div id="elList" style="margin-top:10px"></div>
+     <div class="row" style="margin-top:12px"><div class="grow"><label class="l">Or paste a voice ID</label><input id="elId" placeholder="e.g. 21m00Tcm4TlvDq8ikWAM"></div><div><label class="l">&nbsp;</label><button class="btn" id="elCheck">Check voice</button></div></div>
+     <div id="elOne" style="margin-top:8px"></div>`:''}`)+
    st(S.music_tracks>0,8,'Background music',`<p>${S.music_tracks} track(s). Your EDM tracks are used by default.</p><button class="btn" onclick="go('assets')">Manage music</button>`)+
    st(S.pexels_key,9,'Stock video (optional)',`<p>A free Pexels key (pexels.com/api) lets faceless reels use portrait b-roll.</p>
      <div class="row"><div class="grow"><input id="pxKey" type="password" placeholder="${S.pexels_key?'Key saved. Paste a new one to replace it':'Pexels API key'}"></div><div><button class="btn p" id="savePx">Save key</button></div></div>`);
   $('#saveEl').onclick=async()=>{if(!$('#elKey').value.trim())return;await post('/api/secrets',{eleven_key:$('#elKey').value});toast('ElevenLabs key saved');loadStatus().then(renderSetup)};
+
+  if(S.eleven_key){
+    const vname=(id,list)=>{const v=(list||[]).find(x=>x.id===id);return v?v.name:(id?id.slice(0,8)+'…':'automatic')};
+    let ELV=[];const ELC={male:'',female:''};
+    const showChosen=()=>{$('#elM').textContent=vname(ELC.male,ELV);$('#elF').textContent=vname(ELC.female,ELV)};
+    const vrow=v=>`<div class="scene" style="align-items:center"><div style="flex:1"><b>${esc(v.name)}</b> <span class="sub" style="font-size:12px">${[v.gender,v.accent,v.age,v.use,v.descriptive].filter(Boolean).map(esc).join(' · ')}</span>
+       ${v.preview?`<div><audio controls preload="none" src="${esc(v.preview)}" style="height:30px;margin-top:4px"></audio></div>`:''}</div>
+       <div style="display:flex;gap:6px;flex-wrap:wrap"><button class="btn sm" data-use="male" data-id="${esc(v.id)}" data-name="${esc(v.name)}">Use as male</button><button class="btn sm" data-use="female" data-id="${esc(v.id)}" data-name="${esc(v.name)}">Use as female</button></div></div>`;
+    const wire=root=>root.querySelectorAll('[data-use]').forEach(b=>b.onclick=async()=>{const g=b.dataset.use;await post('/api/voice',{['eleven_'+g]:b.dataset.id});ELC[g]=b.dataset.id;if(!ELV.find(x=>x.id===b.dataset.id))ELV.push({id:b.dataset.id,name:b.dataset.name});showChosen();toast(g+' voice set to '+b.dataset.name)});
+    api('/api/voice').then(p=>{ELC.male=p.eleven_male||'';ELC.female=p.eleven_female||'';showChosen()}).catch(()=>{});
+    $('#elScope').onchange=()=>{$('#elAccWrap').style.display=$('#elScope').value==='library'?'block':'none'};
+    $('#elFind').onclick=async()=>{const b=$('#elFind');b.disabled=true;b.textContent='Searching…';
+      try{const qs=new URLSearchParams({scope:$('#elScope').value,search:$('#elQ').value,gender:$('#elG').value,accent:$('#elAcc').value});
+        const r=await api('/api/eleven/voices?'+qs);ELV=r.voices;ELC.male=r.chosen.male;ELC.female=r.chosen.female;
+        $('#elList').innerHTML=r.voices.length?r.voices.map(vrow).join(''):'<div class="emptybox">No voices found. Try another search.</div>';wire($('#elList'));showChosen()}
+      catch(e){toast(e.message,1)}b.disabled=false;b.textContent='Find voices'};
+    $('#elCheck').onclick=async()=>{try{const r=await api('/api/eleven/check?id='+encodeURIComponent($('#elId').value.trim()));$('#elOne').innerHTML=vrow(r.voice);wire($('#elOne'))}catch(e){toast(e.message,1)}};
+    $('#elReset').onclick=async()=>{await post('/api/voice',{eleven_male:'',eleven_female:''});ELC.male=ELC.female='';showChosen();toast('Back to automatic voices')};
+  }
   $('#savePx').onclick=async()=>{if(!$('#pxKey').value.trim())return;await post('/api/secrets',{pexels_key:$('#pxKey').value});toast('Pexels key saved');loadStatus().then(renderSetup)};
   $('#narr').value=S.narrator;$('#narr').onchange=()=>post('/api/voice',{narrator:$('#narr').value}).then(()=>loadStatus()).then(()=>toast('Saved'));
   $('#addCh').onclick=async()=>{try{await post('/api/channels',{name:$('#nchName').value,handle:$('#nchHandle').value});toast('Channel added');await loadStatus();renderSetup()}catch(e){toast(e.message,1)}};

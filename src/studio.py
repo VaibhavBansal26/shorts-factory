@@ -12,7 +12,7 @@ from datetime import date
 from pathlib import Path
 
 import anthropic
-from PIL import Image, ImageDraw, ImageFont
+from PIL import Image, ImageDraw, ImageFilter, ImageFont
 
 from . import media, music, seo
 from . import memes as memes_mod
@@ -312,21 +312,61 @@ class Studio:
             y += int(size * 1.2)
         return y
 
+    # ---- timing tied to the voice
+    def reveals(self, bi, items):
+        """Local times at which each item should appear: when the narrator first says one of its words, else spread out."""
+        if bi in self.cache:
+            return self.cache[bi]
+        words = self.timing[bi]["words"]
+        start = self.timing[bi]["start"]
+        dur = max(1.0, self.timing[bi]["end"] - start)
+        out, pos = [], 0
+        for i, it in enumerate(items):
+            keys = {re.sub(r"\W", "", w.lower()) for w in it.split() if len(re.sub(r"\W", "", w)) > 3}
+            hit = next((j for j in range(pos, len(words)) if re.sub(r"\W", "", words[j][0].lower()) in keys), None)
+            if hit is not None:
+                out.append(max(0.15, words[hit][1] - start - 0.12))
+                pos = hit + 1
+            else:
+                out.append(0.2 + i * dur * 0.7 / max(1, len(items)))
+        for i in range(1, len(out)):  # keep them in order and apart
+            out[i] = max(out[i], out[i - 1] + 0.3)
+        self.cache[bi] = out
+        return out
+
+    def kick(self, bi, t):
+        """1 at the instant a word starts, fading to 0: a small pulse that follows the speech."""
+        ws = [w[1] for w in self.timing[bi]["words"] if w[1] <= t]
+        return max(0.0, 1 - (t - ws[-1]) / 0.2) if ws else 0.0
+
+    def _glow(self):
+        if "glow" not in self.cache:
+            sp = Image.new("RGBA", (520, 520), (0, 0, 0, 0))
+            ImageDraw.Draw(sp).ellipse((60, 60, 460, 460), fill=(*self.accent, 70))
+            self.cache["glow"] = sp.filter(ImageFilter.GaussianBlur(70))
+        return self.cache["glow"]
+
     # ---- graphics (each draws onto a W x GH RGBA panel)
     def graphic(self, v, lt, idx):
         img = self.panel_bg.copy().convert("RGBA")
+        for k, (gx, gy, sp) in enumerate(((0.2, 0.3, 0.7), (0.8, 0.55, 0.5), (0.45, 0.85, 0.6))):  # drifting light, so it's never static
+            gl = self._glow()
+            x = int((gx + 0.08 * math.sin(lt * sp + k * 2)) * W - 260)
+            y = int((gy + 0.06 * math.cos(lt * sp * 0.8 + k)) * GH - 260)
+            img.paste(gl, (x, y), gl)
         d = ImageDraw.Draw(img, "RGBA")
         ac = self.accent
         kind = v["type"]
         title = v.get("title", "")
         items = [s for s in v.get("items", []) if s]
+        rt = self.reveals(idx, items) if items else []
         if title and kind not in ("stat", "meme"):
             self.text_block(d, title, W // 2, 330, 900, 130, fill=WHITE, start=64)
         if kind == "nodes":
             cx, cy = W // 2, 640
             slots = [(250, 480), (830, 480), (250, 820), (830, 820)]
             for i, txt in enumerate(items[:4]):
-                p = ease((lt - 0.25 - i * 0.2) / 0.5)
+                p = ease((lt - rt[i]) / 0.5)
                 sx, sy = slots[i]
                 if p > 0:
                     d.line([(cx, cy), (cx + (sx - cx) * p, cy + (sy - cy) * p)], fill=(*ac, 150), width=5)
@@ -364,7 +404,7 @@ class Studio:
             d.rounded_rectangle((90, 470, W - 90, 960), radius=44, fill=(20, 32, 70, 255), outline=(*ac, 200), width=4)
             y = 520
             for i, txt in enumerate(items[:4]):
-                p = ease((lt - 0.2 - i * 0.35) / 0.4)
+                p = ease((lt - rt[i]) / 0.4)
                 if p <= 0:
                     continue
                 size, lines = self.fit(txt, 800, 120, 52, 36)
@@ -374,7 +414,7 @@ class Studio:
                 y += 36
         elif kind == "steps":
             for i, txt in enumerate(items[:4]):
-                p = ease((lt - 0.2 - i * 0.4) / 0.45)
+                p = ease((lt - rt[i]) / 0.45)
                 if p <= 0:
                     continue
                 y = 430 + i * 140
@@ -389,7 +429,7 @@ class Studio:
                     yy += int(size * 1.2)
         elif kind == "compare":
             for i, txt in enumerate((items + ["", ""])[:2]):
-                p = ease((lt - 0.2 - i * 0.4) / 0.45)
+                p = ease((lt - rt[i]) / 0.45)
                 if p <= 0:
                     continue
                 x0 = 70 + i * 490
@@ -403,6 +443,13 @@ class Studio:
         elif kind == "stat":
             s = pop(ease(lt / 0.5))
             big = v.get("big", "")
+            m = re.search(r"\d[\d,]*\.?\d*", big)
+            if m:  # numbers count up to their value
+                raw = m.group(0)
+                val = float(raw.replace(",", ""))
+                cur = val * ease(lt / 0.9)
+                txt = f"{cur:,.{len(raw.split('.')[1]) if '.' in raw else 0}f}" if "," in raw else (f"{cur:.{len(raw.split('.')[1])}f}" if "." in raw else f"{int(round(cur))}")
+                big = big[:m.start()] + txt + big[m.end():]
             size = int(min(300, 1700 / max(3, len(big))) * s)
             d.text((W // 2, 600), big, font=self.font(max(60, size)), fill=(*ac, 255), anchor="mm", stroke_width=4,
                    stroke_fill=(0, 0, 0))
@@ -474,7 +521,12 @@ class Studio:
 
         def split():
             img = Image.new("RGB", (W, H))
-            img.paste(self.graphic(v, lt, bi).convert("RGB"), (0, 0))
+            g = self.graphic(v, lt, bi).convert("RGB")
+            z = 1 + 0.025 * min(1.0, lt / 4) + 0.012 * self.kick(bi, t)  # slow push-in plus a small beat on every spoken word
+            if z > 1.002:
+                bw, bh = W / z, GH / z
+                g = g.resize((W, GH), Image.BILINEAR, box=((W - bw) / 2, (GH - bh) / 2, (W + bw) / 2, (GH + bh) / 2))
+            img.paste(g, (0, 0))
             img.paste(face_panel, (0, GH))
             d = ImageDraw.Draw(img)
             d.rectangle((0, GH - 4, W, GH), fill=self.accent)
@@ -494,10 +546,63 @@ class Studio:
         return a
 
 
-def _decoder(src: Path, w, h, face_x: float):
-    vf = f"scale={w}:{h}:force_original_aspect_ratio=increase,crop={w}:{h}:x='(iw-ow)*{face_x}':y='(ih-oh)*0.35'"
+def find_face(src: Path):
+    """Where the head is in the recording, as fractions of the frame: (centre x, top y), or None when it can't be told.
+    Uses the same local person-segmentation model as the background clean-up, sampled over the whole clip."""
+    try:
+        import cv2
+        import numpy as np
+        from mediapipe import Image as MpImage, ImageFormat
+        from mediapipe.tasks.python import BaseOptions, vision
+        from .enhance import MODEL, _size
+        w0, h0 = _size(src)
+        w = 288
+        h = int(h0 * w / w0) // 2 * 2
+        seg = vision.ImageSegmenter.create_from_options(vision.ImageSegmenterOptions(
+            base_options=BaseOptions(model_asset_path=str(MODEL)), running_mode=vision.RunningMode.IMAGE,
+            output_confidence_masks=True, output_category_mask=False))
+        raw = subprocess.run([FFMPEG, "-loglevel", "error", "-i", str(src), "-vf", f"fps=2,scale={w}:{h}", "-frames:v", "40",
+                              "-f", "rawvideo", "-pix_fmt", "rgb24", "-"], capture_output=True).stdout
+        xs, tops = [], []
+        for k in range(len(raw) // (w * h * 3)):
+            fr = np.frombuffer(raw, np.uint8, w * h * 3, k * w * h * 3).reshape(h, w, 3).copy()
+            m = seg.segment(MpImage(image_format=ImageFormat.SRGB, data=fr)).confidence_masks[-1].numpy_view().reshape(h, w) > 0.5
+            rows = np.where(m.sum(axis=1) > w * 0.04)[0]
+            if len(rows) < h * 0.15:
+                continue
+            top = int(rows[0])
+            band = m[top:top + max(6, int(h * 0.16))]  # the head: the first stretch below the top of the person
+            cols = np.where(band.any(axis=0))[0]
+            xs.append((cols[0] + cols[-1]) / 2 / w)
+            tops.append(top / h)
+        if len(xs) < 3:
+            return None
+        return float(np.median(xs)), float(np.median(tops))
+    except Exception as e:
+        print(f"  face finder skipped ({e})")
+        return None
+
+
+def _decoder(src: Path, w, h, face_x, face=None):
+    """Scale the recording to fill w x h and crop so the head sits in the middle, with a little room above it."""
+    if face:
+        sw, sh = _dims(src)
+        k = max(w / sw, h / sh)
+        zw, zh = int(math.ceil(sw * k / 2)) * 2, int(math.ceil(sh * k / 2)) * 2
+        cx, top = face
+        x0 = min(max(cx * zw - w / 2, 0), zw - w)
+        y0 = min(max(top * zh - 0.16 * h, 0), zh - h)
+        vf = f"scale={zw}:{zh},crop={w}:{h}:{int(x0)}:{int(y0)}"
+    else:
+        vf = f"scale={w}:{h}:force_original_aspect_ratio=increase,crop={w}:{h}:x='(iw-ow)*{face_x}':y='(ih-oh)*0.35'"
     return subprocess.Popen([FFMPEG, "-loglevel", "error", "-i", str(src), "-vf", vf, "-f", "rawvideo", "-pix_fmt", "rgb24", "-"],
                             stdout=subprocess.PIPE)
+
+
+def _dims(src: Path):
+    err = subprocess.run([FFMPEG, "-hide_banner", "-i", str(src)], capture_output=True, text=True).stderr
+    m = re.search(r"Video:.*?, (\d{2,5})x(\d{2,5})", err)
+    return int(m.group(1)), int(m.group(2))
 
 
 def _read(p, w, h, last):
@@ -511,7 +616,7 @@ def slug(s: str) -> str:
     return re.sub(r"[^a-z0-9]+", "-", s.lower()).strip("-")[:40]
 
 
-def make(cfg: dict, script: dict, clip: Path, music_choice: str = "auto", face_x: float = 0.5,
+def make(cfg: dict, script: dict, clip: Path, music_choice: str = "auto", face_x: float | None = None,
          background: str = "none", polish: bool = False):
     """Build the reel from the edited script + the uploaded recording. Returns (folder, script, video_path)."""
     clip = Path(clip).resolve()
@@ -571,7 +676,10 @@ def make(cfg: dict, script: dict, clip: Path, music_choice: str = "auto", face_x
     cmd += ["-c:v", "libx264", "-preset", "medium", "-crf", "20", "-pix_fmt", "yuv420p", "-c:a", "aac", "-b:a", "160k",
             "-t", f"{total:.2f}", "-movflags", "+faststart", str(out)]
     enc = subprocess.Popen(cmd, stdin=subprocess.PIPE)
-    dec_full, dec_panel = _decoder(clean, W, H, face_x), _decoder(clean, W, PH, face_x)
+    face = find_face(clean) if face_x is None else None  # None = find it; a number = the position the user chose
+    print(f"  face: {'auto ' + str(tuple(round(v, 2) for v in face)) if face else 'manual/centre'}")
+    fx = 0.5 if face_x is None else face_x
+    dec_full, dec_panel = _decoder(clean, W, H, fx, face), _decoder(clean, W, PH, fx, face)
     lf = lp = Image.new("RGB", (W, H), (0, 0, 0))
     lp = Image.new("RGB", (W, PH), (0, 0, 0))
     try:

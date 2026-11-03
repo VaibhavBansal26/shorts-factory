@@ -253,7 +253,7 @@ def studio_build():
     up.mkdir(parents=True, exist_ok=True)
     dest = up / f"{uuid.uuid4().hex[:6]}_{secure_filename(f.filename)}"
     f.save(dest)
-    fx = {"left": 0.15, "center": 0.5, "right": 0.85}.get(form.get("face", "center"), 0.5)
+    fx = {"left": 0.15, "center": 0.5, "right": 0.85}.get(form.get("face", "auto"))  # None = find the face automatically
     return jsonify(job=start_job(f"Studio: {script.get('title', 'reel')[:40]}",
                                  lambda: studio.make(jc, script, dest, form.get("music", "auto"), fx,
                                                      form.get("bg", "none") if form.get("bg") in ("none", "blur", "studio", "clean") else "none",

@@ -309,7 +309,7 @@ window.addEventListener('unhandledrejection',function(ev){show(String(ev.reason&
       <div class="drop" id="dropStudio" style="margin-top:12px">Drop your recording here, or click to choose<input type="file" id="fileStudio" accept="video/*" hidden></div>
       <video id="studioPreview" controls style="display:none;width:100%;max-height:300px;margin-top:12px;border-radius:12px;background:#000"></video>
       <div class="row" style="margin-top:12px"><div class="grow"><label class="l">Where is your face in the frame?</label>
-        <select id="stFace"><option value="center" selected>Centre</option><option value="left">Left</option><option value="right">Right</option></select></div>
+        <select id="stFace"><option value="auto" selected>Auto (find my face and centre it)</option><option value="center">Centre</option><option value="left">Left</option><option value="right">Right</option></select></div>
         <div class="grow"><label class="l">Music</label><select id="stMusic"><option value="auto">Auto (EDM)</option><option value="none">No music</option></select></div></div>
       <div class="row" style="margin-top:12px"><div class="grow"><label class="l">Background</label>
         <select id="stBg"><option value="none">Keep mine</option><option value="studio" selected>Studio (dark, soft lights)</option><option value="clean">Clean light wall</option><option value="blur">Blur my room</option></select></div>

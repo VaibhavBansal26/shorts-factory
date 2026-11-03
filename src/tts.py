@@ -168,12 +168,23 @@ def synthesize(script: dict, cfg: dict, workdir: Path, rate: str | None = None) 
         if not audio:
             raise RuntimeError(f"TTS returned no audio for scene {i}")
         mp3.write_bytes(audio)
+        pre, lead, ratio = "", 0.0, 1.0
+        if sc.get("speech_len"):  # a dub over a talking clip: start with the speaker and finish with them
+            raw = _probe(mp3)
+            ratio = min(1.4, max(0.8, raw / max(0.5, sc["speech_len"])))
+            lead = float(sc.get("speech_lead", 0.0))
+            if abs(ratio - 1) > 0.03:
+                pre += f"atempo={ratio:.3f},"
+            if lead > 0.02:
+                pre += f"adelay={int(lead * 1000)}:all=1,"
         subprocess.run(
-            [FFMPEG, "-y", "-loglevel", "error", "-i", str(mp3), "-af", f"apad=pad_dur={SCENE_PAD}" + (f",apad=whole_dur={sc['min_duration']}" if sc.get("min_duration") else ""),
+            [FFMPEG, "-y", "-loglevel", "error", "-i", str(mp3), "-af", pre + f"apad=pad_dur={SCENE_PAD}" + (f",apad=whole_dur={sc['min_duration']}" if sc.get("min_duration") else ""),
              "-ar", "44100", "-ac", "1", str(wav)], check=True)
         dur = _probe(wav)
+        if words and (ratio != 1.0 or lead):
+            words = [(w, t / ratio + lead, d / ratio) for w, t, d in words]
         if not words:
-            words = _even_words(sc["narration"], dur - SCENE_PAD)
+            words = [(w, t + lead, d) for w, t, d in _even_words(sc["narration"], max(0.5, dur - SCENE_PAD - lead))]
         else:
             # the TTS strips punctuation; restore it so captions can break on sentences
             orig = sc["narration"].split()

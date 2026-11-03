@@ -550,7 +550,7 @@ def make(cfg: dict, script: dict, music_choice: str = "auto", language: str = "h
     timing = tts.synthesize(voice_script, cfg, folder)
     voice, total = timing["audio"], timing["total"]
     full = {
-        "format": "mage", "title": script["title"][:90], "description": script.get("description", ""), "tags": script.get("tags", []),
+        "format": "mage", "style": script.get("style", "diagram"), "title": script["title"][:90], "description": script.get("description", ""), "tags": script.get("tags", []),
         "music": music_choice, "series": script.get("series", ""), "storyboard": scenes,
         "channel_id": cfg["channel"].get("id", "main"),
         "source": {"name": "Original", "title": script["title"], "url": ""},
@@ -563,7 +563,7 @@ def make(cfg: dict, script: dict, music_choice: str = "auto", language: str = "h
     track = music.pick(cfg, "studio", music_choice)
     print(f"  music: {track.name if track else 'none'}")
 
-    mg = Mage(cfg, script, timing)
+    mg = (News if script.get("style") == "news" else Mage)(cfg, script, timing)
     out = folder / "video.mp4"
     cmd = [FFMPEG, "-y", "-loglevel", "error", "-f", "rawvideo", "-pix_fmt", "rgb24", "-s", f"{W}x{H}", "-r", str(FPS), "-i", "-",
            "-i", str(voice)]
@@ -588,3 +588,291 @@ def make(cfg: dict, script: dict, music_choice: str = "auto", language: str = "h
         raise RuntimeError("ffmpeg failed")
     print(f"  rendered {out.name} ({total:.0f}s)")
     return folder, full, out
+
+
+# =============================================================================== AI news style
+# Studied from a reference AI-news Short: a hook headline with one red word, then full-frame cards that alternate between dark and
+# paper (a spec list with the key line highlighted in a black box, bar charts with one highlighted bar and a hand-drawn arrow,
+# price/score face-offs), and one-word-at-a-time italic serif captions along the bottom. Facts come only from the notes the
+# owner pastes in; nothing here invents a number.
+NEWS_TYPES = ["hook", "points", "bars", "vs", "stat", "cta"]
+PAPER, PAPER_INK = (238, 234, 226), (24, 24, 28)
+DARK, DARK_INK = (12, 12, 16), (240, 240, 244)
+PURPLE, BLUEBAR = (126, 80, 230), (30, 120, 250)
+
+NEWS_SYSTEM = """You write storyboards for a 45-60 second vertical AI-news Short. A voice narrates over full-frame cards, with one-word-at-a-time
+captions. Use ONLY the facts in the NOTES the owner gives you: do not add numbers, names, rankings or claims that are not in them.
+If a detail is not in the notes, leave it out. Never quote a real person unless the notes contain the quote.
+
+Structure: scene 1 is a "hook": the most surprising true claim from the notes in 6-12 words. Then 6-9 scenes that unpack it
+(what it is, the key numbers, how it compares, why it matters), and the last scene is a "cta". Narration is punchy, spoken, 12-22 words
+per scene. Each scene has `type` and `data`:
+- hook: {headline, hot}          headline text (<= 12 words); hot = the one word or phrase shown in red
+- points: {title, items:[2-5 short lines], mark}   a spec list; `mark` = index of the line to highlight in a black box
+- bars: {title, unit, bars:[{label, value, hot}] (3-6), note}   horizontal bars; hot:true marks the one that matters most
+- vs: {left:{name, value, note}, right:{name, value, note}, unit, better:"left"|"right"|"lower"|"higher"}   two cards, numbers compared
+- stat: {big, label}             one big number or phrase and what it is
+- cta: {text}                    closing line, e.g. "Check the pinned comment for the link."
+Optional `tone`: "dark" or "paper" (cards alternate; the model may leave it out). Metadata: title (<=70 chars), description (2 sentences), up to 6 tags."""
+
+NEWS_TOOL = {
+    "name": "submit_storyboard", "description": "Submit the storyboard.",
+    "input_schema": {"type": "object", "properties": {
+        "title": {"type": "string"}, "description": {"type": "string"},
+        "tags": {"type": "array", "items": {"type": "string"}, "maxItems": 6},
+        "scenes": {"type": "array", "items": {"type": "object", "properties": {
+            "say": {"type": "string"}, "type": {"type": "string", "enum": NEWS_TYPES},
+            "tone": {"type": "string", "enum": ["dark", "paper"]}, "data": {"type": "object"}}, "required": ["say", "type", "data"]}},
+    }, "required": ["title", "scenes"]},
+}
+
+NEWS_MOCK = {
+    "title": "Open-source model just beat the paid ones", "tags": ["AI", "news", "opensource"],
+    "description": "An open-source model matches paid ones on benchmarks at a fraction of the price. Example numbers only.",
+    "scenes": [
+        {"say": "An open source model just caught up with the paid giants.", "type": "hook", "tone": "dark",
+         "data": {"headline": "Open source just caught the giants", "hot": "caught"}},
+        {"say": "It is free to download, and it keeps up on the big coding benchmark.", "type": "points", "tone": "dark",
+         "data": {"title": "Model X", "items": ["Open weights", "1M token context", "Free to run yourself", "Strong at coding"], "mark": 2}},
+        {"say": "On the coding benchmark it scores higher than the paid model next to it.", "type": "bars", "tone": "paper",
+         "data": {"title": "Coding benchmark (example numbers)", "unit": "%", "bars": [{"label": "Model X", "value": 58, "hot": True},
+                  {"label": "Paid A", "value": 46}, {"label": "Paid B", "value": 42}, {"label": "Older open", "value": 41}]}},
+        {"say": "And the same landing page costs a few dollars, not tens.", "type": "vs", "tone": "dark",
+         "data": {"left": {"name": "Model X", "value": 1.47}, "right": {"name": "Paid A", "value": 9.16}, "unit": "$", "better": "lower"}},
+        {"say": "Open models are not the cheap alternative anymore. Check the pinned comment for the link.", "type": "cta", "tone": "paper",
+         "data": {"text": "Check the pinned comment for the link."}},
+    ],
+}
+
+
+def write_news(cfg: dict, topic: str, notes: str, language: str = "en", seconds: int = 55) -> dict:
+    if not have_key():
+        return json.loads(json.dumps(NEWS_MOCK))
+    if not notes.strip():
+        raise RuntimeError("paste the facts you want covered (an announcement, thread or article text) into Notes")
+    lang = {"hinglish": "Write `say` in Hinglish: Hindi in Roman letters mixed with common English tech terms. No Devanagari.",
+            "en": "Write in clear, simple English."}.get(language, "Write in clear, simple English.")
+    ask = (f"Topic: {topic or '(infer from the notes)'}\nNOTES (the only allowed facts):\n{notes.strip()[:6000]}\n\n"
+           f"Target about {seconds} seconds of speech (about {int(seconds * 2.0)} words). {lang}")
+    client = anthropic.Anthropic()
+    feedback = ""
+    for _ in range(3):
+        resp = client.messages.create(model=cfg["llm"]["model"], max_tokens=4000, system=NEWS_SYSTEM, tools=[NEWS_TOOL],
+                                      tool_choice={"type": "auto"}, messages=[{"role": "user", "content": ask + feedback}])
+        block = next((b for b in resp.content if b.type == "tool_use"), None)
+        if block is None:
+            feedback = "\nAnswer by calling submit_storyboard."
+            continue
+        s = block.input
+        try:
+            if isinstance(s.get("scenes"), str):
+                s["scenes"] = json.loads(s["scenes"])
+            for sc in s["scenes"]:
+                if isinstance(sc.get("data"), str):
+                    sc["data"] = json.loads(sc["data"])
+            words = sum(len(sc["say"].split()) for sc in s["scenes"])
+            if 5 <= len(s["scenes"]) <= 12 and s["scenes"][0]["type"] == "hook" and seconds * 1.3 <= words <= seconds * 2.3:
+                s["style"] = "news"
+                return s
+            feedback = (f"\nFix: {len(s['scenes'])} scenes and {words} spoken words. Use 6-9 scenes, the first of type hook, and "
+                        f"about {int(seconds * 2.0)} words in total: cut the less important facts.")
+        except Exception:
+            feedback = "\nFix: scenes must be objects with say, type and a data object."
+    raise RuntimeError("Claude returned a storyboard in an unexpected shape. Try again.")
+
+
+class News(Mage):
+    def __init__(self, cfg, script, timing):
+        super().__init__(cfg, script, timing)
+        self.serif_path = next((p for p in ["/System/Library/Fonts/Supplemental/Georgia Italic.ttf", "C:/Windows/Fonts/georgiai.ttf",
+                                            "/System/Library/Fonts/Supplemental/Times New Roman Italic.ttf",
+                                            "/usr/share/fonts/truetype/dejavu/DejaVuSerif-Italic.ttf"] if Path(p).exists()), None)
+        self._s = {}
+        self.bg_dark = self._flat(DARK, 22)
+        self.bg_paper = self._flat(PAPER, 10)
+
+    def serif(self, n):
+        if n not in self._s:
+            self._s[n] = ImageFont.truetype(self.serif_path, n) if self.serif_path else self.font(n)
+        return self._s[n]
+
+    def _flat(self, col, shade):
+        yy = np_gradient(col, shade)
+        return yy
+
+    def tone(self, si):
+        sc = self.scenes[si]
+        return sc.get("tone") if sc.get("tone") in ("dark", "paper") else ("dark" if si % 2 == 0 else "paper")
+
+    # ---- scenes
+    def d_hook(self, d, img, t, dur, data, si):
+        text = str(data.get("headline", self.script["title"]))
+        hot = str(data.get("hot", "")).lower()
+        f = self.font(104)
+        lines = self._wrap(text, f, 900)[:4]
+        total = len(lines) * 128
+        y = 760 - total // 2
+        k = 0
+        for ln in lines:
+            words = ln.split()
+            widths = [d.textlength(w + " ", font=f) for w in words]
+            x = (W - sum(widths) + d.textlength(" ", font=f)) / 2
+            for w, wd in zip(words, widths):
+                p = back((t - 0.12 * k) / 0.35)
+                k += 1
+                if p > 0:
+                    isHot = hot and re.sub(r"\W", "", w.lower()) in re.sub(r"\W", "", hot)
+                    off = int((1 - min(1, p)) * 30)
+                    if isHot:
+                        d.rectangle((x - 8, y + off - 4, x + wd - 12, y + off + 116), fill=(20, 0, 0))
+                    d.text((x, y + off), w, font=f, fill=(255, 60, 60) if isHot else DARK_INK)
+                x += wd
+            y += 128
+        d.rounded_rectangle((W / 2 - 70, y + 60, W / 2 + 70, y + 66), radius=3, fill=(255, 60, 60))
+
+    def d_points(self, d, img, t, dur, data, si, ink=None):
+        items = [str(x) for x in data.get("items", [])][:5]
+        paper = self.tone(si) == "paper"
+        ink = PAPER_INK if paper else DARK_INK
+        title = str(data.get("title", ""))
+        d.text((90, 420), title, font=self.serif(66), fill=ink, anchor="lm")
+        d.line((90, 470, W - 90, 470), fill=(120, 120, 130), width=2)
+        rt = self.reveal_times(si, items)
+        mark = data.get("mark")
+        for i, it in enumerate(items):
+            p = ease((t - rt[i]) / 0.4)
+            if p <= 0:
+                continue
+            y = 540 + i * 150
+            hl = isinstance(mark, int) and i == mark
+            if hl:
+                w = self.font(50).getlength(it) + 50
+                wipe = ease((t - rt[i] - 0.3) / 0.5)
+                d.rectangle((90, y - 6, 90 + w * wipe, y + 82), fill=(0, 0, 0) if paper else (250, 250, 250))
+            col = (255, 255, 255) if (hl and paper) else (0, 0, 0) if hl else ink
+            d.text((110 - int((1 - p) * 40), y + 38), it, font=self.font(50), fill=(*col,), anchor="lm")
+            d.ellipse((60, y + 30, 76, y + 46), fill=BLUEBAR)
+
+    def d_bars(self, d, img, t, dur, data, si):
+        bars = [b for b in data.get("bars", []) if isinstance(b, dict)][:6] or [{"label": "A", "value": 1}]
+        paper = self.tone(si) == "paper"
+        ink = PAPER_INK if paper else DARK_INK
+        d.text((90, 400), str(data.get("title", "")), font=self.serif(54), fill=ink, anchor="lm")
+        mx = max(float(b.get("value", 0)) for b in bars) or 1
+        unit = str(data.get("unit", ""))
+        rt = self.reveal_times(si, [b.get("label", "") for b in bars], 0.1, 0.5)
+        hot_y = None
+        for i, b in enumerate(bars):
+            y = 520 + i * 140
+            p = ease((t - rt[i]) / 0.7)
+            hot = bool(b.get("hot"))
+            d.text((90, y + 14), str(b.get("label", "")), font=self.mono(26), fill=ink, anchor="lm")
+            d.rounded_rectangle((90, y + 44, W - 90, y + 88), radius=22, fill=(214, 210, 202) if paper else (34, 34, 42))
+            wv = (W - 180) * float(b.get("value", 0)) / mx * p
+            if wv > 8:
+                d.rounded_rectangle((90, y + 44, 90 + wv, y + 88), radius=22, fill=BLUEBAR if hot else (120, 126, 140))
+            if p > 0.6:
+                d.text((W - 90 - (W - 180) * (1 - float(b.get("value", 0)) / mx) - 14, y + 66), f"{b.get('value', 0)}{' ' if unit[:1].isalpha() else ''}{unit}",
+                       font=self.mono(26), fill=(255, 255, 255) if hot or not paper else (255, 255, 255), anchor="rm")
+            if hot:
+                hot_y = y + 66
+                d.rounded_rectangle((84, y + 38, W - 84, y + 94), radius=26, outline=ink, width=3) if p > 0.9 else None
+        if hot_y and t > rt[min(len(rt) - 1, [i for i, b in enumerate(bars) if b.get("hot")][0])] + 0.8:  # a hand-drawn arrow onto the hot bar
+            a = ease((t - rt[[i for i, b in enumerate(bars) if b.get("hot")][0]] - 0.8) / 0.5)
+            pts = [(W - 130 + 40 * math.sin(k / 12 * 2.6) * 0 - k * 6, 420 + (hot_y - 420) * (k / 12) ** 1.6) for k in range(13)]
+            pts = [(x0, y0) for (x0, y0) in pts][: max(2, int(13 * a))]
+            d.line(pts, fill=PURPLE, width=7)
+            if a > 0.9:
+                ex, ey = pts[-1]
+                d.polygon([(ex, ey + 4), (ex - 22, ey - 24), (ex + 22, ey - 24)], fill=PURPLE)
+        if data.get("note"):
+            self.chip(d, str(data["note"]), W // 2, 1420, CYAN, 24, ease((t - 1.0) / 0.4))
+
+    def d_vs(self, d, img, t, dur, data, si):
+        paper = self.tone(si) == "paper"
+        ink = PAPER_INK if paper else DARK_INK
+        L, R = data.get("left") or {}, data.get("right") or {}
+        unit = str(data.get("unit", ""))
+        better = data.get("better", "lower")
+        lv, rv = float(L.get("value", 0) or 0), float(R.get("value", 0) or 0)
+        win = "left" if (better in ("left",) or (better == "lower" and lv <= rv) or (better == "higher" and lv >= rv)) else "right"
+        mx = max(lv, rv) or 1
+        for i, (side, card, v) in enumerate((("left", L, lv), ("right", R, rv))):
+            y = 440 + i * 420
+            p = back((t - 0.15 - i * 0.5) / 0.5)
+            if p <= 0:
+                continue
+            good = side == win
+            col = GREEN if good else RED
+            s = 0.92 + 0.08 * min(1, p)
+            d.rounded_rectangle((90, y, W - 90, y + 360 * s), radius=30, fill=(28, 28, 36) if not paper else (255, 255, 255),
+                                outline=col if t > 1.4 else (90, 90, 100), width=4)
+            d.text((140, y + 66), str(card.get("name", "")), font=self.font(54), fill=ink, anchor="lm")
+            shown = v * ease((t - 0.4 - i * 0.5) / 0.8)
+            d.text((W - 140, y + 150), f"{unit}{shown:,.2f}" if v < 100 else f"{unit}{shown:,.0f}", font=self.font(120), fill=col, anchor="rm")
+            d.rounded_rectangle((140, y + 250, W - 140, y + 286), radius=18, fill=(70, 70, 80) if not paper else (220, 216, 208))
+            wv = (W - 280) * v / mx * ease((t - 0.6 - i * 0.5) / 0.8)
+            if wv > 6:
+                d.rounded_rectangle((140, y + 250, 140 + wv, y + 286), radius=18, fill=col)
+            if card.get("note"):
+                d.text((140, y + 322), str(card["note"]), font=self.mono(22), fill=MUTED, anchor="lm")
+
+    def d_stat(self, d, img, t, dur, data, si):
+        ink = PAPER_INK if self.tone(si) == "paper" else DARK_INK
+        big = str(data.get("big", ""))
+        s = back(t / 0.5)
+        size = int(min(260, 1700 / max(3, len(big))) * (0.8 + 0.2 * s))
+        d.text((W // 2, 760), big, font=self.font(max(60, size)), fill=(255, 60, 60) if self.tone(si) == "dark" else BLUEBAR, anchor="mm")
+        if data.get("label"):
+            for k, ln in enumerate(self._wrap(str(data["label"]), self.serif(62), 860)[:3]):
+                d.text((W // 2, 960 + k * 84), ln, font=self.serif(62), fill=ink, anchor="mm")
+
+    def d_cta(self, d, img, t, dur, data, si):
+        ink = PAPER_INK if self.tone(si) == "paper" else DARK_INK
+        lines = self._wrap(str(data.get("text", "Follow for more")), self.serif(66), 860)[:6]
+        for k, ln in enumerate(lines):
+            p = ease((t - k * 0.2) / 0.4)
+            d.text((W // 2, 700 + k * 92 + int((1 - p) * 30)), ln, font=self.serif(66), fill=ink, anchor="mm")
+        p = back((t - 0.6) / 0.5)
+        if p > 0:
+            d.rounded_rectangle((W / 2 - 330 * (0.9 + 0.1 * p), 1160, W / 2 + 330 * (0.9 + 0.1 * p), 1260), radius=24,
+                                fill=(255, 60, 60))
+            d.text((W // 2, 1210), "FOLLOW " + self.handle, font=self.mono(34), fill=(255, 255, 255), anchor="mm")
+
+    def captions(self, d, si, t):
+        ts = self.timing["scenes"][si]
+        ink = PAPER_INK if self.tone(si) == "paper" else DARK_INK
+        cur = None
+        for w, a, b in ts["words"]:
+            if a - 0.02 <= t < b + 0.12:
+                cur = w
+        if cur:
+            word = re.sub(r"[^\w'$%.\-]", "", cur) or cur
+            f = self.serif(78)
+            d.text((W // 2 + 3, 1560 + 3), word, font=f, fill=(0, 0, 0, 90) if ink == DARK_INK else (255, 255, 255, 140), anchor="mm")
+            d.text((W // 2, 1560), word, font=f, fill=ink, anchor="mm")
+
+    def _scene_frame(self, si, t):
+        ts = self.timing["scenes"][si]
+        local, dur = t - ts["start"], ts["end"] - ts["start"]
+        sc = self.scenes[si]
+        img = (self.bg_dark if self.tone(si) == "dark" else self.bg_paper).copy()
+        d = ImageDraw.Draw(img, "RGBA")
+        fn = getattr(self, "d_" + sc.get("type", "points"), self.d_points)
+        try:
+            fn(d, img, local, dur, sc.get("data") or {}, si)
+        except Exception as e:
+            if si not in self._warned:
+                self._warned.add(si)
+                print(f"  scene {si + 1} ({sc.get('type')}) drawn without its card: {e}")
+        self.captions(d, si, t)
+        return img
+
+
+def np_gradient(col, shade):
+    import numpy as np
+    y = np.linspace(0, 1, H)[:, None, None]
+    x = np.linspace(-1, 1, W)[None, :, None]
+    base = np.array(col, np.float32)[None, None, :] * np.ones((H, W, 1), np.float32)
+    base = base - shade * (0.6 * y + 0.4 * x ** 2)
+    return Image.fromarray(np.clip(base, 0, 255).astype("uint8"))

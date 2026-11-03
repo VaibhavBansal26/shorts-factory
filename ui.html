@@ -267,7 +267,9 @@ window.addEventListener('unhandledrejection',function(ev){show(String(ev.reason&
   <div class="two" style="margin-top:0">
     <div class="card">
       <h2 style="margin-bottom:10px">1 · Storyboard</h2>
-      <div class="row"><div class="grow"><input id="mgTopic" placeholder="Topic, e.g. how WhatsApp delivers messages"></div></div>
+      <div class="row"><div class="grow"><label class="l">Style</label><select id="mgStyle"><option value="diagram" selected>System design: animated diagrams</option><option value="news">AI news: cards, bar charts and one-word captions</option></select></div></div>
+      <div class="row" style="margin-top:10px"><div class="grow"><input id="mgTopic" placeholder="Topic, e.g. how WhatsApp delivers messages"></div></div>
+      <div id="mgNotesBox" style="display:none;margin-top:10px"><label class="l">Notes: paste the announcement, thread or article. Only these facts will be used.</label><textarea id="mgNotes" rows="6" style="width:100%" placeholder="Paste the source text here"></textarea></div>
       <div class="row" style="margin-top:10px"><div class="grow"><label class="l">Language</label><select id="mgLang"><option value="hinglish" selected>Hinglish (Hindi in English letters)</option><option value="en">English</option></select></div>
         <div class="grow"><label class="l">Length</label><select id="mgLen"><option value="45">About 45 seconds</option><option value="60" selected>About 60 seconds</option><option value="90">About 90 seconds</option></select></div>
         <div><label class="l">&nbsp;</label><button class="btn p" id="mgWrite">Write storyboard</button></div></div>
@@ -618,8 +620,8 @@ function stRender(){
   $('#stAgain').onclick=()=>$('#stWrite').click();
 }
 function stCheck(){$('#stBuild').disabled=!(ST&&stFile)}
-let MG=null;
-const MGTYPE={title:'Title and question',steps:'Steps',flow:'Data flow',grid:'Grid',hex:'Hex cells',phone:'Phone screen',counter:'Counter',cta:'Follow card'};
+let MG=null;document.addEventListener('change',e=>{if(e.target.id==='mgStyle'){$('#mgNotesBox').style.display=e.target.value==='news'?'block':'none';$('#mgLang').value=e.target.value==='news'?'en':'hinglish'}});
+const MGTYPE={hook:'Hook headline',points:'Spec list',bars:'Bar chart',vs:'Face-off',stat:'Big number',title:'Title and question',steps:'Steps',flow:'Data flow',grid:'Grid',hex:'Hex cells',phone:'Phone screen',counter:'Counter',cta:'Follow card'};
 async function loadMage(){const m=await api('/api/music');$('#mgMusic').innerHTML='<option value="auto">Auto (EDM)</option><option value="none">No music</option>'+m.map(t=>`<option value="${esc(t.name)}">${esc(t.mood)} · ${esc(t.name)}</option>`).join('')}
 function mgRender(){const sc=MG.scenes;const words=sc.reduce((n,x)=>n+x.say.trim().split(/\s+/).filter(Boolean).length,0);
   $('#mgScript').innerHTML=`<label class="l">Title</label><input id="mgTitle" value="${esc(MG.title)}">
@@ -627,7 +629,7 @@ function mgRender(){const sc=MG.scenes;const words=sc.reduce((n,x)=>n+x.say.trim
    sc.map((x,i)=>`<div class="scene" style="align-items:flex-start"><i>${i+1}</i><div style="flex:1"><textarea data-m="${i}" rows="3" style="width:100%">${esc(x.say)}</textarea><em>🖼 ${esc(MGTYPE[x.type]||x.type)}${x.label?' · '+esc(x.label):''}</em></div></div>`).join('');
   $('#mgBuild').disabled=false}
 $('#mgWrite').onclick=async()=>{const b=$('#mgWrite');b.disabled=true;b.textContent='Writing…';
-  try{MG=await post('/api/mage/script',{topic:$('#mgTopic').value,language:$('#mgLang').value,seconds:+$('#mgLen').value});mgRender();if(MG.mock)toast('No Claude key yet, showing an example storyboard')}catch(e){toast(e.message,1)}
+  try{MG=await post('/api/mage/script',{topic:$('#mgTopic').value,style:$('#mgStyle').value,notes:$('#mgNotes').value,language:$('#mgLang').value,seconds:+$('#mgLen').value});mgRender();if(MG.mock)toast('No Claude key yet, showing an example storyboard')}catch(e){toast(e.message,1)}
   b.disabled=false;b.textContent='Write storyboard'};
 $('#mgBuild').onclick=async()=>{MG.title=$('#mgTitle').value||MG.title;$$('#mgScript textarea').forEach(t=>{MG.scenes[+t.dataset.m].say=t.value});
   try{await post('/api/mage/build',{script:MG,language:$('#mgLang').value,music:$('#mgMusic').value});toast('Building your reel…');pollJobs()}catch(e){toast(e.message,1)}};

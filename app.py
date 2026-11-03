@@ -232,12 +232,17 @@ def mage_script():
     from src import mage
     b = request.json or {}
     topic = (b.get("topic") or "").strip()
-    if not topic and have_key():
+    news = b.get("style") == "news"
+    if not topic and not news and have_key():
         return jsonify(error="type a topic, e.g. how WhatsApp delivers messages"), 400
     try:
         sec = max(30, min(90, int(b.get("seconds", 60))))
         lang = b.get("language") if b.get("language") in ("hinglish", "en") else "hinglish"
-        return jsonify({**mage.write_script(cfg, topic, lang, sec), "mock": not have_key()})
+        if news:
+            out = mage.write_news(cfg, topic, b.get("notes", ""), lang, sec)
+        else:
+            out = mage.write_script(cfg, topic, lang, sec)
+        return jsonify({**out, "mock": not have_key()})
     except Exception as e:
         return jsonify(error=f"Could not write the storyboard: {e}"), 500
 

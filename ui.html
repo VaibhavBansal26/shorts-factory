@@ -334,7 +334,8 @@ window.addEventListener('unhandledrejection',function(ev){show(String(ev.reason&
         <select id="stFace"><option value="auto" selected>Auto (find my face and centre it)</option><option value="center">Centre</option><option value="left">Left</option><option value="right">Right</option></select></div>
         <div class="grow"><label class="l">Music</label><select id="stMusic"><option value="auto">Auto (EDM)</option><option value="none">No music</option></select></div></div>
       <div class="row" style="margin-top:12px"><div class="grow"><label class="l">Background</label>
-        <select id="stBg"><option value="none">Keep mine</option><option value="studio" selected>Studio (dark, soft lights)</option><option value="clean">Clean light wall</option><option value="blur">Blur my room</option></select></div>
+        <select id="stBg"><option value="none">Keep mine</option><option value="studio" selected>Studio (dark, soft lights)</option><option value="clean">Clean light wall</option><option value="office">Office (window and shelves)</option><option value="cafe">Café (warm lights)</option><option value="conference">Conference (stage and screen)</option><option value="blur">Blur my room</option></select></div>
+        <div class="grow"><label class="l">Edge quality</label><select id="stRefine"><option value="true" selected>Natural (refined edges, no halo)</option><option value="false">Fast</option></select></div>
         <div class="grow"><label class="l">Lighting</label><select id="stPolish"><option value="true" selected>Auto-polish (exposure, contrast, colour)</option><option value="false">As recorded</option></select></div></div>
       <p class="sub" style="margin:8px 0 0;font-size:12px">Background and lighting are improved on your device. Clothes can't be changed reliably in video, so wear a solid mid-tone colour (blue, green, maroon) and avoid white, tiny patterns and the backdrop's navy.</p>
       <p style="margin:16px 0 0"><button class="btn p" id="stBuild" disabled>Build my reel</button></p>
@@ -635,7 +636,7 @@ $('#stWrite').onclick=async()=>{const b=$('#stWrite');b.disabled=true;b.textCont
   try{ST=await post('/api/studio/script',{topic:$('#stTopic').value,avoid:ST?ST.title:''});stRender();if(ST.mock)toast('No Claude key yet, showing an example script')}catch(e){toast(e.message,1)}
   b.disabled=false;b.textContent='Write script'};
 dropzone($('#dropStudio'),$('#fileStudio'),f=>{stFile=f;$('#dropStudio').textContent=f.name;const v=$('#studioPreview');v.src=URL.createObjectURL(f);v.style.display='block';stCheck()});
-$('#stBuild').onclick=async()=>{const fd=new FormData();fd.append('file',stFile);fd.append('script',JSON.stringify(ST));fd.append('face',$('#stFace').value);fd.append('music',$('#stMusic').value);fd.append('bg',$('#stBg').value);fd.append('polish',$('#stPolish').value);
+$('#stBuild').onclick=async()=>{const fd=new FormData();fd.append('file',stFile);fd.append('script',JSON.stringify(ST));fd.append('face',$('#stFace').value);fd.append('music',$('#stMusic').value);fd.append('bg',$('#stBg').value);fd.append('polish',$('#stPolish').value);fd.append('refine',$('#stRefine').value);
   try{await api('/api/studio/build',{method:'POST',body:fd});toast('Building your reel…');pollJobs()}catch(e){toast(e.message,1)}};
 let prTimer=null;
 $('#stPrompt').onclick=()=>{$('#prText').innerHTML=ST.beats.map(x=>`<p style="margin:0 0 .9em">${esc(x.say)}</p>`).join('');$('#prScroll').scrollTop=0;$('#prompter').style.display='block'};

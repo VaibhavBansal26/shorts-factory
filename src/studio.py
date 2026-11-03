@@ -676,7 +676,7 @@ def slug(s: str) -> str:
 
 
 def make(cfg: dict, script: dict, clip: Path, music_choice: str = "auto", face_x: float | None = None,
-         background: str = "none", polish: bool = False):
+         background: str = "none", polish: bool = False, refine: bool = True):
     """Build the reel from the edited script + the uploaded recording. Returns (folder, script, video_path)."""
     clip = Path(clip).resolve()
     beats = [b for b in script["beats"] if b["say"].strip()]
@@ -695,7 +695,7 @@ def make(cfg: dict, script: dict, clip: Path, music_choice: str = "auto", face_x
         enh = folder / "enhanced.mp4"
         try:
             from . import enhance
-            enhance.run(clean, enh, background, polish, tuple(cfg.get("studio", {}).get("accent", (96, 165, 250))))
+            enhance.run(clean, enh, background, polish, tuple(cfg.get("studio", {}).get("accent", (96, 165, 250))), refine)
             clean.unlink()
             enh.rename(clean)
         except Exception as e:

@@ -286,8 +286,8 @@ def studio_build():
     fx = {"left": 0.15, "center": 0.5, "right": 0.85}.get(form.get("face", "auto"))  # None = find the face automatically
     return jsonify(job=start_job(f"Studio: {script.get('title', 'reel')[:40]}",
                                  lambda: studio.make(jc, script, dest, form.get("music", "auto"), fx,
-                                                     form.get("bg", "none") if form.get("bg") in ("none", "blur", "studio", "clean") else "none",
-                                                     form.get("polish") == "true")[0].name))
+                                                     form.get("bg", "none") if form.get("bg") in ("none", "blur", "studio", "clean", "office", "cafe", "conference") else "none",
+                                                     form.get("polish") == "true", form.get("refine") != "false")[0].name))
 
 
 @app.get("/api/misc/categories")

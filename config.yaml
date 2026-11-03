@@ -1,4 +1,4 @@
-config_version: 3
+config_version: 4
 channel:
   name: "VB AI Engineer"      # shown next to the logo in every video
   handle: "@VaibhavBansalCode"
@@ -16,11 +16,11 @@ video:
   max_seconds: 45
   max_seconds_remix: 50          # remix keeps the owner's clip pacing
   fonts:                         # first one that exists wins
-    - /System/Library/Fonts/Supplemental/Arial Black.ttf
     - /System/Library/Fonts/Supplemental/Arial Bold.ttf
     - /usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf
-    - C:/Windows/Fonts/ariblk.ttf
     - C:/Windows/Fonts/arialbd.ttf
+    - /System/Library/Fonts/Supplemental/Arial Black.ttf
+    - C:/Windows/Fonts/ariblk.ttf
   fonts_ko:                      # for Hangul text on screen (episode tags)
     - /System/Library/Fonts/AppleSDGothicNeo.ttc
     - /usr/share/fonts/truetype/noto/NotoSansCJK-Bold.ttc

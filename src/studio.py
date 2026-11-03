@@ -529,7 +529,7 @@ class Studio:
         x = (W - total) / 2
         for i, p in zip(chunk, parts):
             col = self.accent if i == cur else WHITE
-            d.text((x, y), p, font=f, fill=col, anchor="lm", stroke_width=7, stroke_fill=(0, 0, 0))
+            d.text((x, y), p, font=f, fill=col, anchor="lm", stroke_width=4, stroke_fill=(0, 0, 0))
             x += d.textlength(p + " ", font=f)
 
     def beat_at(self, t):

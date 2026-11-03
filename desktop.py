@@ -50,6 +50,7 @@ def seed():
             shutil.copy2(HOME / "config.yaml", HOME / "config.yaml.bak")
             for k in ("voice", "voices", "elevenlabs", "accents", "eleven_accents"):
                 mine[k] = new[k]
+            mine.setdefault("video", {})["fonts"] = new["video"]["fonts"]  # lighter caption font
             mine["config_version"] = new["config_version"]
             (HOME / "config.yaml").write_text(yaml.safe_dump(mine, sort_keys=False, allow_unicode=True))
     (HOME / "assets").mkdir(exist_ok=True)

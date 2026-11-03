@@ -250,7 +250,7 @@ class Renderer:
         y = 1215
         for ln in lines:
             d.text((self.W // 2, y), ln, font=self.font(size), fill=(255, 244, 200), anchor="mt",
-                   stroke_width=6, stroke_fill=(0, 0, 0, 255))
+                   stroke_width=4, stroke_fill=(0, 0, 0, 255))
             y += int(size * 1.2)
 
     # ---------- chrome ----------
@@ -304,7 +304,7 @@ class Renderer:
         for (w, t0, t1), wd in zip(active, widths):
             is_now = t0 - 0.02 <= t < t1 + 0.12
             d.text((x, y), w, font=f, fill=(*self.accent, 255) if is_now else WHITE, anchor="lm",
-                   stroke_width=6, stroke_fill=(0, 0, 0, 255))
+                   stroke_width=4, stroke_fill=(0, 0, 0, 255))
             x += wd + space
 
     def _shade(self):

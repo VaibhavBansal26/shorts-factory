@@ -13,7 +13,7 @@ load_dotenv(ROOT / ".env")
 
 
 def load(path=None) -> dict:
-    with open(path or ROOT / "config.yaml") as f:
+    with open(path or ROOT / "config.yaml", encoding="utf-8") as f:
         cfg = yaml.safe_load(f)
     cfg["_root"] = ROOT
     return cfg

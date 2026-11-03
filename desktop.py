@@ -22,7 +22,7 @@ os.environ["SF_HOME"] = str(HOME)
 os.environ["SF_DESKTOP"] = "1"
 if getattr(sys, "frozen", False):
     os.environ["SF_BUNDLED"] = "1"  # use the ffmpeg shipped inside the app
-    log = open(HOME / "app.log", "a", buffering=1)  # a windowed app has no console
+    log = open(HOME / "app.log", "a", buffering=1, encoding="utf-8", errors="replace")  # a windowed app has no console
     sys.stdout = sys.stderr = log
 
 if sys.platform == "win32":  # a windowed app: stop ffmpeg and friends from flashing console windows

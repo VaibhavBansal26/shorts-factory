@@ -757,7 +757,7 @@ def scheduler_loop():
 
 @app.get("/")
 def index():
-    return (CODE / "ui.html").read_text()
+    return (CODE / "ui.html").read_text(encoding="utf-8")
 
 
 if __name__ != "__main__":  # running under gunicorn

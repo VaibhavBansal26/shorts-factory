@@ -31,7 +31,7 @@ INK, MUTED = (236, 242, 255), (140, 158, 200)
 YEL, CYAN, GREEN, RED, AMBER = (250, 204, 21), (56, 189, 248), (74, 222, 128), (248, 113, 113), (251, 191, 36)
 BOX, LINE = (14, 26, 62), (70, 110, 190)
 
-SCENE_TYPES = ["title", "steps", "flow", "grid", "hex", "phone", "counter", "cta"]
+SCENE_TYPES = ["title", "steps", "flow", "grid", "hex", "phone", "counter", "devices", "pipeline", "timer", "cta"]
 
 SYSTEM = """You write storyboards for a 45-70 second vertical "system design explained" Short. A voice narrates while animated
 diagrams build on screen. One idea per scene, 8-12 scenes. The storyboard is read aloud, so write `say` the way a friendly senior
@@ -50,6 +50,13 @@ Every scene has `type` and `data`:
 - hex: {mode:"compare"|"ring", note}          square vs hexagon neighbours, or a hex cell with its neighbour ring lighting up
 - phone: {title, rows:[{label, value}], button, flash:true|false, note}   an app screen; flash = the price row flashes
 - counter: {label, from, to, caption}        a big number that counts, with a caption
+- devices: {devices:[{kind:"laptop"|"phone"|"server", title, qr:true|false, code:"974 939", lines:[...]}] (2-3), flows:[label,...], note}
+        real-looking screens side by side (a laptop showing a QR code or a login box, a phone with an app, a server) with a packet
+        (a key, a code) travelling from each device to the next; `flows[i]` labels the packet leaving device i
+- pipeline: {inputs:[{label}] (1-3), fn, sub, output, note, bracket}   inputs flow into a function box (HMAC, SHA-256...), and a long
+        hex output is revealed; `bracket` labels the output (e.g. "40 AKSHAR KA CODE")
+- timer: {label, start_label, end_label, total, divide, unit, caption}   a clock, a timeline from the start date to now, a counter
+        up to `total` seconds, then "÷ divide" and the whole-number result in a box
 - cta: {handle}                              follow card
 Optional on any scene: `chips` (1-3 tiny labels, max 5 words each, appear in order while spoken) and `term`
 {kicker, name, sub} (a card "THIS IS CALLED / name / sub" shown near the end of the scene when you name a concept).
@@ -117,7 +124,7 @@ def write_script(cfg: dict, topic: str, language: str = "hinglish", seconds: int
             "en": "Write everything in clear, simple English."}.get(language, "Write everything in clear, simple English.")
     ask = f"Topic: {topic}\nTarget length about {seconds} seconds of speech (about {int(seconds * 2.1)} spoken words in total).\n{lang}"
     client = anthropic.Anthropic()
-    feedback = ""
+    feedback, last_ok = "", None
     for _ in range(3):
         resp = client.messages.create(model=cfg["llm"]["model"], max_tokens=4000, system=SYSTEM, tools=[TOOL],
                                       tool_choice={"type": "auto"}, messages=[{"role": "user", "content": ask + feedback}])
@@ -134,11 +141,15 @@ def write_script(cfg: dict, topic: str, language: str = "hinglish", seconds: int
                     if isinstance(sc.get(k), str):
                         sc[k] = json.loads(sc[k])
             words = sum(len(sc["say"].split()) for sc in s["scenes"])
-            if 5 <= len(s["scenes"]) <= 14 and seconds * 1.5 <= words <= seconds * 2.6:
+            if 5 <= len(s["scenes"]) <= 14:
+                last_ok = s
+            if 5 <= len(s["scenes"]) <= 14 and seconds * 1.3 <= words <= seconds * 2.5:
                 return s
             feedback = f"\nFix: {len(s['scenes'])} scenes and {words} words; use 8-12 scenes and about {int(seconds * 2.1)} words."
         except Exception:
             feedback = "\nFix: scenes must be a list of objects with say, type and data objects."
+    if last_ok:  # right shape but a different length than asked: better than failing; the editor shows the word count
+        return last_ok
     raise RuntimeError("Claude returned a storyboard in an unexpected shape. Try again.")
 
 
@@ -221,13 +232,34 @@ class Mage:
         return out
 
     # ---------------------------------------------------------------- shared chrome
-    def chrome(self, d, label):
+    def _logo(self):
+        if not hasattr(self, "_logo_img"):
+            self._logo_img = None
+            try:
+                from .config import resolve
+                pth = resolve(self.cfg, self.cfg["channel"]["logo"])
+                if pth.exists():
+                    im = Image.open(pth).convert("RGBA").resize((92, 92), Image.LANCZOS)
+                    m = Image.new("L", (92, 92), 0)
+                    ImageDraw.Draw(m).ellipse((0, 0, 91, 91), fill=255)
+                    im.putalpha(m)
+                    self._logo_img = im
+            except Exception:
+                pass
+        return self._logo_img
+
+    def chrome(self, d, label, img=None, t=0.0):
         d.text((54, 52), f"SYSTEM DESIGN · {self.series}", font=self.mono(22), fill=MUTED, anchor="lm")
         d.text((W - 54, 52), self.handle, font=self.mono(22), fill=(110, 128, 170), anchor="rm")
         d.line((54, 84, W - 54, 84), fill=(60, 90, 160), width=1)
         if label:
             d.text((54, 118), "— " + label.upper(), font=self.mono(26), fill=YEL, anchor="lm")
         d.text((W // 2, 1858), "Follow", font=self.font(30), fill=(220, 228, 245), anchor="mm")
+        lg = self._logo() if img is not None else None
+        if lg is not None:  # the channel mark hangs in the top-right corner and sways a little, like a mascot
+            sw = 5 * math.sin(t * 1.6)
+            d.line((W - 78, 88, W - 78 + sw, 138), fill=(90, 110, 160), width=3)
+            img.paste(lg, (int(W - 78 - 46 + sw), 136), lg)
 
     def chip(self, d, text, cx, cy, tone=CYAN, size=26, a=1.0):
         if a <= 0:
@@ -465,6 +497,180 @@ class Mage:
         if data.get("note"):
             self.chip(d, data["note"], W // 2, 1410, YEL, 26, ease((t - 0.8) / 0.4))
 
+
+    # ---------------------------------------------------------------- richer scenes (devices, function box, clock)
+    def _qr(self, d, x, y, size, seed=7, scan=0.0):
+        n = 21
+        c = size / n
+        rnd = random.Random(seed)
+        d.rectangle((x - 6, y - 6, x + size + 6, y + size + 6), fill=(255, 255, 255))
+        for r in range(n):
+            for k in range(n):
+                finder = (r < 7 and k < 7) or (r < 7 and k >= n - 7) or (r >= n - 7 and k < 7)
+                if finder:
+                    rr, kk = (r if r < 7 else r - (n - 7)), (k if k < 7 else k - (n - 7))
+                    on = rr in (0, 6) or kk in (0, 6) or (2 <= rr <= 4 and 2 <= kk <= 4)
+                else:
+                    on = rnd.random() < 0.5
+                if on:
+                    d.rectangle((x + k * c, y + r * c, x + (k + 1) * c - 1, y + (r + 1) * c - 1), fill=(14, 18, 36))
+        if scan > 0:  # a scan line sweeping over the code
+            yy = y + size * ((scan * 1.6) % 1)
+            d.rectangle((x - 4, yy - 3, x + size + 4, yy + 3), fill=(80, 230, 140, 200))
+
+    def _device(self, d, kind, cx, cy, w, h, spec, t, k):
+        title = str(spec.get("title", ""))
+        if kind == "phone":
+            d.rounded_rectangle((cx - w / 2, cy - h / 2, cx + w / 2, cy + h / 2), radius=40, fill=(10, 14, 30), outline=(210, 220, 240), width=4)
+            d.rounded_rectangle((cx - 34, cy - h / 2 + 12, cx + 34, cy - h / 2 + 28), radius=8, fill=(30, 34, 52))
+            d.rounded_rectangle((cx - w / 2 + 14, cy - h / 2 + 44, cx + w / 2 - 14, cy + h / 2 - 16), radius=26, fill=(245, 247, 252))
+            d.text((cx, cy - h / 2 + 72), title[:22], font=self.font(22), fill=(40, 50, 90), anchor="mm")
+            if spec.get("qr"):
+                self._qr(d, cx - 60, cy - 50, 120, 5 + k, scan=t * 0.5)
+            lines = [str(x) for x in spec.get("lines", [])][:4]
+            code = spec.get("code")
+            if code:
+                d.text((cx, cy), str(code), font=self.font(46), fill=(30, 100, 230), anchor="mm")
+            for i, ln in enumerate(lines):
+                d.text((cx - w / 2 + 34, cy + 60 + i * 34), ln[:22], font=self.mono(18), fill=(70, 80, 120), anchor="lm")
+        elif kind == "server":
+            d.rounded_rectangle((cx - w / 2, cy - h / 2, cx + w / 2, cy + h / 2), radius=14, fill=(12, 20, 50), outline=LINE, width=3)
+            d.text((cx, cy - h / 2 - 22), (title or "SERVER").upper(), font=self.mono(20), fill=MUTED, anchor="mm")
+            for i in range(4):
+                y = cy - h / 2 + 24 + i * 30
+                d.rounded_rectangle((cx - w / 2 + 16, y, cx + w / 2 - 16, y + 18), radius=6, fill=(26, 40, 86))
+                if (int(t * 2) + i) % 4 == 0:
+                    d.ellipse((cx + w / 2 - 36, y + 4, cx + w / 2 - 28, y + 12), fill=GREEN)
+            lines = [str(x) for x in spec.get("lines", [])][:3]
+            for i, ln in enumerate(lines):
+                d.text((cx, cy + 10 + i * 32), ln[:20], font=self.mono(20), fill=YEL, anchor="mm")
+            if spec.get("code"):
+                d.text((cx, cy + h / 2 - 34), str(spec["code"]), font=self.font(40), fill=YEL, anchor="mm")
+        else:  # laptop
+            d.rounded_rectangle((cx - w / 2, cy - h / 2, cx + w / 2, cy + h / 2 - 20), radius=14, fill=(245, 247, 252), outline=(210, 220, 240), width=4)
+            d.polygon([(cx - w / 2 - 24, cy + h / 2), (cx + w / 2 + 24, cy + h / 2), (cx + w / 2 + 6, cy + h / 2 - 22), (cx - w / 2 - 6, cy + h / 2 - 22)], fill=(170, 184, 214))
+            d.text((cx - w / 2 + 22, cy - h / 2 + 24), title[:18].upper(), font=self.mono(18), fill=(200, 60, 60), anchor="lm")
+            d.text((cx, cy - h / 2 + 62), str(spec.get("sub", "Setup external TOTP" if spec.get("qr") else "Login"))[:26], font=self.font(24), fill=(30, 40, 80), anchor="mm")
+            if spec.get("qr"):
+                self._qr(d, cx - 62, cy - h / 2 + 90, 124, 3 + k)
+            else:
+                d.rounded_rectangle((cx - w / 2 + 40, cy - 14, cx + w / 2 - 40, cy + 36), radius=8, fill=(255, 255, 255), outline=(150, 160, 190), width=2)
+                if spec.get("code"):
+                    d.text((cx, cy + 11), str(spec["code"]), font=self.mono(28), fill=(30, 40, 80), anchor="mm")
+                d.rounded_rectangle((cx - 50, cy + 56, cx + 50, cy + 92), radius=8, fill=(40, 110, 230))
+                d.text((cx, cy + 74), "Continue", font=self.font(20), fill=(255, 255, 255), anchor="mm")
+
+    def d_devices(self, d, img, t, dur, data, si):
+        devs = [x for x in (data.get("devices") or []) if isinstance(x, dict)][:3] or [{"kind": "phone"}]
+        n = len(devs)
+        sizes = {"laptop": (400, 300), "phone": (250, 460), "server": (290, 260)}
+        cy = 860
+        slot = (W - 100) / n
+        centres = [50 + slot * (i + 0.5) for i in range(n)]
+        rt = self.reveal_times(si, [str(x.get("title", "")) for x in devs], 0.05, 0.4)
+        dims = []
+        for spec in devs:
+            w, h = sizes.get(spec.get("kind", "phone"), sizes["phone"])
+            sc = min(1.0, (slot - 74) / (w + 48))  # leave room for the base of a laptop and an arrow
+            dims.append((w * sc, h * sc))
+        for i, spec in enumerate(devs):
+            p = back((t - min(rt[i], 0.2 + i * 0.35)) / 0.5)
+            if p <= 0:
+                continue
+            f = 0.9 + 0.1 * min(1, p)
+            self._device(d, spec.get("kind", "phone"), centres[i], cy, dims[i][0] * f, dims[i][1] * f, spec, t, i)
+        flows = [str(x) for x in (data.get("flows") or [])]
+        for i in range(n - 1):
+            a = ease((t - 0.8 - i * 0.7) / 0.5)
+            if a <= 0:
+                continue
+            x0 = centres[i] + dims[i][0] / 2 + 34
+            x1 = centres[i + 1] - dims[i + 1][0] / 2 - 34
+            if x1 - x0 < 30:
+                x0, x1 = centres[i] + 30, centres[i + 1] - 30
+            d.line((x0, cy, x0 + (x1 - x0) * a, cy), fill=YEL, width=4)
+            if a >= 1:
+                ph = (t * 0.7 + i * 0.3) % 1
+                px = x0 + (x1 - x0) * ph
+                d.rounded_rectangle((px - 22, cy - 15, px + 22, cy + 15), radius=6, fill=AMBER)
+                d.text((px, cy), "KEY", font=self.mono(14), fill=(30, 20, 0), anchor="mm")
+                if i < len(flows):
+                    self.chip(d, flows[i], (x0 + x1) / 2, cy - 330 + i * 0, YEL, 20, ease((t - 1.5 - i * 0.7) / 0.4))
+        if data.get("note"):
+            self.chip(d, str(data["note"]), W // 2, cy + 330, CYAN, 24, ease((t - 1.2) / 0.4))
+
+    def d_pipeline(self, d, img, t, dur, data, si):
+        ins = [x if isinstance(x, dict) else {"label": str(x)} for x in (data.get("inputs") or [])][:3] or [{"label": "INPUT"}]
+        fn = str(data.get("fn", "HASH"))
+        n = len(ins)
+        top, fy = 500, 780
+        xs = [W / 2 + (i - (n - 1) / 2) * 340 for i in range(n)]
+        for i, it in enumerate(ins):
+            p = back((t - 0.1 - i * 0.3) / 0.45)
+            if p <= 0:
+                continue
+            s = 0.9 + 0.1 * min(1, p)
+            d.rounded_rectangle((xs[i] - 150 * s, top - 40 * s, xs[i] + 150 * s, top + 40 * s), radius=14, fill=BOX, outline=YEL if i == 0 else CYAN, width=3)
+            d.text((xs[i], top), str(it.get("label", ""))[:20], font=self.mono(22), fill=INK, anchor="mm")
+            a = ease((t - 0.5 - i * 0.3) / 0.5)
+            if a > 0:
+                d.line((xs[i], top + 42, xs[i] + (W / 2 - xs[i]) * a, top + 42 + (fy - 48 - top - 42) * a), fill=(120, 150, 230), width=3)
+        pf = back((t - 1.0) / 0.5)
+        if pf > 0:
+            s = 0.9 + 0.1 * min(1, pf)
+            d.rounded_rectangle((W / 2 - 130 * s, fy - 52 * s, W / 2 + 130 * s, fy + 52 * s), radius=16, fill=(30, 26, 8), outline=YEL, width=4)
+            d.text((W / 2, fy - 4), fn, font=self.font(52), fill=YEL, anchor="mm")
+            d.text((W / 2, fy + 34), str(data.get("sub", "")).upper(), font=self.mono(16), fill=MUTED, anchor="mm")
+        out = str(data.get("output", ""))
+        if out and t > 1.6:
+            oy = 1000
+            d.rounded_rectangle((70, oy - 76, W - 70, oy + 76), radius=14, fill=BOX, outline=(70, 110, 190), width=2)
+            settle = ease((t - 1.8) / 1.2)
+            rnd = random.Random(int(t * 12))
+            half = (len(out) + 1) // 2
+            for r, chunk in enumerate((out[:half], out[half:])):
+                shown = "".join(c if i < settle * len(chunk) else rnd.choice("0123456789abcdef") for i, c in enumerate(chunk))
+                d.text((W / 2, oy - 26 + r * 52), shown, font=self.mono(36 if len(chunk) <= 24 else 28), fill=INK, anchor="mm")
+            if data.get("bracket") and settle > 0.95:
+                d.line((90, oy + 100, 90, oy + 112, W - 90, oy + 112, W - 90, oy + 100), fill=YEL, width=3)
+                self.chip(d, str(data["bracket"]), W // 2, oy + 160, YEL, 22, ease((t - 3.0) / 0.4))
+        if data.get("note"):
+            self.chip(d, str(data["note"]), W // 2, 1300, RED, 22, ease((t - 2.6) / 0.4))
+
+    def d_timer(self, d, img, t, dur, data, si):
+        cx, cy, r = W // 2, 470, 70
+        a = ease(t / 0.5)
+        d.ellipse((cx - r, cy - r, cx + r, cy + r), outline=CYAN, width=6)
+        ang = t * 3.2
+        d.line((cx, cy, cx + 48 * math.sin(ang), cy - 48 * math.cos(ang)), fill=CYAN, width=6)
+        d.line((cx, cy, cx + 30 * math.sin(ang / 12), cy - 30 * math.cos(ang / 12)), fill=INK, width=6)
+        d.ellipse((cx - 6, cy - 6, cx + 6, cy + 6), fill=CYAN)
+        d.text((cx, cy + 118), str(data.get("label", "")), font=self.mono(26), fill=INK, anchor="mm")
+        # timeline
+        if t > 0.8:
+            d.line((90, 640, W - 90, 640), fill=(60, 90, 160), width=4)
+            d.line((90, 640, 90 + (W - 180) * ease((t - 0.8) / 1.2), 640), fill=CYAN, width=5)
+            d.text((90, 676), str(data.get("start_label", "START")), font=self.mono(18), fill=MUTED, anchor="lm")
+            d.text((W - 90, 676), str(data.get("end_label", "ABHI")), font=self.mono(18), fill=MUTED, anchor="rm")
+        total = float(data.get("total", 0) or 0)
+        if total and t > 1.0:
+            v = total * ease((t - 1.0) / 1.4)
+            d.text((W // 2, 760), f"{v:,.0f} {data.get('unit', 'sec')}", font=self.font(60), fill=INK, anchor="mm")
+        if data.get("caption") and t > 2.4:
+            self.chip(d, str(data["caption"]), W // 2, 840, YEL, 20, ease((t - 2.4) / 0.4))
+        div = float(data.get("divide", 0) or 0)
+        if total and div and t > 3.0:
+            d.text((W // 2, 930), f"÷ {div:,.0f}", font=self.font(46), fill=MUTED, anchor="mm")
+            res = int(total // div)
+            p = ease((t - 3.3) / 0.8)
+            shown = int(res * p) if p < 1 else res
+            d.rounded_rectangle((W / 2 - 280, 990, W / 2 + 280, 1100), radius=16, fill=(28, 24, 6), outline=YEL, width=4)
+            d.text((W // 2, 1045), f"{shown:,}".replace(",", ""), font=self.font(64), fill=YEL, anchor="mm")
+            blocks = 30
+            for b in range(blocks):
+                on = b < int(blocks * (0.5 + 0.5 * math.sin(t * 2)))
+                d.rectangle((W / 2 - 280 + b * 18.6, 1130, W / 2 - 280 + b * 18.6 + 14, 1146), fill=CYAN if on else (30, 50, 100))
+
     def d_counter(self, d, img, t, dur, data, si):
         a, b = float(data.get("from", 0)), float(data.get("to", 100))
         v = a + (b - a) * ease(t / (dur * 0.6))
@@ -504,7 +710,7 @@ class Mage:
         sc = self.scenes[si]
         img = self.bg.copy()
         d = ImageDraw.Draw(img, "RGBA")
-        self.chrome(d, sc.get("label", ""))
+        self.chrome(d, sc.get("label", ""), img, local)
         fn = getattr(self, "d_" + sc.get("type", "steps"), self.d_steps)
         try:
             fn(d, img, local, dur, sc.get("data") or {}, si)

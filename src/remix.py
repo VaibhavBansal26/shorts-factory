@@ -108,6 +108,39 @@ def speech(clip: Path) -> list[tuple[float, float, str]]:
     return out
 
 
+def pitch_gender(clip: Path, spoken: list) -> list:
+    """For each utterance, "male" or "female" from the pitch of the voice (about 85-180 Hz vs 165-255 Hz), or None when it
+    is too close to call. Works from the sound only, so no faces are analysed."""
+    try:
+        import numpy as np
+        raw = subprocess.run([FFMPEG, "-loglevel", "error", "-i", str(clip), "-ac", "1", "-ar", "16000", "-f", "s16le", "-"],
+                             capture_output=True).stdout
+        audio = np.frombuffer(raw, np.int16).astype(np.float32) / 32768
+    except Exception:
+        return [None] * len(spoken)
+    sr, win = 16000, 640
+    out = []
+    for a, b, _ in spoken:
+        seg = audio[int(a * sr):int(b * sr)]
+        f0s = []
+        for i in range(0, len(seg) - win * 2, win // 2):
+            x = seg[i:i + win * 2]
+            if x.std() < 0.01:
+                continue
+            x = x - x.mean()
+            ac = np.correlate(x, x, "full")[len(x) - 1:]
+            lo, hi = sr // 400, sr // 70
+            lag = lo + int(np.argmax(ac[lo:hi]))
+            if ac[lag] > 0.45 * ac[0]:  # clearly voiced
+                f0s.append(sr / lag)
+        if len(f0s) < 6:
+            out.append(None)
+            continue
+        f0 = float(np.median(f0s))
+        out.append("male" if f0 < 150 else "female" if f0 > 180 else None)
+    return out
+
+
 def sample_frames(path: Path, dur: float, workdir: Path, n: int = 6) -> list[tuple[float, bytes]]:
     frames = []
     for i in range(n):
@@ -121,7 +154,8 @@ def sample_frames(path: Path, dur: float, workdir: Path, n: int = 6) -> list[tup
 
 
 def plan(cfg: dict, clip: Path, dur: float, hint: str, voices: str, memes: int, topic: str, workdir: Path,
-         domain: str = "AI and software engineering", extra: str = "", spoken: list | None = None) -> dict:
+         domain: str = "AI and software engineering", extra: str = "", spoken: list | None = None,
+         genders: list | None = None) -> dict:
     content = []
     for t, jpg in sample_frames(clip, dur, workdir):
         content.append({"type": "text", "text": f"Frame at {t:.1f}s:"})
@@ -143,7 +177,10 @@ def plan(cfg: dict, clip: Path, dur: float, hint: str, voices: str, memes: int, 
             "(at most 2.3 words per second), answering or riffing on what is said there. The clip beats together must total at most "
             "30 seconds (meme and outro beats add about 12 more, and the video must stay under 48s), so use only the best "
             "consecutive utterances and drop the rest:\n"
-            + "\n".join(f"[{a:.1f}-{b:.1f}] {t}" for a, b, t in spoken))})
+            + "\n".join(f"[{a:.1f}-{b:.1f}]" + (f" ({g} voice)" if g else "") + f" {t}"
+                        for (a, b, t), g in zip(spoken, genders or [None] * len(spoken)))
+            + ("\nThe (male/female voice) tags come from the sound of the original speaker: set each clip beat's \"voice\" to "
+               "the tag of the speech it covers, so the dub is the same gender as the person talking." if genders and any(genders) else ""))})
     client = anthropic.Anthropic()
     feedback = ""
     for _ in range(3):
@@ -188,8 +225,17 @@ def _snap(start: float, end: float, spoken: list, last_end: float, dur: float):
     return a, max(b, a + 1.5), first[0] - a, last[1] - first[0]
 
 
+def _speaker(start: float, end: float, spoken: list, genders: list, last_end: float):
+    """The gender of whoever speaks most (by time) in this segment, or None if the sound doesn't say."""
+    votes = {}
+    for u, g in zip(spoken, genders):
+        if g and start - 0.3 <= (u[0] + u[1]) / 2 <= end + 0.3 and u[0] >= last_end - 0.3:
+            votes[g] = votes.get(g, 0) + (u[1] - u[0])
+    return max(votes, key=votes.get) if votes else None
+
+
 def build_script(cfg: dict, plan_: dict, clip: Path, dur: float, voices: str, music: str, name: str,
-                 spoken: list | None = None) -> dict:
+                 spoken: list | None = None, genders: list | None = None) -> dict:
     scenes = []
     last_end = 0.0
     for b in plan_["beats"]:
@@ -198,6 +244,8 @@ def build_script(cfg: dict, plan_: dict, clip: Path, dur: float, voices: str, mu
             start = max(last_end, float(b["clip_start"]))
             end = min(dur, max(start + 1.5, float(b["clip_end"])))
             lead = fit = 0.0
+            if spoken and genders and voices == "two":  # the dub voice follows who is actually talking
+                voice = _speaker(start, end, spoken, genders, last_end) or voice
             if spoken:
                 start, end, lead, fit = _snap(start, end, spoken, last_end, dur)
             last_end = end
@@ -229,8 +277,11 @@ def make(cfg: dict, clip: Path, hint: str = "", voices: str = "two", memes: int 
     print(f"\n▶ Remix of {clip.name} ({dur:.0f}s used)")
     spoken = [u for u in speech(clip) if u[0] < dur]
     print(f"  original speech: {len(spoken)} utterances" if spoken else "  original speech: not available, timing from frames only")
-    p = plan(cfg, clip, dur, hint, voices, memes, topic, work, domain, extra, spoken)
-    script = build_script(cfg, p, clip, dur, voices, music, clip.name, spoken)
+    genders = pitch_gender(clip, spoken) if spoken else None
+    if genders and any(genders):
+        print("  speakers heard: " + ", ".join(g or "?" for g in genders))
+    p = plan(cfg, clip, dur, hint, voices, memes, topic, work, domain, extra, spoken, genders)
+    script = build_script(cfg, p, clip, dur, voices, music, clip.name, spoken, genders)
     script["language"] = language
     folder, video = pipeline.produce(cfg, script)
     return folder, script, video

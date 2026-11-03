@@ -547,7 +547,7 @@ class Studio:
 
 
 def find_face(src: Path):
-    """Where the head is in the recording, as fractions of the frame: (centre x, top y), or None when it can't be told.
+    """Where the head is in the recording, as fractions of the frame: (centre x, top y, head width), or None when it can't be told.
     Uses the same local person-segmentation model as the background clean-up, sampled over the whole clip."""
     try:
         import cv2
@@ -563,7 +563,7 @@ def find_face(src: Path):
             output_confidence_masks=True, output_category_mask=False))
         raw = subprocess.run([FFMPEG, "-loglevel", "error", "-i", str(src), "-vf", f"fps=2,scale={w}:{h}", "-frames:v", "40",
                               "-f", "rawvideo", "-pix_fmt", "rgb24", "-"], capture_output=True).stdout
-        xs, tops = [], []
+        xs, tops, hws = [], [], []
         for k in range(len(raw) // (w * h * 3)):
             fr = np.frombuffer(raw, np.uint8, w * h * 3, k * w * h * 3).reshape(h, w, 3).copy()
             m = seg.segment(MpImage(image_format=ImageFormat.SRGB, data=fr)).confidence_masks[-1].numpy_view().reshape(h, w) > 0.5
@@ -574,35 +574,57 @@ def find_face(src: Path):
             band = m[top:top + max(6, int(h * 0.16))]  # the head: the first stretch below the top of the person
             cols = np.where(band.any(axis=0))[0]
             xs.append((cols[0] + cols[-1]) / 2 / w)
+            hws.append((cols[-1] - cols[0]) / w)
             tops.append(top / h)
         if len(xs) < 3:
             return None
-        return float(np.median(xs)), float(np.median(tops))
+        return float(np.median(xs)), float(np.median(tops)), float(np.median(hws))
     except Exception as e:
         print(f"  face finder skipped ({e})")
         return None
 
 
-def _decoder(src: Path, w, h, face_x, face=None):
-    """Scale the recording to fill w x h and crop so the head sits in the middle, with a little room above it."""
+def _decoder(src: Path, w, h, face_x, face=None, zoom_out=False):
+    """Scale the recording to fill w x h and place it so the head sits in the middle, with a little room above it.
+    With zoom_out, a close-up is shrunk until the head is about 40% of the width; the sides continue the picture's edge colour."""
     if face:
         sw, sh = _dims(src)
+        cx, top, hw = face
         k = max(w / sw, h / sh)
-        zw, zh = int(math.ceil(sw * k / 2)) * 2, int(math.ceil(sh * k / 2)) * 2
-        cx, top = face
-        x0 = min(max(cx * zw - w / 2, 0), zw - w)
-        y0 = min(max(top * zh - 0.16 * h, 0), zh - h)
-        vf = f"scale={zw}:{zh},crop={w}:{h}:{int(x0)}:{int(y0)}"
+        if zoom_out:
+            k = max(h / sh, min(k, 0.40 * w / max(hw * sw, 1)))
+        zw, zh = int(round(sw * k / 2)) * 2, int(round(sh * k / 2)) * 2
+        ox = int(w / 2 - cx * zw)
+        oy = min(0, max(h - zh, int(0.16 * h - top * zh)))
+        if zw >= w:  # fills the width: just crop
+            vf = f"scale={zw}:{zh},crop={w}:{h}:{-min(0, max(w - zw, ox))}:{-oy}"
+        else:  # narrower than the panel: carry the picture's own edge colour out to the sides (no ghost of the person)
+            lw = max(0, min(w - zw, ox))
+            rw = w - zw - lw
+            labels = "[f]" + ("[l0]" if lw else "") + ("[r0]" if rw else "")
+            parts, outs = [f"scale={zw}:{zh},crop={zw}:{h}:0:{-oy},split={labels.count('[')}{labels}"], []
+            if lw:
+                parts.append(f"[l0]crop=6:{h}:0:0,scale={lw}:{h},boxblur=30:3[l]")
+                outs.append("[l]")
+            outs.append("[f]")
+            if rw:
+                parts.append(f"[r0]crop=6:{h}:{zw - 6}:0,scale={rw}:{h},boxblur=30:3[r]")
+                outs.append("[r]")
+            vf = ";".join(parts) + f";{''.join(outs)}hstack={len(outs)}"
+        cmd = [FFMPEG, "-loglevel", "error", "-i", str(src), "-filter_complex", vf]
     else:
         vf = f"scale={w}:{h}:force_original_aspect_ratio=increase,crop={w}:{h}:x='(iw-ow)*{face_x}':y='(ih-oh)*0.35'"
-    return subprocess.Popen([FFMPEG, "-loglevel", "error", "-i", str(src), "-vf", vf, "-f", "rawvideo", "-pix_fmt", "rgb24", "-"],
-                            stdout=subprocess.PIPE)
+        cmd = [FFMPEG, "-loglevel", "error", "-i", str(src), "-vf", vf]
+    return subprocess.Popen(cmd + ["-f", "rawvideo", "-pix_fmt", "rgb24", "-"], stdout=subprocess.PIPE)
 
 
 def _dims(src: Path):
+    """Size as it is played: phone clips are stored sideways with a rotation flag."""
     err = subprocess.run([FFMPEG, "-hide_banner", "-i", str(src)], capture_output=True, text=True).stderr
     m = re.search(r"Video:.*?, (\d{2,5})x(\d{2,5})", err)
-    return int(m.group(1)), int(m.group(2))
+    w, h = int(m.group(1)), int(m.group(2))
+    r = re.search(r"rotation of (-?\d+)", err)
+    return (h, w) if r and abs(int(r.group(1))) % 180 == 90 else (w, h)
 
 
 def _read(p, w, h, last):
@@ -679,7 +701,7 @@ def make(cfg: dict, script: dict, clip: Path, music_choice: str = "auto", face_x
     face = find_face(clean) if face_x is None else None  # None = find it; a number = the position the user chose
     print(f"  face: {'auto ' + str(tuple(round(v, 2) for v in face)) if face else 'manual/centre'}")
     fx = 0.5 if face_x is None else face_x
-    dec_full, dec_panel = _decoder(clean, W, H, fx, face), _decoder(clean, W, PH, fx, face)
+    dec_full, dec_panel = _decoder(clean, W, H, fx, face), _decoder(clean, W, PH, fx, face, zoom_out=True)
     lf = lp = Image.new("RGB", (W, H), (0, 0, 0))
     lp = Image.new("RGB", (W, PH), (0, 0, 0))
     try:

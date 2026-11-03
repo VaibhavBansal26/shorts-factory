@@ -10,6 +10,10 @@ $mp = @()
 if ($LASTEXITCODE -eq 0) { $mp = @("--collect-all", "mediapipe", "--add-data", "assets/models;assets/models") }
 else { Write-Host "mediapipe not available: building without background replacement" }
 
+& $py -c "import faster_whisper" 2>$null
+if ($LASTEXITCODE -eq 0) { $mp += @("--collect-all", "faster_whisper", "--collect-all", "ctranslate2", "--hidden-import", "src.asr") }
+else { Write-Host "faster-whisper not available: Studio will estimate caption timing" }
+
 $pyiArgs = @(
   "--noconfirm", "--clean", "--windowed", "--name", "Shorts Factory", "--icon", "desktop-icon.ico",
   "--add-data", "ui.html;.", "--add-data", "config.yaml;.", "--add-data", "examples;examples", "--add-data", "series;series",

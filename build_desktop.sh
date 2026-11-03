@@ -5,6 +5,7 @@ cd "$(dirname "$0")"
 PY=${PY:-.venv/bin/python}
 MP=""
 if $PY -c "import mediapipe" 2>/dev/null; then MP="--collect-all mediapipe --add-data assets/models:assets/models"; else echo "mediapipe not available: building without background replacement"; fi
+if $PY -c "import faster_whisper" 2>/dev/null; then MP="$MP --collect-all faster_whisper --collect-all ctranslate2 --hidden-import src.asr"; else echo "faster-whisper not available: Studio will estimate caption timing"; fi
 $PY -m PyInstaller --noconfirm --clean --windowed --name "Shorts Factory" --icon desktop-icon.icns \
   --osx-bundle-identifier com.vaibhavbansal.shortsfactory \
   --add-data "ui.html:." --add-data "config.yaml:." --add-data "examples:examples" --add-data "series:series" \

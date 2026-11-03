@@ -632,16 +632,22 @@ def _decoder(src: Path, w, h, face_x, face=None, zoom_out=False):
         else:  # narrower than the panel: carry the picture's own edge colour out to the sides (no ghost of the person)
             lw = max(0, min(w - zw, ox))
             rw = w - zw - lw
-            labels = "[f]" + ("[l0]" if lw else "") + ("[r0]" if rw else "")
-            parts, outs = [f"scale={zw}:{zh},crop={zw}:{h}:0:{-oy},split={labels.count('[')}{labels}"], []
+            labels = "[f][fb]" + ("[l0]" if lw else "") + ("[r0]" if rw else "")
+            parts = [f"scale={zw}:{zh},crop={zw}:{h}:0:{-oy},format=yuva420p,split={labels.count('[')}{labels}"]
+            row = []
             if lw:
-                parts.append(f"[l0]crop=6:{h}:0:0,scale={lw}:{h},boxblur=30:3[l]")
-                outs.append("[l]")
-            outs.append("[f]")
+                parts.append(f"[l0]format=yuv420p,crop=6:{h}:0:0,scale={lw}:{h}[l]")
+                row.append("[l]")
+            parts.append("[fb]format=yuv420p[fc]")
+            row.append("[fc]")
             if rw:
-                parts.append(f"[r0]crop=6:{h}:{zw - 6}:0,scale={rw}:{h},boxblur=30:3[r]")
-                outs.append("[r]")
-            vf = ";".join(parts) + f";{''.join(outs)}hstack={len(outs)}"
+                parts.append(f"[r0]format=yuv420p,crop=6:{h}:{zw - 6}:0,scale={rw}:{h}[r]")
+                row.append("[r]")
+            parts.append(f"{''.join(row)}hstack={len(row)},boxblur=40:4[bg]")  # soft colour field the picture sits on
+            fl, fr = "min(1,X/60)" if lw else "1", f"min(1,({zw - 1}-X)/60)" if rw else "1"
+            parts.append(f"[f]geq=lum='p(X,Y)':cb='p(X,Y)':cr='p(X,Y)':a='255*{fl}*{fr}'[ff]")  # feathered edges: no hard seam
+            parts.append(f"[bg][ff]overlay={lw}:0:shortest=1,format=rgb24")
+            vf = ";".join(parts)
         cmd = [FFMPEG, "-loglevel", "error", "-i", str(src), "-filter_complex", vf]
     else:
         vf = f"scale={w}:{h}:force_original_aspect_ratio=increase,crop={w}:{h}:x='(iw-ow)*{face_x}':y='(ih-oh)*0.35'"
@@ -695,7 +701,15 @@ def make(cfg: dict, script: dict, clip: Path, music_choice: str = "auto", face_x
         except Exception as e:
             print(f"  enhancement skipped ({e})")
             enh.unlink(missing_ok=True)
-    timing = align(beats, voice)
+    try:
+        from . import asr
+        if not asr.available():
+            raise RuntimeError("speech model not installed")
+        timing = asr.align(beats, voice)
+        print("  timing: from the real speech")
+    except Exception as e:
+        print(f"  timing: estimated ({e})")
+        timing = align(beats, voice)
 
     full = {
         "format": "studio", "title": script["title"][:90], "description": script.get("description", ""),

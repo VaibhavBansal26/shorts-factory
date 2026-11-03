@@ -37,6 +37,7 @@ jobs:
           .venv/bin/pip install --upgrade pip
           .venv/bin/pip install -r requirements.txt pyinstaller
           .venv/bin/pip install mediapipe || echo "mediapipe unavailable on this architecture"
+          .venv/bin/pip install faster-whisper || echo "faster-whisper unavailable on this architecture"
       - name: Build the app
         run: ./build_desktop.sh
       - name: Make the DMG

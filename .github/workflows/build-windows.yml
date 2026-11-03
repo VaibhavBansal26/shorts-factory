@@ -31,6 +31,8 @@ jobs:
           .venv\Scripts\pip install -r requirements.txt pyinstaller
           .venv\Scripts\pip install mediapipe
           if ($LASTEXITCODE -ne 0) { Write-Host "mediapipe unavailable"; $global:LASTEXITCODE = 0 }
+          .venv\Scripts\pip install faster-whisper
+          if ($LASTEXITCODE -ne 0) { Write-Host "faster-whisper unavailable"; $global:LASTEXITCODE = 0 }
       - name: Build the app
         shell: pwsh
         run: ./build_desktop.ps1

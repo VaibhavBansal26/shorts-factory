@@ -24,6 +24,9 @@ THEMES = {
     "chat": ((6, 24, 26), (10, 44, 44), (34, 197, 94)),
     "pay": ((8, 16, 36), (12, 38, 62), (45, 212, 191)),
     "social": ((16, 10, 40), (34, 18, 76), (168, 128, 255)),
+    "ecom": ((8, 22, 30), (14, 42, 52), (255, 153, 0)),
+    "ml": ((10, 8, 34), (24, 14, 70), (168, 128, 255)),
+    "rec": ((26, 8, 34), (52, 14, 66), (236, 130, 220)),
     "generic": ((8, 15, 38), (16, 30, 70), (250, 204, 21)),
 }
 
@@ -115,6 +118,40 @@ class Worlds:
                 y = y0 + 260 + 40 * math.sin(t * 2 + k) - (k % 3) * 40
                 d.ellipse((x - 34, y - 34, x + 34, y + 34), fill=(*self.acc, 70), outline=self.acc, width=3)
                 d.text((x, y), "Rs" if k % 2 else "$", font=self.font(30), fill=self.acc, anchor="mm")
+        elif theme == "ecom":  # parcels riding a conveyor belt
+            d.rectangle((0, y0 + 330, 1080, y0 + 372), fill=(16, 34, 44))
+            for k in range(8):
+                bx = ((t * 120 + k * 150) % 1250) - 100
+                bh = 70 + (k * 23) % 60
+                d.rectangle((bx, y0 + 330 - bh, bx + 100, y0 + 330), fill=(196, 140, 70), outline=(120, 80, 30), width=3)
+                d.rectangle((bx + 42, y0 + 330 - bh, bx + 58, y0 + 330), fill=(240, 220, 180))
+            for k in range(14):
+                d.line((k * 80 - (t * 120) % 80, y0 + 372, k * 80 - (t * 120) % 80 + 30, y0 + 372), fill=(60, 90, 100), width=4)
+            d.polygon([(780, y0 + 60), (940, y0 + 60), (920, y0 + 170), (800, y0 + 170)], outline=self.acc, width=5)
+            d.ellipse((810, y0 + 190, 840, y0 + 220), fill=self.acc)
+            d.ellipse((890, y0 + 190, 920, y0 + 220), fill=self.acc)
+        elif theme == "ml":  # a neural net pulsing
+            layers = [3, 5, 5, 3]
+            for li, m in enumerate(layers):
+                for j in range(m):
+                    x, y = 150 + li * 260, y0 + 200 + (j - (m - 1) / 2) * 80
+                    if li < 3:
+                        for j2 in range(layers[li + 1]):
+                            d.line((x, y, 150 + (li + 1) * 260, y0 + 200 + (j2 - (layers[li + 1] - 1) / 2) * 80), fill=(*self.acc, 36), width=2)
+            for li, m in enumerate(layers):
+                for j in range(m):
+                    x, y = 150 + li * 260, y0 + 200 + (j - (m - 1) / 2) * 80
+                    on = max(0.0, 1 - abs((t * 1.4) % 5 - li) * 1.1)
+                    d.ellipse((x - 20, y - 20, x + 20, y + 20), fill=_mix((40, 30, 100), self.acc, on), outline=(190, 170, 255), width=2)
+        elif theme == "rec":  # item cards floating up with a recommended one glowing
+            for k in range(6):
+                x = 90 + (k % 3) * 330
+                y = y0 + 60 + (k // 3) * 190 - 10 * math.sin(t * 2 + k)
+                hot = int(t * 1.2) % 6 == k
+                d.rounded_rectangle((x, y, x + 280, y + 150), radius=18, fill=(40, 16, 56), outline=self.acc if hot else (110, 60, 130), width=4 if hot else 2)
+                d.rounded_rectangle((x + 14, y + 14, x + 110, y + 136), radius=12, fill=(*self.acc, 80 if hot else 40))
+                d.rectangle((x + 126, y + 40, x + 250, y + 52), fill=(120, 80, 150))
+                d.rectangle((x + 126, y + 70, x + 220, y + 82), fill=(90, 60, 120))
         elif theme == "social":
             for k in range(18):
                 x, y = 120 + (k * 97) % 860, y0 + 100 + (k * 53) % 300

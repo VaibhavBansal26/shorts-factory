@@ -23,6 +23,7 @@ from PIL import Image, ImageDraw, ImageFilter, ImageFont
 from . import music, seo, tts
 from .config import ROOT
 from .ff import FFMPEG
+from .mage_arch import Arch
 from .mage_worlds import THEMES, Worlds
 from .render import _find_font
 
@@ -33,7 +34,7 @@ YEL, CYAN, GREEN, RED, AMBER = (250, 204, 21), (56, 189, 248), (74, 222, 128), (
 BOX, LINE = (14, 26, 62), (70, 110, 190)
 
 SCENE_TYPES = ["title", "steps", "flow", "grid", "hex", "phone", "counter", "devices", "pipeline", "timer", "citymap", "seatmap",
-               "stadium", "profiles", "funnel", "queue", "cdn", "cta"]
+               "stadium", "profiles", "funnel", "queue", "cdn", "arch", "storefront", "lifecycle", "recsys", "mlviz", "cta"]
 
 SYSTEM = """You write storyboards for a 45-70 second vertical "system design explained" Short. A voice narrates while animated
 diagrams build on screen. One idea per scene, 8-12 scenes. The storyboard is read aloud, so write `say` the way a friendly senior
@@ -70,12 +71,29 @@ Every scene has `type` and `data`:
 - funnel: {stages:[{label, value} x3-5], note}   a funnel narrowing, e.g. 10 crore profiles -> 40,000 -> 200 -> 10, with particles falling through
 - queue: {title, gate, people, per_sec, note}   a crowd in a waiting room, let through the gate a few at a time
 - cdn: {origin, nodes:[city names], note}   one origin and edge servers near groups of viewers, cache hits flowing
+- arch: {layers:[[{label, kind}, ...], ...] (3-6 layers, up to 5 nodes each, top to bottom), edges:[[from,to],...] optional, flow:[label,...], note}
+        THE ARCHITECTURE DIAGRAM: typed components (kind = client | gateway | lb | service | db | cache | queue | search | cdn | storage | ml |
+        external | worker) drawn with icons and wired layer to layer; `flow` is the path one request takes (it lights up node by node).
+        Use real component names (Postgres, Redis, Kafka, Elasticsearch, S3...). Show the WHOLE architecture here once the idea is built up.
+- storefront: {mode:"browse"|"oversell", store, products:[{name, price}], item, fix:true|false, sql, note}   an online store: product cards flying
+        into a cart; or the last-item race where two buyers oversell it (fix:true = a row lock saves it; sql = the line that does it)
+- lifecycle: {stages:[{label, sub} x3-6], fail:{at, label}, note}   a state machine / pipeline with a token moving through (order placed > paid
+        > packed > shipped > delivered; or data > train > evaluate > deploy); fail = where it breaks and retries
+- recsys: {mode:"embeddings"|"matrix"|"feed", clusters:[..4 names], items:[..], note}   recommendation visuals: items as points in space with the user
+        landing among them and the nearest ones recommended; the sparse user-item rating matrix with one missing cell predicted; a feed re-ranked by score
+- mlviz: {mode:"gradient"|"cluster"|"classify"|"nn"|"tree"|"attention", lr:"good"|"high"|"low", layers, names, splits, tokens, note}   ML algorithms
+        animated: gradient descent rolling down a loss curve (lr high = bounces, low = crawls), k-means centres moving, a classifier line separating two
+        classes, a neural network forward pass, a decision tree with a sample dropping through, attention weights between words
 - cta: {handle}                              follow card
 Optional on any scene: `chips` (1-3 tiny labels, max 5 words each, appear in order while spoken) and `term`
 {kicker, name, sub} (a card "THIS IS CALLED / name / sub" shown near the end of the scene when you name a concept).
 Pick the picture that actually shows the idea, and SHOW THE PRODUCT instead of describing it:
 cab/delivery = citymap; ticketing/booking = seatmap + queue (+ stadium or title art for the venue); sports apps = stadium; matrimony,
-dating, hiring = profiles + funnel; video streaming = cdn; chat = flow + devices. Use at most ONE "steps" scene in the whole video, use
+dating, hiring = profiles + funnel; video streaming = cdn; chat = flow + devices; e-commerce = storefront + lifecycle (order states) + queue
++ arch; recommendation systems = recsys (all three modes across scenes) + funnel (candidate generation > ranking > re-ranking) + arch; machine
+learning algorithms and training systems = mlviz (pick the mode that IS the algorithm) + lifecycle (the training pipeline) + arch (serving).
+Every system-design video must contain exactly one "arch" scene that shows the complete architecture with real component names, placed after
+the idea has been built up (usually scene 5-7), and one scene on the main trade-off or failure mode. Use at most ONE "steps" scene in the whole video, use
 at least 4 different illustrated types, and never repeat a type back to back. Set `theme` to the kind of product (it changes the colours and
 the art on the title scene). Base every number and claim on the RESEARCH BRIEF you are given; label estimates as examples.
 Metadata: title (<=70 chars), description (2 sentences), up to 6 tags."""
@@ -89,7 +107,7 @@ TOOL = {
             "title": {"type": "string"}, "description": {"type": "string"},
             "tags": {"type": "array", "items": {"type": "string"}, "maxItems": 6},
             "series": {"type": "string", "description": "short header line, e.g. UBER LIVE HEATMAP"},
-            "theme": {"type": "string", "enum": ["cab", "ticket", "sport", "match", "video", "chat", "pay", "social", "generic"]},
+            "theme": {"type": "string", "enum": ["cab", "ticket", "sport", "match", "video", "chat", "pay", "social", "ecom", "ml", "rec", "generic"]},
             "scenes": {"type": "array", "items": {"type": "object", "properties": {
                 "say": {"type": "string"}, "label": {"type": "string"},
                 "type": {"type": "string", "enum": SCENE_TYPES},
@@ -127,7 +145,7 @@ MOCK = {
 RESEARCH_SYSTEM = """You are a staff engineer preparing a research brief for a 60-second system-design explainer Short about the topic you are
 given. Use web search when it is available to check real facts (how the company actually builds it, public scale figures). Write a compact
 brief with these sections:
-THEME: one of cab, ticket, sport, match, video, chat, pay, social, generic.
+THEME: one of cab, ticket, sport, match, video, chat, pay, social, ecom, ml, rec, generic (ecom = shopping/marketplace, ml = a machine-learning algorithm or training system, rec = recommendations/feeds).
 PRODUCT: one line.
 REAL SCALE: 3-5 figures, each marked PUBLIC (with the source name) or ESTIMATE.
 CORE FLOW: 5-7 steps of how a request goes through the system.
@@ -230,7 +248,7 @@ def mix(a, b, t):
     return tuple(int(x + (y - x) * t) for x, y in zip(a, b))
 
 
-class Mage(Worlds):
+class Mage(Worlds, Arch):
     def __init__(self, cfg: dict, script: dict, timing: dict):
         self.cfg, self.script, self.timing = cfg, script, timing
         theme = script.get("theme") if script.get("theme") in THEMES else "generic"

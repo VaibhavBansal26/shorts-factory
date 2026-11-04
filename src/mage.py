@@ -23,6 +23,7 @@ from PIL import Image, ImageDraw, ImageFilter, ImageFont
 from . import music, seo, tts
 from .config import ROOT
 from .ff import FFMPEG
+from .mage_worlds import THEMES, Worlds
 from .render import _find_font
 
 W, H, FPS = 1080, 1920, 30
@@ -31,7 +32,8 @@ INK, MUTED = (236, 242, 255), (140, 158, 200)
 YEL, CYAN, GREEN, RED, AMBER = (250, 204, 21), (56, 189, 248), (74, 222, 128), (248, 113, 113), (251, 191, 36)
 BOX, LINE = (14, 26, 62), (70, 110, 190)
 
-SCENE_TYPES = ["title", "steps", "flow", "grid", "hex", "phone", "counter", "devices", "pipeline", "timer", "cta"]
+SCENE_TYPES = ["title", "steps", "flow", "grid", "hex", "phone", "counter", "devices", "pipeline", "timer", "citymap", "seatmap",
+               "stadium", "profiles", "funnel", "queue", "cdn", "cta"]
 
 SYSTEM = """You write storyboards for a 45-70 second vertical "system design explained" Short. A voice narrates while animated
 diagrams build on screen. One idea per scene, 8-12 scenes. The storyboard is read aloud, so write `say` the way a friendly senior
@@ -57,10 +59,25 @@ Every scene has `type` and `data`:
         hex output is revealed; `bracket` labels the output (e.g. "40 AKSHAR KA CODE")
 - timer: {label, start_label, end_label, total, divide, unit, caption}   a clock, a timeline from the start date to now, a counter
         up to `total` seconds, then "÷ divide" and the whole-number result in a box
+- citymap: {mode:"match"|"route"|"heat", rider, eta, note}   a city map with cabs driving about: "match" = a search ring from the rider
+        catching the nearest cab, "route" = a trip drawn from A to B, "heat" = surge zones glowing where demand is high
+- seatmap: {mode:"hold"|"race"|"soldout", venue:"cinema"|"concert", stage, note}   a seat map: "hold" = seats held with a countdown, "race" =
+        two users click the same seat and the database lock decides, "soldout" = seats selling out
+- stadium: {sport:"cricket"|"football", mode:"crowd"|"gates"|"load", count, note}   a field and a rippling crowd; "gates" = fans streaming in,
+        "load" = a request-rate meter bursting at kick-off
+- profiles: {people:[{name, age, city, tags:[..]} x2], score, criteria:[..], note}   two profile cards, shared interests lighting up and a
+        match-score heart between them (matchmaking, dating, hiring, delivery matching)
+- funnel: {stages:[{label, value} x3-5], note}   a funnel narrowing, e.g. 10 crore profiles -> 40,000 -> 200 -> 10, with particles falling through
+- queue: {title, gate, people, per_sec, note}   a crowd in a waiting room, let through the gate a few at a time
+- cdn: {origin, nodes:[city names], note}   one origin and edge servers near groups of viewers, cache hits flowing
 - cta: {handle}                              follow card
 Optional on any scene: `chips` (1-3 tiny labels, max 5 words each, appear in order while spoken) and `term`
 {kicker, name, sub} (a card "THIS IS CALLED / name / sub" shown near the end of the scene when you name a concept).
-Pick the diagram that actually shows the idea. Do not repeat the same type three times in a row.
+Pick the picture that actually shows the idea, and SHOW THE PRODUCT instead of describing it:
+cab/delivery = citymap; ticketing/booking = seatmap + queue (+ stadium or title art for the venue); sports apps = stadium; matrimony,
+dating, hiring = profiles + funnel; video streaming = cdn; chat = flow + devices. Use at most ONE "steps" scene in the whole video, use
+at least 4 different illustrated types, and never repeat a type back to back. Set `theme` to the kind of product (it changes the colours and
+the art on the title scene). Base every number and claim on the RESEARCH BRIEF you are given; label estimates as examples.
 Metadata: title (<=70 chars), description (2 sentences), up to 6 tags."""
 
 TOOL = {
@@ -72,6 +89,7 @@ TOOL = {
             "title": {"type": "string"}, "description": {"type": "string"},
             "tags": {"type": "array", "items": {"type": "string"}, "maxItems": 6},
             "series": {"type": "string", "description": "short header line, e.g. UBER LIVE HEATMAP"},
+            "theme": {"type": "string", "enum": ["cab", "ticket", "sport", "match", "video", "chat", "pay", "social", "generic"]},
             "scenes": {"type": "array", "items": {"type": "object", "properties": {
                 "say": {"type": "string"}, "label": {"type": "string"},
                 "type": {"type": "string", "enum": SCENE_TYPES},
@@ -106,6 +124,46 @@ MOCK = {
 }
 
 
+RESEARCH_SYSTEM = """You are a staff engineer preparing a research brief for a 60-second system-design explainer Short about the topic you are
+given. Use web search when it is available to check real facts (how the company actually builds it, public scale figures). Write a compact
+brief with these sections:
+THEME: one of cab, ticket, sport, match, video, chat, pay, social, generic.
+PRODUCT: one line.
+REAL SCALE: 3-5 figures, each marked PUBLIC (with the source name) or ESTIMATE.
+CORE FLOW: 5-7 steps of how a request goes through the system.
+HARD PROBLEMS: the 3 things that actually break at scale. For each: the problem, the standard fix, and the trade-off.
+VISUALS: what should be SHOWN for each problem (for example cabs on a city map, a seat map being bought out, a waiting-room queue, a
+match score between two profile cards, edge servers near viewers).
+BEGINNER MISTAKES: 2 things people get wrong.
+Be accurate. Do not invent company internals: if unsure, say so and give the common industry approach."""
+
+
+def research(cfg: dict, topic: str) -> str:
+    """A fact-checked brief the storyboard is written from. Tries web search; falls back to the model's own knowledge."""
+    client = anthropic.Anthropic()
+    msg = [{"role": "user", "content": f"Topic: {topic}"}]
+    for tools in ([{"type": "web_search_20250305", "name": "web_search", "max_uses": 4}], None):
+        try:
+            kw = {"tools": tools} if tools else {}
+            resp = client.messages.create(model=cfg["llm"]["model"], max_tokens=3000, system=RESEARCH_SYSTEM, messages=msg, **kw)
+            text = "\n".join(b.text for b in resp.content if getattr(b, "type", "") == "text").strip()
+            if len(text) > 200:
+                return text[:6000]
+        except Exception as e:
+            print(f"  research ({'with web search' if tools else 'without'}) failed: {str(e)[:120]}")
+    return ""
+
+
+def _loads(text):
+    """Parse JSON that a model sent as text, tolerating trailing junk such as a stray closing bracket."""
+    text = text.strip()
+    try:
+        return json.loads(text)
+    except ValueError:
+        val, _ = json.JSONDecoder().raw_decode(text[text.index("[" if text.lstrip().startswith("[") else "{"):])
+        return val
+
+
 def have_key() -> bool:
     import os
     return bool(os.getenv("ANTHROPIC_API_KEY"))
@@ -122,7 +180,9 @@ def write_script(cfg: dict, topic: str, language: str = "hinglish", seconds: int
     lang = {"hinglish": "Write `say`, labels and chips in Hinglish: Hindi in Roman letters mixed with common English tech terms, "
                         "the way Indian engineers talk. Do not use Devanagari.",
             "en": "Write everything in clear, simple English."}.get(language, "Write everything in clear, simple English.")
-    ask = f"Topic: {topic}\nTarget length about {seconds} seconds of speech (about {int(seconds * 2.1)} spoken words in total).\n{lang}"
+    brief = research(cfg, topic)
+    ask = (f"Topic: {topic}\nTarget length about {seconds} seconds of speech (about {int(seconds * 2.1)} spoken words in total).\n{lang}"
+           + (f"\n\nRESEARCH BRIEF (use these facts and visuals):\n{brief}" if brief else ""))
     client = anthropic.Anthropic()
     feedback, last_ok = "", None
     for _ in range(3):
@@ -135,12 +195,13 @@ def write_script(cfg: dict, topic: str, language: str = "hinglish", seconds: int
         s = block.input
         try:
             if isinstance(s.get("scenes"), str):
-                s["scenes"] = json.loads(s["scenes"])
+                s["scenes"] = _loads(s["scenes"])
             for sc in s["scenes"]:
                 for k in ("data", "term"):
                     if isinstance(sc.get(k), str):
-                        sc[k] = json.loads(sc[k])
+                        sc[k] = _loads(sc[k])
             words = sum(len(sc["say"].split()) for sc in s["scenes"])
+            s["brief"] = brief
             if 5 <= len(s["scenes"]) <= 14:
                 last_ok = s
             if 5 <= len(s["scenes"]) <= 14 and seconds * 1.3 <= words <= seconds * 2.5:
@@ -169,9 +230,12 @@ def mix(a, b, t):
     return tuple(int(x + (y - x) * t) for x, y in zip(a, b))
 
 
-class Mage:
+class Mage(Worlds):
     def __init__(self, cfg: dict, script: dict, timing: dict):
         self.cfg, self.script, self.timing = cfg, script, timing
+        theme = script.get("theme") if script.get("theme") in THEMES else "generic"
+        self.theme = theme
+        self.bg_top, self.bg_bot, self.acc = THEMES[theme]
         self.scenes = script["scenes"]
         self.handle = cfg.get("channel", {}).get("handle", "@channel")
         self.series = (script.get("series") or script["title"]).upper()[:34]
@@ -194,6 +258,7 @@ class Mage:
         return self._m[n]
 
     def _background(self):
+        BG_TOP, BG_BOT = self.bg_top, self.bg_bot
         col = Image.new("RGB", (1, H))
         for y in range(H):
             col.putpixel((0, y), mix(BG_TOP, BG_BOT, y / H))
@@ -253,7 +318,7 @@ class Mage:
         d.text((W - 54, 52), self.handle, font=self.mono(22), fill=(110, 128, 170), anchor="rm")
         d.line((54, 84, W - 54, 84), fill=(60, 90, 160), width=1)
         if label:
-            d.text((54, 118), "— " + label.upper(), font=self.mono(26), fill=YEL, anchor="lm")
+            d.text((54, 118), "— " + label.upper(), font=self.mono(26), fill=self.acc, anchor="lm")
         d.text((W // 2, 1858), "Follow", font=self.font(30), fill=(220, 228, 245), anchor="mm")
         lg = self._logo() if img is not None else None
         if lg is not None:  # the channel mark hangs in the top-right corner and sways a little, like a mascot
@@ -276,14 +341,15 @@ class Mage:
             return
         w, h = 700, 190
         off = int((1 - ease(a)) * 60)
-        d.rounded_rectangle((cx - w / 2, cy - h / 2 + off, cx + w / 2, cy + h / 2 + off), radius=22, fill=(12, 22, 54), outline=YEL, width=3)
+        d.rounded_rectangle((cx - w / 2, cy - h / 2 + off, cx + w / 2, cy + h / 2 + off), radius=22, fill=(12, 22, 54), outline=self.acc, width=3)
         d.text((cx, cy - 62 + off), term.get("kicker", "THIS IS CALLED"), font=self.mono(20), fill=MUTED, anchor="mm")
-        d.text((cx, cy - 8 + off), term.get("name", ""), font=self.font(58), fill=YEL, anchor="mm")
+        d.text((cx, cy - 8 + off), term.get("name", ""), font=self.font(58), fill=self.acc, anchor="mm")
         d.text((cx, cy + 54 + off), term.get("sub", ""), font=self.mono(24), fill=INK, anchor="mm")
 
     # ---------------------------------------------------------------- scene drawers
     def d_title(self, d, img, t, dur, data, si):
         a = ease(t / 0.5)
+        self.theme_art(d, t, self.theme)
         title = data.get("title", self.script["title"])
         size = 150 if len(title) < 10 else 110 if len(title) < 16 else 80
         d.text((W // 2, 640 - int((1 - a) * 40)), title, font=self.font(size), fill=INK, anchor="mm")
@@ -297,9 +363,9 @@ class Mage:
             h = len(lines) * 72 + 70
             s = 0.92 + 0.08 * p
             x0, x1, y0 = W / 2 - 450 * s, W / 2 + 450 * s, 1010
-            d.rounded_rectangle((x0, y0, x1, y0 + h * s), radius=26, fill=(10, 20, 52), outline=YEL, width=4)
+            d.rounded_rectangle((x0, y0, x1, y0 + h * s), radius=26, fill=(10, 20, 52), outline=self.acc, width=4)
             for i, ln in enumerate(lines):
-                col = YEL if i == len(lines) - 2 and len(lines) > 1 else INK
+                col = self.acc if i == len(lines) - 2 and len(lines) > 1 else INK
                 d.text((W // 2, y0 + 55 + i * 72), ln, font=self.font(54), fill=col, anchor="mm")
 
     def _wrap(self, text, f, mw):
@@ -317,7 +383,7 @@ class Mage:
     def d_steps(self, d, img, t, dur, data, si):
         items = [str(x) for x in data.get("items", [])][:5]
         bad = data.get("tone") == "bad"
-        col = RED if bad else YEL
+        col = RED if bad else self.acc
         rt = self.reveal_times(si, items)
         y0 = 520
         for i, it in enumerate(items):
@@ -406,9 +472,9 @@ class Mage:
         if hl and isinstance(hl, (list, tuple)) and len(hl) == 2:
             r, c = int(hl[0]) % rows, int(hl[1]) % cols
             pulse = 0.5 + 0.5 * math.sin(t * 6)
-            d.rectangle((x0 + c * cell, y0 + r * cell, x0 + (c + 1) * cell, y0 + (r + 1) * cell), outline=mix(RED, YEL, pulse), width=5)
+            d.rectangle((x0 + c * cell, y0 + r * cell, x0 + (c + 1) * cell, y0 + (r + 1) * cell), outline=mix(RED, self.acc, pulse), width=5)
         if data.get("note"):
-            self.chip(d, data["note"], W // 2, y0 + gh + 70, YEL, 26, ease((t - 0.6) / 0.4))
+            self.chip(d, data["note"], W // 2, y0 + gh + 70, self.acc, 26, ease((t - 0.6) / 0.4))
 
     def _hex(self, d, cx, cy, r, fill=None, outline=(70, 110, 190), width=2):
         pts = [(cx + r * math.cos(math.radians(60 * k)), cy + r * math.sin(math.radians(60 * k))) for k in range(6)]
@@ -438,7 +504,7 @@ class Mage:
                     ang = k * math.pi / 4
                     ln = 180 * p
                     far = k % 2 == 1
-                    d.line((x0 + 1.5 * cs, y0 + 1.5 * cs, x0 + 1.5 * cs + math.cos(ang) * ln * (1.35 if far else 1), y0 + 1.5 * cs + math.sin(ang) * ln * (1.35 if far else 1)), fill=RED if far else YEL, width=3)
+                    d.line((x0 + 1.5 * cs, y0 + 1.5 * cs, x0 + 1.5 * cs + math.cos(ang) * ln * (1.35 if far else 1), y0 + 1.5 * cs + math.sin(ang) * ln * (1.35 if far else 1)), fill=RED if far else self.acc, width=3)
                 for k in range(6):
                     ang = k * math.pi / 3 + math.pi / 6
                     d.line((hx, hy, hx + math.cos(ang) * 150 * p, hy + math.sin(ang) * 150 * p), fill=GREEN, width=3)
@@ -455,9 +521,9 @@ class Mage:
                     dist = max(abs(q), abs(r), abs(q + r))
                     lit = (dist == 0 and t > 0.3) or (dist == 1 and t > 1.2) or (dist == 2 and t > 2.2 and data.get("rings", 1) > 1)
                     self._hex(d, px, py, hr - 3, fill=(70, 70, 30) if dist == 0 and lit else (30, 80, 140) if lit else None,
-                              outline=YEL if dist == 0 and lit else (70, 110, 190), width=3 if lit else 1)
+                              outline=self.acc if dist == 0 and lit else (70, 110, 190), width=3 if lit else 1)
             if t > 0.3:
-                d.text((W / 2, 880 + 66), "TUM", font=self.mono(22), fill=YEL, anchor="mm")
+                d.text((W / 2, 880 + 66), "TUM", font=self.mono(22), fill=self.acc, anchor="mm")
         if data.get("note"):
             self.chip(d, data["note"], W // 2, 1330 if mode == "compare" else 1570, CYAN, 26, ease((t - 1.0) / 0.4))
 
@@ -495,7 +561,7 @@ class Mage:
         d.rounded_rectangle((x0 + 34, y0 + h - 150, x0 + w - 34, y0 + h - 60), radius=18, fill=(235, 240, 255))
         d.text((cx, y0 + h - 105), btn, font=self.font(36), fill=(10, 16, 40), anchor="mm")
         if data.get("note"):
-            self.chip(d, data["note"], W // 2, 1410, YEL, 26, ease((t - 0.8) / 0.4))
+            self.chip(d, data["note"], W // 2, 1410, self.acc, 26, ease((t - 0.8) / 0.4))
 
 
     # ---------------------------------------------------------------- richer scenes (devices, function box, clock)
@@ -543,9 +609,9 @@ class Mage:
                     d.ellipse((cx + w / 2 - 36, y + 4, cx + w / 2 - 28, y + 12), fill=GREEN)
             lines = [str(x) for x in spec.get("lines", [])][:3]
             for i, ln in enumerate(lines):
-                d.text((cx, cy + 10 + i * 32), ln[:20], font=self.mono(20), fill=YEL, anchor="mm")
+                d.text((cx, cy + 10 + i * 32), ln[:20], font=self.mono(20), fill=self.acc, anchor="mm")
             if spec.get("code"):
-                d.text((cx, cy + h / 2 - 34), str(spec["code"]), font=self.font(40), fill=YEL, anchor="mm")
+                d.text((cx, cy + h / 2 - 34), str(spec["code"]), font=self.font(40), fill=self.acc, anchor="mm")
         else:  # laptop
             d.rounded_rectangle((cx - w / 2, cy - h / 2, cx + w / 2, cy + h / 2 - 20), radius=14, fill=(245, 247, 252), outline=(210, 220, 240), width=4)
             d.polygon([(cx - w / 2 - 24, cy + h / 2), (cx + w / 2 + 24, cy + h / 2), (cx + w / 2 + 6, cy + h / 2 - 22), (cx - w / 2 - 6, cy + h / 2 - 22)], fill=(170, 184, 214))
@@ -588,14 +654,14 @@ class Mage:
             x1 = centres[i + 1] - dims[i + 1][0] / 2 - 34
             if x1 - x0 < 30:
                 x0, x1 = centres[i] + 30, centres[i + 1] - 30
-            d.line((x0, cy, x0 + (x1 - x0) * a, cy), fill=YEL, width=4)
+            d.line((x0, cy, x0 + (x1 - x0) * a, cy), fill=self.acc, width=4)
             if a >= 1:
                 ph = (t * 0.7 + i * 0.3) % 1
                 px = x0 + (x1 - x0) * ph
                 d.rounded_rectangle((px - 22, cy - 15, px + 22, cy + 15), radius=6, fill=AMBER)
                 d.text((px, cy), "KEY", font=self.mono(14), fill=(30, 20, 0), anchor="mm")
                 if i < len(flows):
-                    self.chip(d, flows[i], (x0 + x1) / 2, cy - 330 + i * 0, YEL, 20, ease((t - 1.5 - i * 0.7) / 0.4))
+                    self.chip(d, flows[i], (x0 + x1) / 2, cy - 330 + i * 0, self.acc, 20, ease((t - 1.5 - i * 0.7) / 0.4))
         if data.get("note"):
             self.chip(d, str(data["note"]), W // 2, cy + 330, CYAN, 24, ease((t - 1.2) / 0.4))
 
@@ -610,7 +676,7 @@ class Mage:
             if p <= 0:
                 continue
             s = 0.9 + 0.1 * min(1, p)
-            d.rounded_rectangle((xs[i] - 150 * s, top - 40 * s, xs[i] + 150 * s, top + 40 * s), radius=14, fill=BOX, outline=YEL if i == 0 else CYAN, width=3)
+            d.rounded_rectangle((xs[i] - 150 * s, top - 40 * s, xs[i] + 150 * s, top + 40 * s), radius=14, fill=BOX, outline=self.acc if i == 0 else CYAN, width=3)
             d.text((xs[i], top), str(it.get("label", ""))[:20], font=self.mono(22), fill=INK, anchor="mm")
             a = ease((t - 0.5 - i * 0.3) / 0.5)
             if a > 0:
@@ -618,8 +684,8 @@ class Mage:
         pf = back((t - 1.0) / 0.5)
         if pf > 0:
             s = 0.9 + 0.1 * min(1, pf)
-            d.rounded_rectangle((W / 2 - 130 * s, fy - 52 * s, W / 2 + 130 * s, fy + 52 * s), radius=16, fill=(30, 26, 8), outline=YEL, width=4)
-            d.text((W / 2, fy - 4), fn, font=self.font(52), fill=YEL, anchor="mm")
+            d.rounded_rectangle((W / 2 - 130 * s, fy - 52 * s, W / 2 + 130 * s, fy + 52 * s), radius=16, fill=(30, 26, 8), outline=self.acc, width=4)
+            d.text((W / 2, fy - 4), fn, font=self.font(52), fill=self.acc, anchor="mm")
             d.text((W / 2, fy + 34), str(data.get("sub", "")).upper(), font=self.mono(16), fill=MUTED, anchor="mm")
         out = str(data.get("output", ""))
         if out and t > 1.6:
@@ -632,8 +698,8 @@ class Mage:
                 shown = "".join(c if i < settle * len(chunk) else rnd.choice("0123456789abcdef") for i, c in enumerate(chunk))
                 d.text((W / 2, oy - 26 + r * 52), shown, font=self.mono(36 if len(chunk) <= 24 else 28), fill=INK, anchor="mm")
             if data.get("bracket") and settle > 0.95:
-                d.line((90, oy + 100, 90, oy + 112, W - 90, oy + 112, W - 90, oy + 100), fill=YEL, width=3)
-                self.chip(d, str(data["bracket"]), W // 2, oy + 160, YEL, 22, ease((t - 3.0) / 0.4))
+                d.line((90, oy + 100, 90, oy + 112, W - 90, oy + 112, W - 90, oy + 100), fill=self.acc, width=3)
+                self.chip(d, str(data["bracket"]), W // 2, oy + 160, self.acc, 22, ease((t - 3.0) / 0.4))
         if data.get("note"):
             self.chip(d, str(data["note"]), W // 2, 1300, RED, 22, ease((t - 2.6) / 0.4))
 
@@ -657,15 +723,15 @@ class Mage:
             v = total * ease((t - 1.0) / 1.4)
             d.text((W // 2, 760), f"{v:,.0f} {data.get('unit', 'sec')}", font=self.font(60), fill=INK, anchor="mm")
         if data.get("caption") and t > 2.4:
-            self.chip(d, str(data["caption"]), W // 2, 840, YEL, 20, ease((t - 2.4) / 0.4))
+            self.chip(d, str(data["caption"]), W // 2, 840, self.acc, 20, ease((t - 2.4) / 0.4))
         div = float(data.get("divide", 0) or 0)
         if total and div and t > 3.0:
             d.text((W // 2, 930), f"÷ {div:,.0f}", font=self.font(46), fill=MUTED, anchor="mm")
             res = int(total // div)
             p = ease((t - 3.3) / 0.8)
             shown = int(res * p) if p < 1 else res
-            d.rounded_rectangle((W / 2 - 280, 990, W / 2 + 280, 1100), radius=16, fill=(28, 24, 6), outline=YEL, width=4)
-            d.text((W // 2, 1045), f"{shown:,}".replace(",", ""), font=self.font(64), fill=YEL, anchor="mm")
+            d.rounded_rectangle((W / 2 - 280, 990, W / 2 + 280, 1100), radius=16, fill=(28, 24, 6), outline=self.acc, width=4)
+            d.text((W // 2, 1045), f"{shown:,}".replace(",", ""), font=self.font(64), fill=self.acc, anchor="mm")
             blocks = 30
             for b in range(blocks):
                 on = b < int(blocks * (0.5 + 0.5 * math.sin(t * 2)))
@@ -693,8 +759,8 @@ class Mage:
         a = back(t / 0.5)
         d.text((W // 2, 760 - int((1 - ease(t / 0.5)) * 40)), "Engineering aisi hi hoti hai", font=self.font(54), fill=INK, anchor="mm")
         s = 0.9 + 0.1 * a
-        d.rounded_rectangle((W / 2 - 420 * s, 900, W / 2 + 420 * s, 1010), radius=22, fill=BOX, outline=YEL, width=3)
-        d.text((W // 2, 955), f"FOLLOW {h}", font=self.mono(40), fill=YEL, anchor="mm")
+        d.rounded_rectangle((W / 2 - 420 * s, 900, W / 2 + 420 * s, 1010), radius=22, fill=BOX, outline=self.acc, width=3)
+        d.text((W // 2, 955), f"FOLLOW {h}", font=self.mono(40), fill=self.acc, anchor="mm")
         p = back((t - 0.5) / 0.5)
         if p > 0:
             d.rounded_rectangle((W / 2 - 300 * (0.9 + 0.1 * p), 1070, W / 2 + 300 * (0.9 + 0.1 * p), 1160), radius=22, fill=BOX, outline=CYAN, width=3)
@@ -872,10 +938,10 @@ def write_news(cfg: dict, topic: str, notes: str, language: str = "en", seconds:
         s = block.input
         try:
             if isinstance(s.get("scenes"), str):
-                s["scenes"] = json.loads(s["scenes"])
+                s["scenes"] = _loads(s["scenes"])
             for sc in s["scenes"]:
                 if isinstance(sc.get("data"), str):
-                    sc["data"] = json.loads(sc["data"])
+                    sc["data"] = _loads(sc["data"])
             words = sum(len(sc["say"].split()) for sc in s["scenes"])
             if 5 <= len(s["scenes"]) <= 12 and s["scenes"][0]["type"] == "hook" and seconds * 1.3 <= words <= seconds * 2.3:
                 s["style"] = "news"

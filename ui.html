@@ -621,11 +621,12 @@ function stRender(){
 }
 function stCheck(){$('#stBuild').disabled=!(ST&&stFile)}
 let MG=null;document.addEventListener('change',e=>{if(e.target.id==='mgStyle'){$('#mgNotesBox').style.display=e.target.value==='news'?'block':'none';$('#mgLang').value=e.target.value==='news'?'en':'hinglish'}});
-const MGTYPE={hook:'Hook headline',points:'Spec list',bars:'Bar chart',vs:'Face-off',stat:'Big number',title:'Title and question',steps:'Steps',flow:'Data flow',grid:'Grid',hex:'Hex cells',phone:'Phone screen',counter:'Counter',cta:'Follow card'};
+const MGTYPE={citymap:'City map with cabs',seatmap:'Seat map',stadium:'Stadium and crowd',profiles:'Profile match',funnel:'Funnel',queue:'Waiting-room queue',cdn:'Edge servers',devices:'Device screens',pipeline:'Function box',timer:'Clock and counter',hook:'Hook headline',points:'Spec list',bars:'Bar chart',vs:'Face-off',stat:'Big number',title:'Title and question',steps:'Steps',flow:'Data flow',grid:'Grid',hex:'Hex cells',phone:'Phone screen',counter:'Counter',cta:'Follow card'};
 async function loadMage(){const m=await api('/api/music');$('#mgMusic').innerHTML='<option value="auto">Auto (EDM)</option><option value="none">No music</option>'+m.map(t=>`<option value="${esc(t.name)}">${esc(t.mood)} · ${esc(t.name)}</option>`).join('')}
 function mgRender(){const sc=MG.scenes;const words=sc.reduce((n,x)=>n+x.say.trim().split(/\s+/).filter(Boolean).length,0);
   $('#mgScript').innerHTML=`<label class="l">Title</label><input id="mgTitle" value="${esc(MG.title)}">
    <p class="sub" style="margin:8px 0"><b>${words}</b> words ≈ <b>${Math.round(words/2.1)}s</b> spoken.</p>`+
+   (MG.brief?`<details style="margin:8px 0"><summary class="sub" style="cursor:pointer">Research notes used (${esc(MG.theme||'generic')} theme)</summary><pre style="white-space:pre-wrap;font-size:12px">${esc(MG.brief)}</pre></details>`:'')+
    sc.map((x,i)=>`<div class="scene" style="align-items:flex-start"><i>${i+1}</i><div style="flex:1"><textarea data-m="${i}" rows="3" style="width:100%">${esc(x.say)}</textarea><em>🖼 ${esc(MGTYPE[x.type]||x.type)}${x.label?' · '+esc(x.label):''}</em></div></div>`).join('');
   $('#mgBuild').disabled=false}
 $('#mgWrite').onclick=async()=>{const b=$('#mgWrite');b.disabled=true;b.textContent='Writing…';

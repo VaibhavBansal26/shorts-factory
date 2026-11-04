@@ -12,6 +12,6 @@ $PY -m PyInstaller --noconfirm --clean --windowed --name "Shorts Factory" --icon
   --add-data "assets/logo.png:assets" --add-data "assets/fonts:assets/fonts" --add-data "assets/music/main:assets/music/main" \
   --collect-all imageio_ffmpeg  --collect-all webview --collect-all googleapiclient --collect-all google_auth_oauthlib \
   --collect-submodules edge_tts --collect-submodules anthropic \
-  --hidden-import src.series --hidden-import src.remix --hidden-import src.sigma_bgm --hidden-import src.studio --hidden-import src.enhance --hidden-import src.edm_bgm --hidden-import src.misc --hidden-import src.channels --hidden-import src.prefs --hidden-import src.memes --hidden-import src.mage --hidden-import src.icons \
+  --hidden-import src.series --hidden-import src.remix --hidden-import src.sigma_bgm --hidden-import src.studio --hidden-import src.enhance --hidden-import src.edm_bgm --hidden-import src.misc --hidden-import src.channels --hidden-import src.prefs --hidden-import src.memes --hidden-import src.mage --hidden-import src.mage_worlds --hidden-import src.icons \
   $MP desktop.py
 echo "Built: dist/Shorts Factory.app"

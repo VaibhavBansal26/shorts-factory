@@ -620,6 +620,7 @@ function stRender(){
   $('#stAgain').onclick=()=>$('#stWrite').click();
 }
 function stCheck(){$('#stBuild').disabled=!(ST&&stFile)}
+const waitJob=async id=>{for(;;){await new Promise(r=>setTimeout(r,1500));const j=(await api('/api/jobs')).find(x=>x.id===id);if(!j)continue;if(j.status==='done')return j.result;if(j.status==='failed')throw new Error(j.error||'Could not write the storyboard')}};
 let MG=null;document.addEventListener('change',e=>{if(e.target.id==='mgStyle'){$('#mgNotesBox').style.display=e.target.value==='news'?'block':'none';$('#mgLang').value=e.target.value==='news'?'en':'hinglish'}});
 const MGTYPE={arch:'Architecture diagram',storefront:'Online store',lifecycle:'Order / pipeline states',recsys:'Recommendations',mlviz:'ML algorithm',citymap:'City map with cabs',seatmap:'Seat map',stadium:'Stadium and crowd',profiles:'Profile match',funnel:'Funnel',queue:'Waiting-room queue',cdn:'Edge servers',devices:'Device screens',pipeline:'Function box',timer:'Clock and counter',hook:'Hook headline',points:'Spec list',bars:'Bar chart',vs:'Face-off',stat:'Big number',title:'Title and question',steps:'Steps',flow:'Data flow',grid:'Grid',hex:'Hex cells',phone:'Phone screen',counter:'Counter',cta:'Follow card'};
 async function loadMage(){const m=await api('/api/music');$('#mgMusic').innerHTML='<option value="auto">Auto (EDM)</option><option value="none">No music</option>'+m.map(t=>`<option value="${esc(t.name)}">${esc(t.mood)} · ${esc(t.name)}</option>`).join('')}
@@ -630,7 +631,7 @@ function mgRender(){const sc=MG.scenes;const words=sc.reduce((n,x)=>n+x.say.trim
    sc.map((x,i)=>`<div class="scene" style="align-items:flex-start"><i>${i+1}</i><div style="flex:1"><textarea data-m="${i}" rows="3" style="width:100%">${esc(x.say)}</textarea><em>🖼 ${esc(MGTYPE[x.type]||x.type)}${x.label?' · '+esc(x.label):''}</em></div></div>`).join('');
   $('#mgBuild').disabled=false}
 $('#mgWrite').onclick=async()=>{const b=$('#mgWrite');b.disabled=true;b.textContent='Writing…';
-  try{MG=await post('/api/mage/script',{topic:$('#mgTopic').value,style:$('#mgStyle').value,notes:$('#mgNotes').value,language:$('#mgLang').value,seconds:+$('#mgLen').value});mgRender();if(MG.mock)toast('No Claude key yet, showing an example storyboard')}catch(e){toast(e.message,1)}
+  try{const r=await post('/api/mage/script',{topic:$('#mgTopic').value,style:$('#mgStyle').value,notes:$('#mgNotes').value,language:$('#mgLang').value,seconds:+$('#mgLen').value});pollJobs();MG=await waitJob(r.job);mgRender();if(MG.mock)toast('No Claude key yet, showing an example storyboard')}catch(e){toast(e.message,1)}
   b.disabled=false;b.textContent='Write storyboard'};
 $('#mgBuild').onclick=async()=>{MG.title=$('#mgTitle').value||MG.title;$$('#mgScript textarea').forEach(t=>{MG.scenes[+t.dataset.m].say=t.value});
   try{await post('/api/mage/build',{script:MG,language:$('#mgLang').value,music:$('#mgMusic').value});toast('Building your reel…');pollJobs()}catch(e){toast(e.message,1)}};

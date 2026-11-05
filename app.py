@@ -71,6 +71,7 @@ def start_job(title: str, fn, exclusive: bool = True, key: str | None = None) ->
                 job["status"] = "done"
             except BaseException as e:  # noqa: BLE001 (SystemExit from youtube auth too)
                 print(f"✗ {e}")
+                job["error"] = str(e)[:300]
                 job["status"] = "failed"
 
     threading.Thread(target=runner, daemon=True).start()
@@ -235,16 +236,15 @@ def mage_script():
     news = b.get("style") == "news"
     if not topic and not news and have_key():
         return jsonify(error="type a topic, e.g. how WhatsApp delivers messages"), 400
-    try:
-        sec = max(30, min(90, int(b.get("seconds", 60))))
-        lang = b.get("language") if b.get("language") in ("hinglish", "en") else "hinglish"
-        if news:
-            out = mage.write_news(cfg, topic, b.get("notes", ""), lang, sec)
-        else:
-            out = mage.write_script(cfg, topic, lang, sec)
-        return jsonify({**out, "mock": not have_key()})
-    except Exception as e:
-        return jsonify(error=f"Could not write the storyboard: {e}"), 500
+    sec = max(30, min(90, int(b.get("seconds", 60))))
+    lang = b.get("language") if b.get("language") in ("hinglish", "en") else "hinglish"
+    notes = b.get("notes", "")
+
+    def go():  # research plus writing takes over a minute: a background job, because the app window drops requests after ~60s
+        out = mage.write_news(cfg, topic, notes, lang, sec) if news else mage.write_script(cfg, topic, lang, sec)
+        return {**out, "mock": not have_key()}
+
+    return jsonify(job=start_job(f"Mage storyboard: {(topic or 'AI news')[:34]}", go, exclusive=False))
 
 
 @app.post("/api/mage/build")

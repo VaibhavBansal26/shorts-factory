@@ -21,7 +21,7 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - runner: macos-14        # Apple Silicon (M1 and later)
+          - runner: macos-15        # Apple Silicon (M1 and later)
             arch: AppleSilicon
           - runner: macos-15-intel  # Intel Macs
             arch: Intel
